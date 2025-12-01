@@ -26,21 +26,41 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative overflow-x-hidden">
       {/* Background com partículas */}
       <div className="particles-bg" />
       
-      {/* Logo Fixa no Topo */}
-      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4">
+      {/* Logo Fixa no Topo - Sem efeitos de scroll */}
+      <div 
+        style={{ 
+          position: 'fixed',
+          top: '0.5rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 50,
+          width: '100%',
+          maxWidth: '28rem',
+          padding: '0 1rem',
+          pointerEvents: 'none'
+        }}
+      >
         <img 
           src="/images/HACKER MILLON PNG.png" 
           alt="24Games Logo" 
-          className="h-24 md:h-32 w-auto object-contain mx-auto"
+          style={{ 
+            height: '8rem',
+            width: 'auto',
+            objectFit: 'contain',
+            margin: '0 auto',
+            display: 'block',
+            pointerEvents: 'none'
+          }}
+          className="md:h-40"
         />
       </div>
       
       {/* Container principal */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-8 pt-20">
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-8 pt-28 md:pt-36">
         <div className="w-full max-w-md">
           <AnimatePresence mode="wait">
             {currentStep === 1 && (
