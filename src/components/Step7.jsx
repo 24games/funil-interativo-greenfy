@@ -35,7 +35,7 @@ export default function Step7() {
         className="flex items-center justify-center gap-2 mx-auto bg-neon/10 border border-neon/30 rounded-full px-6 py-2"
       >
         <Sparkles size={20} className="text-neon" />
-        <span className="text-neon font-bold text-sm">CUPO RESERVADO</span>
+        <span className="text-neon font-bold text-sm">ACCESO LIBERADO</span>
         <Sparkles size={20} className="text-neon" />
       </motion.div>
 
@@ -74,11 +74,26 @@ export default function Step7() {
         <span className="text-gray-400 text-sm font-medium">Video Vturb</span>
       </motion.div>
 
-      {/* Lista de benefícios rápidos */}
-      <motion.div
+      {/* CTA Final - Logo abaixo do vídeo */}
+      <motion.button
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.1 }}
+        onClick={handleCTA}
+        className="neon-button w-full text-lg py-6 animate-heartbeat"
+        style={{ 
+          fontSize: '18px',
+          boxShadow: '0 0 40px rgba(0, 255, 136, 0.6)'
+        }}
+      >
+        ¡GARANTIZAR CUPO AHORA!
+      </motion.button>
+
+      {/* Lista de benefícios rápidos - Abaixo do botão */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.3 }}
         className="glass-card p-6 space-y-3"
       >
         {[
@@ -91,7 +106,7 @@ export default function Step7() {
             key={benefit}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 1.3 + index * 0.1 }}
+            transition={{ delay: 1.5 + index * 0.1 }}
             className="flex items-center gap-3"
           >
             <div className="w-6 h-6 rounded-full bg-neon/20 flex items-center justify-center flex-shrink-0">
@@ -106,27 +121,12 @@ export default function Step7() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1.7 }}
+        transition={{ delay: 1.9 }}
         className="text-center space-y-1"
       >
         <p className="text-yellow-400 font-bold text-sm">⚠️ CUPOS LIMITADOS</p>
         <p className="text-gray-400 text-xs">Solo quedan 7 cupos disponibles hoy</p>
       </motion.div>
-
-      {/* CTA Final */}
-      <motion.button
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.9 }}
-        onClick={handleCTA}
-        className="neon-button w-full text-lg py-6 animate-heartbeat"
-        style={{ 
-          fontSize: '18px',
-          boxShadow: '0 0 40px rgba(0, 255, 136, 0.6)'
-        }}
-      >
-        ¡GARANTIZAR CUPO AHORA!
-      </motion.button>
 
       {/* Trust badges */}
       <motion.div
@@ -144,5 +144,6 @@ export default function Step7() {
     </motion.div>
   )
 }
+
 
 

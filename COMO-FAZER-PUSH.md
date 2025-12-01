@@ -120,3 +120,4 @@ git config --global user.email "seu-email@exemplo.com"
 
 Se preferir, você pode usar o **GitHub Desktop** (aplicativo gráfico) que é mais fácil para iniciantes!
 
+

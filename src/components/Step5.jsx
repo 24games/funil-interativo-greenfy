@@ -5,17 +5,20 @@ const questions = [
   {
     id: 'freeTime',
     text: '¿Cuánto tiempo libre tienes al día?',
-    options: ['Menos de 1h', '1h a 2h', 'Más de 3h']
+    options: ['Menos de 1 hora', '1 a 2 horas', '3 a 4 horas', 'Más de 4 horas'],
+    emoji: '⏱️'
   },
   {
-    id: 'aiIncome',
-    text: '¿Ya generaste ingresos usando Inteligencia Artificial?',
-    options: ['Sí', 'No', 'Lo intenté pero fallé']
+    id: 'aiUsage',
+    text: '¿Ya usaste alguna IA?',
+    options: ['ChatGPT', 'Claude', 'Gemini', 'Nunca usé ninguna'],
+    emoji: '🤖'
   },
   {
     id: 'internetAccess',
     text: '¿Cómo accedes a internet normalmente?',
-    options: ['Red Móvil', 'WiFi', 'Ambos']
+    options: ['Red Móvil', 'WiFi', 'Ambos', 'Solo WiFi'],
+    emoji: '📶'
   }
 ]
 
@@ -39,8 +42,6 @@ export default function Step5({ onNext, onAnswer }) {
     }, 500)
   }
 
-  const progress = ((currentQuestion + 1) / questions.length) * 40 + 60
-
   return (
     <motion.div
       initial={{ opacity: 0, x: 50 }}
@@ -49,15 +50,6 @@ export default function Step5({ onNext, onAnswer }) {
       transition={{ duration: 0.5 }}
       className="flex flex-col gap-6"
     >
-      {/* Barra de Progresso */}
-      <div className="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
-        <motion.div 
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-          className="progress-bar-fill h-full"
-        />
-      </div>
-
       {/* Contador de perguntas */}
       <div className="text-center text-sm text-gray-400">
         Pregunta {currentQuestion + 1} de {questions.length}
@@ -94,10 +86,34 @@ export default function Step5({ onNext, onAnswer }) {
               </motion.button>
             ))}
           </div>
+
+          {/* Emoji Pulsante */}
+          <motion.div
+            key={`emoji-${currentQuestion}`}
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ 
+              scale: [1, 1.2, 1],
+              rotate: 0
+            }}
+            transition={{ 
+              scale: {
+                duration: 1.5, 
+                repeat: Infinity,
+                ease: "easeInOut"
+              },
+              rotate: {
+                duration: 0.5
+              }
+            }}
+            className="text-center mt-6"
+          >
+            <span className="text-6xl">{questions[currentQuestion].emoji}</span>
+          </motion.div>
         </motion.div>
       </AnimatePresence>
     </motion.div>
   )
 }
+
 
 

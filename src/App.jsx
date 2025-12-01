@@ -13,7 +13,7 @@ function App() {
   const [answers, setAnswers] = useState({
     timeToMake: null,
     freeTime: null,
-    aiIncome: null,
+    aiUsage: null,
     internetAccess: null,
   })
 
@@ -30,8 +30,17 @@ function App() {
       {/* Background com partículas */}
       <div className="particles-bg" />
       
+      {/* Logo Fixa no Topo */}
+      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4">
+        <img 
+          src="/images/HACKER MILLON PNG.png" 
+          alt="24Games Logo" 
+          className="h-12 w-auto object-contain mx-auto"
+        />
+      </div>
+      
       {/* Container principal */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-8">
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-8 pt-20">
         <div className="w-full max-w-md">
           <AnimatePresence mode="wait">
             {currentStep === 1 && (
@@ -71,5 +80,6 @@ function App() {
 }
 
 export default App
+
 
 

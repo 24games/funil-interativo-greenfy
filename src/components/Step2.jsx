@@ -61,8 +61,23 @@ export default function Step2({ onNext, onAnswer }) {
           </motion.button>
         ))}
       </div>
+
+      {/* Emoji Pulsante */}
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: [1, 1.2, 1] }}
+        transition={{ 
+          duration: 1.5, 
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+        className="text-center mt-6"
+      >
+        <span className="text-6xl">⏰</span>
+      </motion.div>
     </motion.div>
   )
 }
+
 
 

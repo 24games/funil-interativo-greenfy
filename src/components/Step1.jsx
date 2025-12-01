@@ -10,18 +10,13 @@ export default function Step1({ onNext }) {
       transition={{ duration: 0.5 }}
       className="flex flex-col items-center gap-8"
     >
-      {/* Logo */}
-      <div className="w-32 h-16 bg-gradient-to-r from-neon to-green-400 rounded-lg flex items-center justify-center">
-        <span className="text-dark font-bold text-xl">24GAMES</span>
-      </div>
-
       {/* Headline */}
       <h1 className="text-3xl md:text-4xl font-bold text-center leading-tight px-4">
         Genera de{' '}
         <span className="money-highlight">
           $1.000.000 a $4.500.000 CLP
         </span>{' '}
-        mensuales evaluando patrones.
+        mensuales copiando y pegando las señales de mi I.A.
       </h1>
 
       {/* Video Placeholder */}
@@ -45,5 +40,6 @@ export default function Step1({ onNext }) {
     </motion.div>
   )
 }
+
 
 
