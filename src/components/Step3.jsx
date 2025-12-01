@@ -25,16 +25,6 @@ export default function Step3({ onNext }) {
       transition={{ duration: 0.5 }}
       className="flex flex-col gap-6"
     >
-      {/* Barra de Progresso */}
-      <div className="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
-        <motion.div 
-          initial={{ width: '20%' }}
-          animate={{ width: '40%' }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-          className="progress-bar-fill h-full"
-        />
-      </div>
-
       {/* Headline */}
       <h2 className="text-2xl md:text-3xl font-bold text-center leading-tight">
         ¡Ya ayudé a miles de personas a cambiar su vida con lo que te voy a mostrar!

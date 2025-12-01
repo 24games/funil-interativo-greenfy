@@ -35,7 +35,7 @@ function App() {
         <img 
           src="/images/HACKER MILLON PNG.png" 
           alt="24Games Logo" 
-          className="h-12 w-auto object-contain mx-auto"
+          className="h-24 md:h-32 w-auto object-contain mx-auto"
         />
       </div>
       

@@ -17,16 +17,6 @@ export default function Step7() {
       transition={{ duration: 0.5 }}
       className="flex flex-col gap-6"
     >
-      {/* Barra de Progresso Completa */}
-      <div className="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
-        <motion.div 
-          initial={{ width: '80%' }}
-          animate={{ width: '100%' }}
-          transition={{ duration: 1, ease: 'easeOut' }}
-          className="progress-bar-fill h-full"
-        />
-      </div>
-
       {/* Badge de conclusão */}
       <motion.div
         initial={{ scale: 0 }}

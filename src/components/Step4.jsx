@@ -10,16 +10,6 @@ export default function Step4({ onNext }) {
       transition={{ duration: 0.5 }}
       className="flex flex-col gap-6"
     >
-      {/* Barra de Progresso */}
-      <div className="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
-        <motion.div 
-          initial={{ width: '40%' }}
-          animate={{ width: '60%' }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-          className="progress-bar-fill h-full"
-        />
-      </div>
-
       {/* Headline */}
       <h2 className="text-2xl md:text-3xl font-bold text-center leading-tight">
         Mira cómo hice{' '}
