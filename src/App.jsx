@@ -30,38 +30,25 @@ function App() {
       {/* Background com partículas */}
       <div className="particles-bg" />
       
-      {/* Logo Fixa no Topo - Sem efeitos de scroll */}
-      <div 
-        style={{ 
-          position: 'fixed',
-          top: '0.5rem',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 50,
-          width: '100%',
-          maxWidth: '28rem',
-          padding: '0 1rem',
-          pointerEvents: 'none'
-        }}
-      >
-        <img 
-          src="/images/HACKER MILLON PNG.png" 
-          alt="24Games Logo" 
-          style={{ 
-            height: '8rem',
-            width: 'auto',
-            objectFit: 'contain',
-            margin: '0 auto',
-            display: 'block',
-            pointerEvents: 'none'
-          }}
-          className="md:h-40"
-        />
-      </div>
-      
       {/* Container principal */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-8 pt-28 md:pt-36">
-        <div className="w-full max-w-md">
+      <div className="relative z-10 min-h-screen flex flex-col items-center px-4 py-8">
+        {/* Logo no Topo - Não fixa, sai ao scrollar */}
+        <div className="w-full max-w-md mb-8 flex justify-center">
+          <img 
+            src="/images/HACKER MILLON PNG.png" 
+            alt="24Games Logo" 
+            style={{ 
+              height: '8rem',
+              width: 'auto',
+              objectFit: 'contain',
+              display: 'block'
+            }}
+            className="md:h-40"
+          />
+        </div>
+        
+        {/* Conteúdo */}
+        <div className="w-full max-w-md flex items-center justify-center">
           <AnimatePresence mode="wait">
             {currentStep === 1 && (
               <Step1 key="step1" onNext={nextStep} />
