@@ -19,21 +19,21 @@ export default function Step3({ onNext }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      transition={{ duration: 0.5 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.4, ease: "easeInOut" }}
       className="flex flex-col gap-6"
     >
       {/* Headline */}
-      <h2 className="text-2xl md:text-3xl font-bold text-center leading-tight">
+      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-center leading-tight px-2 break-words">
         ¡Ya ayudé a miles de personas a cambiar su vida con lo que te voy a mostrar!
       </h2>
 
       {/* Subheadline */}
-      <p className="text-lg text-center text-gray-300">
+      <p className="text-base sm:text-lg text-center text-gray-300 px-2 break-words">
         Y lo mejor,{' '}
-        <span className="font-bold text-neon bg-neon/10 px-2 py-1 rounded">
+        <span className="font-bold text-neon bg-neon/10 px-2 py-1 rounded inline-block">
           no cobré ni un peso por eso
         </span>
         .
@@ -66,7 +66,7 @@ export default function Step3({ onNext }) {
       {/* Botão */}
       <button 
         onClick={onNext}
-        className="neon-button w-full"
+        className="neon-button w-full text-sm sm:text-base px-4 py-4 sm:py-5"
       >
         CONTINUAR
       </button>

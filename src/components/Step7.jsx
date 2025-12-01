@@ -70,9 +70,8 @@ export default function Step7() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.1 }}
         onClick={handleCTA}
-        className="neon-button w-full text-lg py-6 animate-heartbeat"
+        className="neon-button w-full text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 px-4 animate-heartbeat"
         style={{ 
-          fontSize: '18px',
           boxShadow: '0 0 40px rgba(0, 255, 136, 0.6)'
         }}
       >

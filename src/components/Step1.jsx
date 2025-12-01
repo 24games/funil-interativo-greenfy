@@ -6,12 +6,12 @@ export default function Step1({ onNext }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      transition={{ duration: 0.5 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.4, ease: "easeInOut" }}
       className="flex flex-col items-center gap-8"
     >
       {/* Headline */}
-      <h1 className="text-3xl md:text-4xl font-bold text-center leading-tight px-4">
+      <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-center leading-tight px-2 sm:px-4 break-words">
         Genera de{' '}
         <span className="money-highlight">
           $1.000.000 a $4.500.000 CLP
@@ -33,7 +33,7 @@ export default function Step1({ onNext }) {
       {/* Botão */}
       <button 
         onClick={onNext}
-        className="neon-button w-full animate-pulse-glow"
+        className="neon-button w-full animate-pulse-glow text-sm sm:text-base"
       >
         CONTINUAR
       </button>

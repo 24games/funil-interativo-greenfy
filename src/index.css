@@ -135,7 +135,7 @@ body {
   background: #00FF88;
   color: #050505;
   font-weight: 700;
-  padding: 18px 32px;
+  padding: 14px 24px;
   border-radius: 12px;
   border: none;
   cursor: pointer;
@@ -143,7 +143,17 @@ body {
   box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  font-size: 16px;
+  font-size: 14px;
+  word-wrap: break-word;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+@media (min-width: 640px) {
+  .neon-button {
+    padding: 18px 32px;
+    font-size: 16px;
+  }
 }
 
 .neon-button:hover {

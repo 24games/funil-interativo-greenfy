@@ -4,10 +4,10 @@ import { Play } from 'lucide-react'
 export default function Step4({ onNext }) {
   return (
     <motion.div
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      transition={{ duration: 0.5 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.4, ease: "easeInOut" }}
       className="flex flex-col gap-6"
     >
       {/* Headline */}
@@ -33,7 +33,7 @@ export default function Step4({ onNext }) {
       {/* Botão */}
       <button 
         onClick={onNext}
-        className="neon-button w-full mt-4"
+        className="neon-button w-full mt-4 text-sm sm:text-base px-4"
       >
         QUIERO APRENDER ESTE MÉTODO
       </button>

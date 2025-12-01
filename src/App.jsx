@@ -49,7 +49,7 @@ function App() {
         
         {/* Conteúdo */}
         <div className="w-full max-w-md flex items-center justify-center">
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait" initial={false}>
             {currentStep === 1 && (
               <Step1 key="step1" onNext={nextStep} />
             )}

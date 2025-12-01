@@ -44,10 +44,10 @@ export default function Step5({ onNext, onAnswer }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      transition={{ duration: 0.5 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.4, ease: "easeInOut" }}
       className="flex flex-col gap-6"
     >
       {/* Contador de perguntas */}
@@ -58,14 +58,14 @@ export default function Step5({ onNext, onAnswer }) {
       <AnimatePresence mode="wait">
         <motion.div
           key={currentQuestion}
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -50 }}
-          transition={{ duration: 0.4 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
           className="flex flex-col gap-6"
         >
           {/* Pergunta */}
-          <h2 className="text-2xl md:text-3xl font-bold text-center leading-tight px-2">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-center leading-tight px-2 break-words">
             {questions[currentQuestion].text}
           </h2>
 
