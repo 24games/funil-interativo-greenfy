@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 // Lista de imagens de depoimentos
 const testimonialImageFiles = [
@@ -29,13 +29,63 @@ const testimonialImages = testimonialImageFiles.length > 0
 
 export default function Step3({ onNext }) {
   const [scrollPosition, setScrollPosition] = useState(0)
+  const carouselRef = useRef(null)
+
+  // Calcula a largura de uma imagem + gap baseado no tamanho da tela
+  const getImageWidth = () => {
+    if (typeof window === 'undefined') return 188 // w-44 (176px) + gap-3 (12px)
+    const width = window.innerWidth
+    if (width >= 1024) return 272 // lg:w-64 (256px) + gap-4 (16px)
+    if (width >= 768) return 256 // md:w-60 (240px) + gap-4 (16px)
+    if (width >= 640) return 220 // sm:w-52 (208px) + gap-3 (12px)
+    return 188 // w-44 (176px) + gap-3 (12px) mobile
+  }
+
+  // Largura total para mostrar todas as 6 imagens
+  const imageWidth = getImageWidth()
+  const totalWidth = imageWidth * testimonialImages.length
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setScrollPosition(prev => (prev + 1) % 300)
-    }, 30)
-    return () => clearInterval(interval)
-  }, [])
+    let animationFrame
+    let lastTime = 0
+    const speed = 0.3 // pixels por frame
+
+    const animate = (currentTime) => {
+      if (!lastTime) lastTime = currentTime
+      const deltaTime = currentTime - lastTime
+      
+      if (deltaTime >= 16) { // ~60fps
+        setScrollPosition(prev => {
+          const newPosition = prev + speed
+          // Quando chegar ao final da primeira cópia (6 imagens), reseta para 0
+          // Como temos 3 cópias idênticas, o reset é totalmente imperceptível
+          if (newPosition >= totalWidth) {
+            // Reset instantâneo sem transição - imperceptível porque a segunda cópia é idêntica
+            if (carouselRef.current) {
+              carouselRef.current.style.transition = 'none'
+            }
+            return 0
+          } else {
+            // Restaura transição suave durante a animação normal
+            if (carouselRef.current && prev === 0) {
+              setTimeout(() => {
+                if (carouselRef.current) {
+                  carouselRef.current.style.transition = ''
+                }
+              }, 0)
+            }
+            return newPosition
+          }
+        })
+        lastTime = currentTime
+      }
+      
+      animationFrame = requestAnimationFrame(animate)
+    }
+
+    animationFrame = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(animationFrame)
+  }, [totalWidth])
 
   return (
     <motion.div
@@ -62,10 +112,15 @@ export default function Step3({ onNext }) {
       {/* Carrossel de Prints */}
       <div className="relative overflow-hidden py-6 w-full -mx-2 sm:-mx-4 px-2 sm:px-4">
         <motion.div 
+          ref={carouselRef}
           className="flex gap-3 sm:gap-4"
-          style={{ x: -scrollPosition }}
+          style={{ 
+            x: -scrollPosition,
+            willChange: 'transform'
+          }}
         >
-          {[...testimonialImages, ...testimonialImages].map((img, index) => (
+          {/* Duplica as imagens para criar loop infinito */}
+          {[...testimonialImages, ...testimonialImages, ...testimonialImages].map((img, index) => (
             <div
               key={`${img.id}-${index}`}
               className="flex-shrink-0 w-44 h-64 sm:w-52 sm:h-72 md:w-60 md:h-80 lg:w-64 lg:h-96 testimonial-image-wrapper"
