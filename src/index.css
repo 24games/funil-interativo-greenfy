@@ -203,6 +203,23 @@ body {
   height: 100%;
 }
 
+/* Borda com degradê para vídeos Vturb */
+.vturb-video-wrapper {
+  position: relative;
+  border-radius: 1.5rem;
+  padding: 1px;
+  background: linear-gradient(135deg, #00FF88, #00FFD4);
+  overflow: hidden;
+}
+
+.vturb-video-wrapper vturb-smartplayer {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: calc(1.5rem - 1px) !important;
+  overflow: hidden !important;
+}
+
 .video-placeholder::before {
   content: '';
   position: absolute;
