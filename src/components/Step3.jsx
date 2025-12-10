@@ -1,11 +1,31 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 
-const testimonialImages = [
+// Lista de imagens de depoimentos
+const testimonialImageFiles = [
+  '1.jpeg',
+  '2-certo.jpg',
+  '3.jpeg',
+  '4.jpg',
+  '5.jpeg',
+  '6.jpg',
+]
+
+// Placeholders caso não haja imagens reais
+const placeholderImages = [
   { id: 1, color: 'from-green-900/20 to-emerald-900/20' },
   { id: 2, color: 'from-teal-900/20 to-cyan-900/20' },
   { id: 3, color: 'from-lime-900/20 to-green-900/20' },
 ]
+
+// Usa imagens reais se disponíveis, senão usa placeholders
+const testimonialImages = testimonialImageFiles.length > 0 
+  ? testimonialImageFiles.map((file, index) => ({
+      id: index + 1,
+      image: `/images/depoimentos/${file}`,
+      isReal: true
+    }))
+  : placeholderImages.map(img => ({ ...img, isReal: false }))
 
 export default function Step3({ onNext }) {
   const [scrollPosition, setScrollPosition] = useState(0)
@@ -48,16 +68,29 @@ export default function Step3({ onNext }) {
           {[...testimonialImages, ...testimonialImages].map((img, index) => (
             <div
               key={`${img.id}-${index}`}
-              className={`flex-shrink-0 w-44 h-64 sm:w-52 sm:h-72 md:w-60 md:h-80 lg:w-64 lg:h-96 rounded-xl sm:rounded-2xl bg-gradient-to-br ${img.color} border border-neon/20 flex items-center justify-center`}
+              className="flex-shrink-0 w-44 h-64 sm:w-52 sm:h-72 md:w-60 md:h-80 lg:w-64 lg:h-96 testimonial-image-wrapper"
             >
-              <div className="text-center p-3 sm:p-4 md:p-6">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full bg-neon/20 mx-auto mb-2 sm:mb-3 md:mb-4" />
-                <div className="space-y-1.5 sm:space-y-2">
-                  <div className="h-2 sm:h-2.5 md:h-3 bg-white/10 rounded w-3/4 mx-auto" />
-                  <div className="h-2 sm:h-2.5 md:h-3 bg-white/10 rounded w-full" />
-                  <div className="h-2 sm:h-2.5 md:h-3 bg-white/10 rounded w-5/6 mx-auto" />
+              {img.isReal ? (
+                // Imagem real
+                <img
+                  src={img.image}
+                  alt={`Depoimento ${img.id}`}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                // Placeholder
+                <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${img.color}`}>
+                  <div className="text-center p-3 sm:p-4 md:p-6">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full bg-neon/20 mx-auto mb-2 sm:mb-3 md:mb-4" />
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <div className="h-2 sm:h-2.5 md:h-3 bg-white/10 rounded w-3/4 mx-auto" />
+                      <div className="h-2 sm:h-2.5 md:h-3 bg-white/10 rounded w-full" />
+                      <div className="h-2 sm:h-2.5 md:h-3 bg-white/10 rounded w-5/6 mx-auto" />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ))}
         </motion.div>

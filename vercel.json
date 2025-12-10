@@ -1,0 +1,17 @@
+{
+  "functions": {
+    "api/webhook-purchase.js": {
+      "maxDuration": 10
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/webhook-purchase",
+      "destination": "/api/webhook-purchase.js"
+    }
+  ]
+}
+
+
+
+

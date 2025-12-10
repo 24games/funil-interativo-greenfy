@@ -188,6 +188,21 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* Borda com degradê para imagens de depoimentos */
+.testimonial-image-wrapper {
+  position: relative;
+  border-radius: 1.5rem;
+  padding: 1px;
+  background: linear-gradient(135deg, #00FF88, #00FFD4);
+  overflow: hidden;
+}
+
+.testimonial-image-wrapper > * {
+  border-radius: calc(1.5rem - 1px);
+  width: 100%;
+  height: 100%;
+}
+
 .video-placeholder::before {
   content: '';
   position: absolute;

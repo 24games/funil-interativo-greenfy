@@ -14,7 +14,7 @@ export default function Step4({ onNext }) {
       <h2 className="text-2xl md:text-3xl font-bold text-center leading-tight">
         Mira cómo hice{' '}
         <span className="shimmer-text text-4xl">
-          $1.600.000 CLP
+          $1.500.000 CLP
         </span>{' '}
         en apenas 30 segundos
       </h2>
