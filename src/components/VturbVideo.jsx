@@ -2,16 +2,14 @@ import { useEffect, useRef } from 'react'
 
 /**
  * Componente para vídeos Vturb com bordas arredondadas e degradê
+ * Usa o método padrão do Vturb com displayHiddenElements
  * @param {string} videoId - ID do vídeo Vturb
  * @param {string} playerId - ID do player Vturb
- * @param {function} onProgress - Callback chamado quando o vídeo avança (recebe { currentTime, duration, progress })
- * @param {function} onReady - Callback chamado quando o player está pronto
+ * @param {number} delaySeconds - Segundos para mostrar elementos com classe .esconder
  */
-export default function VturbVideo({ videoId, playerId, onProgress, onReady }) {
+export default function VturbVideo({ videoId, playerId, delaySeconds }) {
   const containerRef = useRef(null)
   const playerRef = useRef(null)
-  const videoElementRef = useRef(null)
-  const progressIntervalRef = useRef(null)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -48,80 +46,50 @@ export default function VturbVideo({ videoId, playerId, onProgress, onReady }) {
       document.head.appendChild(script)
     }
 
-    // Aguarda o player carregar e então procura o elemento de vídeo interno
-    const checkVideoElement = () => {
+    // Usa o método padrão do Vturb para mostrar elementos após delay
+    const setupVturbDisplay = () => {
       if (!playerRef.current) return
 
-      // O Vturb cria um elemento de vídeo dentro do smartplayer
-      // Pode ser um <video> ou um elemento dentro do shadow DOM
-      const videoElement = playerRef.current.querySelector('video') || 
-                          playerRef.current.shadowRoot?.querySelector('video') ||
-                          playerRef.current
-
-      if (videoElement && videoElement.tagName === 'VIDEO') {
-        videoElementRef.current = videoElement
-        
-        // Adiciona listeners de eventos do vídeo
-        const handleTimeUpdate = () => {
-          if (videoElementRef.current && onProgress) {
-            const currentTime = videoElementRef.current.currentTime || 0
-            const duration = videoElementRef.current.duration || 0
-            const progress = duration > 0 ? (currentTime / duration) * 100 : 0
-            
-            onProgress({
-              currentTime,
-              duration,
-              progress
+      try {
+        // Adiciona listener para quando o player estiver pronto
+        const handlePlayerReady = () => {
+          if (playerRef.current && delaySeconds && typeof playerRef.current.displayHiddenElements === 'function') {
+            playerRef.current.displayHiddenElements(delaySeconds, [".esconder"], {
+              persist: true
             })
           }
         }
 
-        const handleLoadedMetadata = () => {
-          if (onReady) {
-            onReady(videoElementRef.current)
-          }
+        // Tenta adicionar o listener
+        if (playerRef.current.addEventListener) {
+          playerRef.current.addEventListener("player:ready", handlePlayerReady)
         }
 
-        videoElement.addEventListener('timeupdate', handleTimeUpdate)
-        videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
-        videoElement.addEventListener('progress', handleTimeUpdate)
-
-        // Também verifica periodicamente (fallback)
-        progressIntervalRef.current = setInterval(() => {
-          if (videoElementRef.current && onProgress) {
-            const currentTime = videoElementRef.current.currentTime || 0
-            const duration = videoElementRef.current.duration || 0
-            const progress = duration > 0 ? (currentTime / duration) * 100 : 0
-            
-            onProgress({
-              currentTime,
-              duration,
-              progress
-            })
+        // Fallback: verifica periodicamente se o método está disponível
+        const checkInterval = setInterval(() => {
+          if (playerRef.current && typeof playerRef.current.displayHiddenElements === 'function') {
+            clearInterval(checkInterval)
+            handlePlayerReady()
           }
-        }, 500) // Verifica a cada 500ms
+        }, 500)
 
-        return () => {
-          videoElement.removeEventListener('timeupdate', handleTimeUpdate)
-          videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata)
-          videoElement.removeEventListener('progress', handleTimeUpdate)
-          if (progressIntervalRef.current) {
-            clearInterval(progressIntervalRef.current)
-          }
-        }
-      } else {
-        // Tenta novamente após um delay
-        setTimeout(checkVideoElement, 500)
+        // Timeout de segurança (para após 10 segundos)
+        setTimeout(() => {
+          clearInterval(checkInterval)
+        }, 10000)
+
+      } catch (error) {
+        console.error('Erro ao configurar Vturb displayHiddenElements:', error)
       }
     }
 
-    // Aguarda o script carregar antes de procurar o vídeo
+    // Aguarda o script carregar
     const scriptLoadCheck = setInterval(() => {
-      if (playerRef.current && playerRef.current.querySelector) {
+      if (playerRef.current) {
         clearInterval(scriptLoadCheck)
-        setTimeout(checkVideoElement, 1000) // Aguarda 1s para o player inicializar
+        setTimeout(setupVturbDisplay, 1500) // Aguarda 1.5s para o player inicializar
       }
-    }, 200)
+    }, 300)
 
     return () => {
       // Limpa o player quando o componente for desmontado
@@ -129,12 +97,9 @@ export default function VturbVideo({ videoId, playerId, onProgress, onReady }) {
         containerRef.current.removeChild(playerRef.current)
         playerRef.current = null
       }
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current)
-      }
       clearInterval(scriptLoadCheck)
     }
-  }, [videoId, playerId, onProgress, onReady])
+  }, [videoId, playerId, delaySeconds])
 
   return (
     <div 

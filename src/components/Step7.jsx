@@ -1,18 +1,10 @@
-import { motion, AnimatePresence } from 'framer-motion'
-import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { Sparkles } from 'lucide-react'
 import VturbVideo from './VturbVideo'
 
 export default function Step7() {
-  const [showButton, setShowButton] = useState(false)
   // Configuração: botão aparece quando o vídeo chega em 134 segundos (2:14)
-  const requiredTime = 134 // Tempo em segundos (2 minutos e 14 segundos)
-
-  const handleVideoProgress = ({ currentTime }) => {
-    if (currentTime >= requiredTime && !showButton) {
-      setShowButton(true)
-    }
-  }
+  const delaySeconds = 134 // Tempo em segundos (2 minutos e 14 segundos)
 
   const handleCTA = () => {
     // Aqui você pode adicionar a lógica para redirecionar
@@ -74,50 +66,45 @@ export default function Step7() {
         <VturbVideo 
           videoId="vid-6939f7c0c54455d1fed8aee0"
           playerId="6939f7c0c54455d1fed8aee0"
-          onProgress={handleVideoProgress}
+          delaySeconds={delaySeconds}
         />
       </motion.div>
 
-      {/* CTA Final - Só aparece quando o vídeo chega no tempo necessário */}
-      <AnimatePresence>
-        {showButton && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.5, y: 30 }}
-            animate={{ 
-              opacity: 1, 
-              scale: 1, 
-              y: 0,
-            }}
-            exit={{ opacity: 0, scale: 0.8, y: -20 }}
-            transition={{ 
-              type: "spring",
-              stiffness: 300,
-              damping: 20,
-              duration: 0.6
-            }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleCTA}
-            className="neon-button w-full text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 px-4 animate-heartbeat relative overflow-hidden"
-            style={{ 
-              boxShadow: '0 0 40px rgba(0, 255, 136, 0.8), 0 0 80px rgba(0, 255, 136, 0.4), 0 0 120px rgba(0, 255, 136, 0.2)'
-            }}
-          >
-            <motion.span
-              initial={{ x: -100 }}
-              animate={{ x: 200 }}
-              transition={{
-                repeat: Infinity,
-                duration: 2,
-                ease: "linear"
-              }}
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-              style={{ width: '50%', height: '100%' }}
-            />
-            <span className="relative z-10">¡GARANTIZAR CUPO AHORA!</span>
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* CTA Final - Só aparece quando o vídeo chega no tempo necessário (usando método padrão do Vturb) */}
+      <motion.button
+        initial={{ opacity: 0, scale: 0.5, y: 30 }}
+        animate={{ 
+          opacity: 1, 
+          scale: 1, 
+          y: 0,
+        }}
+        transition={{ 
+          type: "spring",
+          stiffness: 300,
+          damping: 20,
+          duration: 0.6
+        }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={handleCTA}
+        className="esconder neon-button w-full text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 px-4 animate-heartbeat relative overflow-hidden"
+        style={{ 
+          boxShadow: '0 0 40px rgba(0, 255, 136, 0.8), 0 0 80px rgba(0, 255, 136, 0.4), 0 0 120px rgba(0, 255, 136, 0.2)'
+        }}
+      >
+        <motion.span
+          initial={{ x: -100 }}
+          animate={{ x: 200 }}
+          transition={{
+            repeat: Infinity,
+            duration: 2,
+            ease: "linear"
+          }}
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+          style={{ width: '50%', height: '100%' }}
+        />
+        <span className="relative z-10">¡GARANTIZAR CUPO AHORA!</span>
+      </motion.button>
 
       {/* Lista de benefícios rápidos - Abaixo do botão */}
       <motion.div
