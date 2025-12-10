@@ -22,12 +22,17 @@ export default function VturbVideo({ videoId, playerId, onProgress, onReady }) {
     // Cria o elemento vturb-smartplayer
     const player = document.createElement('vturb-smartplayer')
     player.id = videoId
-    player.style.display = 'block'
-    player.style.margin = '0 auto'
-    player.style.width = '100%'
-    player.style.maxWidth = '400px'
-    player.style.borderRadius = '1.5rem'
-    player.style.overflow = 'hidden'
+    player.style.cssText = `
+      display: block !important;
+      margin: 0 auto !important;
+      width: calc(100% - 2px) !important;
+      height: calc(100% - 2px) !important;
+      max-width: 400px !important;
+      border-radius: calc(1.5rem - 1px) !important;
+      overflow: hidden !important;
+      position: relative !important;
+      background: #050505 !important;
+    `
 
     containerRef.current.appendChild(player)
     playerRef.current = player
@@ -135,7 +140,12 @@ export default function VturbVideo({ videoId, playerId, onProgress, onReady }) {
     <div 
       ref={containerRef}
       className="w-full vturb-video-wrapper"
-      style={{ aspectRatio: '9/16' }}
+      style={{ 
+        aspectRatio: '9/16',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
     />
   )
 }

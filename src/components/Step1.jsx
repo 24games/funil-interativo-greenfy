@@ -37,11 +37,6 @@ export default function Step1({ onNext }) {
         onProgress={handleVideoProgress}
       />
 
-      {/* Micro texto */}
-      <p className="text-gray-500 text-xs text-center -mt-4">
-        Toca en continuar
-      </p>
-
       {/* Botão - Só aparece quando o vídeo chega no tempo necessário */}
       <AnimatePresence>
         {showButton && (

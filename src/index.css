@@ -210,12 +210,24 @@ body {
   padding: 1px;
   background: linear-gradient(135deg, #00FF88, #00FFD4);
   overflow: hidden;
+  isolation: isolate;
 }
 
 .vturb-video-wrapper vturb-smartplayer {
   display: block !important;
-  width: 100% !important;
-  height: 100% !important;
+  width: calc(100% - 2px) !important;
+  height: calc(100% - 2px) !important;
+  border-radius: calc(1.5rem - 1px) !important;
+  overflow: hidden !important;
+  background: #050505 !important;
+  position: relative !important;
+  margin: 1px !important;
+}
+
+/* Força border-radius em elementos internos do Vturb */
+.vturb-video-wrapper vturb-smartplayer video,
+.vturb-video-wrapper vturb-smartplayer iframe,
+.vturb-video-wrapper vturb-smartplayer > * {
   border-radius: calc(1.5rem - 1px) !important;
   overflow: hidden !important;
 }
