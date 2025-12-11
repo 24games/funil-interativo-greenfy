@@ -4,7 +4,8 @@
  */
 
 const testWebhook = async () => {
-  const webhookUrl = 'http://localhost:3000/api/webhook-purchase'; // Ajuste para sua URL
+  // Substitua pela URL do seu projeto no Vercel
+  const webhookUrl = process.env.WEBHOOK_URL || 'https://seu-projeto.vercel.app/api/webhook-purchase';
   
   const testData = {
     email: 'teste@exemplo.com',
