@@ -42,6 +42,41 @@ function App() {
     internetAccess: null,
   })
 
+  // Adiciona entrada no histórico quando muda de step
+  useEffect(() => {
+    if (currentStep > 1) {
+      // Adiciona uma entrada no histórico do navegador
+      window.history.pushState({ step: currentStep }, '', `?step=${currentStep}`)
+    }
+  }, [currentStep])
+
+  // Gerencia o botão voltar do navegador
+  useEffect(() => {
+    const handlePopState = (event) => {
+      // Se está no Step 7 e tenta voltar, redireciona para /back
+      if (currentStep === 7) {
+        window.location.href = '/back'
+        return
+      }
+
+      // Se não está no Step 7, volta para o step anterior
+      if (currentStep > 1) {
+        setCurrentStep(prev => prev - 1)
+      } else {
+        // Se está no Step 1 e tenta voltar, previne o comportamento padrão
+        // (não deixa sair da página)
+        event.preventDefault()
+        window.history.pushState({ step: 1 }, '', window.location.pathname)
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [currentStep])
+
   const nextStep = () => {
     setCurrentStep(prev => prev + 1)
   }
