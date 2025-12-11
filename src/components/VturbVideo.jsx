@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 
 /**
  * Componente para vídeos Vturb com bordas arredondadas e degradê
- * Usa o método padrão do Vturb com displayHiddenElements
+ * Usa APENAS o método oficial do Vturb com displayHiddenElements (sem fallbacks)
  * @param {string} videoId - ID do vídeo Vturb (ex: "vid_6939f7c83ec7593882510713")
  * @param {string} playerId - ID do player Vturb (ex: "6939f7c83ec7593882510713")
  * @param {number} delaySeconds - Segundos para mostrar elementos com classe .esconder
@@ -10,6 +10,7 @@ import { useEffect, useRef } from 'react'
 export default function VturbVideo({ videoId, playerId, delaySeconds }) {
   const containerRef = useRef(null)
   const videoDivRef = useRef(null)
+  const displayConfiguredRef = useRef(false)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -77,109 +78,96 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
       document.head.appendChild(script)
     }
 
-    // Usa o método padrão do Vturb para mostrar elementos após delay
+    // Configura displayHiddenElements APENAS quando o player estiver pronto
+    // SEM fallbacks - apenas o método oficial do Vturb que respeita pausa
     const setupVturbDisplay = () => {
-      if (!videoDivRef.current) return
+      if (!videoDivRef.current || displayConfiguredRef.current) return
 
       try {
-        // O player Vturb cria um elemento dentro da div com id do vídeo
-        // Precisamos encontrar o elemento do player
-        const playerElement = videoDivRef.current.querySelector('vturb-smartplayer') || 
-                             videoDivRef.current.querySelector(`#${videoId} > *`) ||
-                             videoDivRef.current
-
-        // Função para executar displayHiddenElements
-        const executeDisplay = () => {
-          if (!delaySeconds) return
-          
-          // Tenta encontrar o player de diferentes formas
-          let player = null
-          
-          // Método 1: Verifica se há um elemento com displayHiddenElements
+        // Função para encontrar e configurar o player
+        const findAndConfigurePlayer = () => {
+          // O Vturb geralmente expõe o método no elemento do vídeo ou em um objeto global
+          // Tenta diferentes formas de encontrar o player
           const possiblePlayers = [
-            videoDivRef.current,
             document.getElementById(videoId),
+            videoDivRef.current,
             videoDivRef.current.querySelector('vturb-smartplayer'),
-            videoDivRef.current.querySelector('iframe'),
+            videoDivRef.current.querySelector('iframe')?.contentWindow?.player,
             window[`player_${playerId}`],
-            window[`vid_${playerId}`]
+            window[`vid_${playerId}`],
+            // Verifica se há um objeto global do Vturb
+            window.Vturb?.players?.[playerId],
+            window.Vturb?.players?.[videoId]
           ]
 
-          for (const possiblePlayer of possiblePlayers) {
-            if (possiblePlayer && typeof possiblePlayer.displayHiddenElements === 'function') {
-              player = possiblePlayer
-              break
-            }
-          }
-
-          if (player && typeof player.displayHiddenElements === 'function') {
-            try {
-              player.displayHiddenElements(delaySeconds, [".esconder"], {
-                persist: true
-              })
-              console.log(`✅ Vturb: displayHiddenElements configurado para ${delaySeconds}s`)
-            } catch (error) {
-              console.error('❌ Erro ao executar displayHiddenElements:', error)
-              // Fallback manual
-              setTimeout(() => {
-                const hiddenElements = document.querySelectorAll('.esconder')
-                hiddenElements.forEach(el => {
-                  el.classList.remove('esconder')
+          for (const player of possiblePlayers) {
+            if (player && typeof player.displayHiddenElements === 'function') {
+              try {
+                // Chama o método oficial do Vturb - este respeita pausa do vídeo
+                player.displayHiddenElements(delaySeconds, [".esconder"], {
+                  persist: true
                 })
-              }, delaySeconds * 1000)
+                console.log(`✅ Vturb: displayHiddenElements configurado para ${delaySeconds}s (respeita pausa)`)
+                displayConfiguredRef.current = true
+                return true
+              } catch (error) {
+                console.error('❌ Erro ao executar displayHiddenElements:', error)
+              }
             }
-          } else {
-            console.warn('⚠️ displayHiddenElements não está disponível, usando fallback')
-            // Fallback manual: remove a classe após o delay
-            setTimeout(() => {
-              const hiddenElements = document.querySelectorAll('.esconder')
-              hiddenElements.forEach(el => {
-                el.classList.remove('esconder')
-              })
-            }, delaySeconds * 1000)
+          }
+          return false
+        }
+
+        // Tenta configurar imediatamente
+        if (findAndConfigurePlayer()) {
+          return
+        }
+
+        // Se não encontrou, aguarda o player estar pronto
+        // Listener para evento player:ready
+        const handlePlayerReady = () => {
+          if (!displayConfiguredRef.current) {
+            findAndConfigurePlayer()
           }
         }
 
-        // Aguarda o player estar pronto
-        // Tenta adicionar listener para eventos do Vturb
+        // Adiciona listener no elemento do vídeo
         if (videoDivRef.current.addEventListener) {
-          videoDivRef.current.addEventListener("player:ready", executeDisplay)
+          videoDivRef.current.addEventListener("player:ready", handlePlayerReady)
         }
 
-        // Fallback: verifica periodicamente se o método está disponível
+        // Também tenta no elemento com ID do vídeo
+        const videoElement = document.getElementById(videoId)
+        if (videoElement && videoElement.addEventListener) {
+          videoElement.addEventListener("player:ready", handlePlayerReady)
+        }
+
+        // Verifica periodicamente se o método está disponível (máximo 30 segundos)
         let attempts = 0
-        const maxAttempts = 60 // 30 segundos máximo (60 * 500ms)
+        const maxAttempts = 60 // 30 segundos (60 * 500ms)
         
         const checkInterval = setInterval(() => {
           attempts++
           
-          // Verifica se o método está disponível
-          const possiblePlayers = [
-            videoDivRef.current,
-            document.getElementById(videoId),
-            videoDivRef.current.querySelector('vturb-smartplayer'),
-            window[`player_${playerId}`],
-            window[`vid_${playerId}`]
-          ]
-
-          for (const possiblePlayer of possiblePlayers) {
-            if (possiblePlayer && typeof possiblePlayer.displayHiddenElements === 'function') {
-              clearInterval(checkInterval)
-              executeDisplay()
-              return
-            }
-          }
-
-          if (attempts >= maxAttempts) {
+          if (findAndConfigurePlayer()) {
             clearInterval(checkInterval)
-            console.warn('Vturb displayHiddenElements não disponível após timeout, usando fallback')
-            // Executa o fallback
-            setTimeout(() => {
-              const hiddenElements = document.querySelectorAll('.esconder')
-              hiddenElements.forEach(el => {
-                el.classList.remove('esconder')
-              })
-            }, delaySeconds * 1000)
+            // Remove listeners
+            if (videoDivRef.current && videoDivRef.current.removeEventListener) {
+              videoDivRef.current.removeEventListener("player:ready", handlePlayerReady)
+            }
+            if (videoElement && videoElement.removeEventListener) {
+              videoElement.removeEventListener("player:ready", handlePlayerReady)
+            }
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkInterval)
+            console.warn('⚠️ Vturb displayHiddenElements não disponível após 30s. Verifique se o script do Vturb foi carregado corretamente.')
+            // Remove listeners
+            if (videoDivRef.current && videoDivRef.current.removeEventListener) {
+              videoDivRef.current.removeEventListener("player:ready", handlePlayerReady)
+            }
+            if (videoElement && videoElement.removeEventListener) {
+              videoElement.removeEventListener("player:ready", handlePlayerReady)
+            }
           }
         }, 500)
 
@@ -187,22 +175,19 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
         return () => {
           clearInterval(checkInterval)
           if (videoDivRef.current && videoDivRef.current.removeEventListener) {
-            videoDivRef.current.removeEventListener("player:ready", executeDisplay)
+            videoDivRef.current.removeEventListener("player:ready", handlePlayerReady)
+          }
+          if (videoElement && videoElement.removeEventListener) {
+            videoElement.removeEventListener("player:ready", handlePlayerReady)
           }
         }
       } catch (error) {
         console.error('Erro ao configurar Vturb displayHiddenElements:', error)
-        // Fallback em caso de erro
-        setTimeout(() => {
-          const hiddenElements = document.querySelectorAll('.esconder')
-          hiddenElements.forEach(el => {
-            el.classList.remove('esconder')
-          })
-        }, delaySeconds * 1000)
       }
     }
 
     // Aguarda o script carregar e o player inicializar
+    // Tenta após 1 segundo e depois verifica periodicamente
     setTimeout(setupVturbDisplay, 1000)
 
     return () => {
@@ -210,6 +195,7 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
       if (videoDivRef.current && containerRef.current && containerRef.current.contains(videoDivRef.current)) {
         containerRef.current.removeChild(videoDivRef.current)
         videoDivRef.current = null
+        displayConfiguredRef.current = false
       }
     }
   }, [videoId, playerId, delaySeconds])

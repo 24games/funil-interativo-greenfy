@@ -1,29 +1,13 @@
 import { motion } from 'framer-motion'
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { Sparkles } from 'lucide-react'
 import VturbVideo from './VturbVideo'
 
 export default function Step7() {
   // Configuração: botão aparece quando o vídeo chega em 134 segundos (2:14)
+  // O Vturb.displayHiddenElements cuida de mostrar o botão e elementos respeitando pausa do vídeo
   const delaySeconds = 134 // Tempo em segundos (2 minutos e 14 segundos)
   const buttonRef = useRef(null)
-
-  // Fallback: se o Vturb não funcionar, mostra o botão e elementos após o tempo
-  useEffect(() => {
-    const fallbackTimer = setTimeout(() => {
-      // Mostra o botão
-      if (buttonRef.current && buttonRef.current.classList.contains('esconder')) {
-        buttonRef.current.classList.remove('esconder')
-      }
-      // Mostra todos os elementos com classe .esconder (benefícios, urgência, trust badges)
-      const hiddenElements = document.querySelectorAll('.esconder')
-      hiddenElements.forEach(el => {
-        el.classList.remove('esconder')
-      })
-    }, (delaySeconds + 2) * 1000)
-
-    return () => clearTimeout(fallbackTimer)
-  }, [delaySeconds])
 
   const handleCTA = () => {
     // Aqui você pode adicionar a lógica para redirecionar

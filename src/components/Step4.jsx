@@ -1,22 +1,12 @@
 import { motion } from 'framer-motion'
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import VturbVideo from './VturbVideo'
 
 export default function Step4({ onNext }) {
   // Configuração: botão aparece quando o vídeo chega em 49 segundos (0:49)
+  // O Vturb.displayHiddenElements cuida de mostrar o botão respeitando pausa do vídeo
   const delaySeconds = 49
   const buttonRef = useRef(null)
-
-  // Fallback: se o Vturb não funcionar, mostra o botão após o tempo
-  useEffect(() => {
-    const fallbackTimer = setTimeout(() => {
-      if (buttonRef.current && buttonRef.current.classList.contains('esconder')) {
-        buttonRef.current.classList.remove('esconder')
-      }
-    }, (delaySeconds + 2) * 1000)
-
-    return () => clearTimeout(fallbackTimer)
-  }, [delaySeconds])
 
   return (
     <motion.div
