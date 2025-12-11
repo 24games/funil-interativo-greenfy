@@ -73,15 +73,6 @@ function generateEventId(data) {
  * Mais confiável que conexão PostgreSQL direta em serverless
  */
 async function saveToSupabase(data) {
-  // Extrair project ref da connection string para construir URL
-  const urlMatch = SUPABASE_CONNECTION_STRING.match(/postgresql:\/\/postgres\.([^.]+)\./);
-  
-  if (!urlMatch) {
-    throw new Error('Formato de connection string inválido - não foi possível extrair project ref');
-  }
-  
-  const projectRef = urlMatch[1];
-  
   // Preparar dados para inserção
   const insertData = {
     email: data.email || null,
@@ -114,11 +105,21 @@ async function saveToSupabase(data) {
   
   // Usar REST API do Supabase
   // URL e chave podem vir de variáveis de ambiente ou usar valores padrão
-  const supabaseUrl = process.env.SUPABASE_URL || `https://${projectRef}.supabase.co`;
+  // Project ref: jhyekbtcywewzrviqlos (extraído da connection string)
+  const supabaseUrl = process.env.SUPABASE_URL || 'https://jhyekbtcywewzrviqlos.supabase.co';
   const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpoeWVrYnRjeXdld3pydmlxbG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzODI5NzAsImV4cCI6MjA4MDk1ODk3MH0.yTAW7soCiU-skkjAsuG1a-r0oKdzUJlbjyLYeC7w8lM';
   
+  // Construir URL corretamente (sem credenciais na URL)
+  const apiUrl = `${supabaseUrl}/rest/v1/${TABLE_NAME}`;
+  
+  console.log('Tentando salvar no Supabase:', {
+    url: apiUrl,
+    hasKey: !!supabaseKey,
+    tableName: TABLE_NAME,
+  });
+  
   // Inserir via REST API
-  const response = await fetch(`${supabaseUrl}/rest/v1/${TABLE_NAME}`, {
+  const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -135,7 +136,7 @@ async function saveToSupabase(data) {
       status: response.status,
       statusText: response.statusText,
       error: errorText,
-      url: `${supabaseUrl}/rest/v1/${TABLE_NAME}`,
+      url: apiUrl,
     });
     throw new Error(`Supabase API Error: ${response.status} - ${errorText}`);
   }
