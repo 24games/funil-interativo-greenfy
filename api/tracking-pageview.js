@@ -68,19 +68,19 @@ function generateEventId(data) {
 }
 
 /**
- * Salva dados no Supabase usando conexão PostgreSQL direta
+ * Salva dados no Supabase usando REST API
  * 
- * Usa a biblioteca pg para conexão direta com o banco
+ * Mais confiável que conexão PostgreSQL direta em serverless
  */
 async function saveToSupabase(data) {
-  // Extrair credenciais da connection string
-  const urlMatch = SUPABASE_CONNECTION_STRING.match(/postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+?)(\?|$)/);
+  // Extrair project ref da connection string para construir URL
+  const urlMatch = SUPABASE_CONNECTION_STRING.match(/postgresql:\/\/postgres\.([^.]+)\./);
   
   if (!urlMatch) {
-    throw new Error('Formato de connection string inválido');
+    throw new Error('Formato de connection string inválido - não foi possível extrair project ref');
   }
   
-  const [, user, password, host, port, database] = urlMatch;
+  const projectRef = urlMatch[1];
   
   // Preparar dados para inserção
   const insertData = {
@@ -112,86 +112,44 @@ async function saveToSupabase(data) {
     event_id: data.event_id || generateEventId(data),
   };
   
-  // Usar biblioteca pg para conexão direta
-  const { Pool } = await import('pg');
+  // Usar REST API do Supabase
+  // URL e chave podem vir de variáveis de ambiente ou usar valores padrão
+  const supabaseUrl = process.env.SUPABASE_URL || `https://${projectRef}.supabase.co`;
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpoeWVrYnRjeXdld3pydmlxbG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzODI5NzAsImV4cCI6MjA4MDk1ODk3MH0.yTAW7soCiU-skkjAsuG1a-r0oKdzUJlbjyLYeC7w8lM';
   
-  const pool = new Pool({
-    connectionString: SUPABASE_CONNECTION_STRING,
-    ssl: {
-      rejectUnauthorized: false, // Supabase requer SSL
+  // Inserir via REST API
+  const response = await fetch(`${supabaseUrl}/rest/v1/${TABLE_NAME}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': supabaseKey,
+      'Authorization': `Bearer ${supabaseKey}`,
+      'Prefer': 'return=representation',
     },
-    max: 1, // Limitar conexões em serverless
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    body: JSON.stringify(insertData),
   });
   
-  try {
-    // Query de inserção
-    const query = `
-      INSERT INTO ${TABLE_NAME} (
-        email, phone, ip, user_agent, fbp, fbc,
-        first_name, last_name, date_of_birth,
-        city, state, country, zip_code,
-        utm_source, utm_medium, utm_campaign, utm_term, utm_content,
-        fbclid, gclid,
-        page_url, referrer, language, timestamp, event_type, event_id
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6,
-        $7, $8, $9,
-        $10, $11, $12, $13,
-        $14, $15, $16, $17, $18,
-        $19, $20,
-        $21, $22, $23, $24, $25, $26
-      )
-      RETURNING id, event_id, created_at;
-    `;
-    
-    const values = [
-      insertData.email,
-      insertData.phone,
-      insertData.ip,
-      insertData.user_agent,
-      insertData.fbp,
-      insertData.fbc,
-      insertData.first_name,
-      insertData.last_name,
-      insertData.date_of_birth,
-      insertData.city,
-      insertData.state,
-      insertData.country,
-      insertData.zip_code,
-      insertData.utm_source,
-      insertData.utm_medium,
-      insertData.utm_campaign,
-      insertData.utm_term,
-      insertData.utm_content,
-      insertData.fbclid,
-      insertData.gclid,
-      insertData.page_url,
-      insertData.referrer,
-      insertData.language,
-      insertData.timestamp,
-      insertData.event_type,
-      insertData.event_id,
-    ];
-    
-    const result = await pool.query(query, values);
-    await pool.end();
-    
-    if (result.rows && result.rows.length > 0) {
-      return {
-        ...insertData,
-        id: result.rows[0].id,
-        created_at: result.rows[0].created_at,
-      };
-    } else {
-      throw new Error('Nenhum registro retornado após inserção');
-    }
-  } catch (error) {
-    await pool.end();
-    console.error('Erro ao salvar no Supabase:', error);
-    throw error;
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Supabase REST API Error:', {
+      status: response.status,
+      statusText: response.statusText,
+      error: errorText,
+      url: `${supabaseUrl}/rest/v1/${TABLE_NAME}`,
+    });
+    throw new Error(`Supabase API Error: ${response.status} - ${errorText}`);
   }
+  
+  const result = await response.json();
+  
+  // REST API retorna array com um objeto
+  const inserted = Array.isArray(result) ? result[0] : result;
+  
+  return {
+    ...insertData,
+    id: inserted.id,
+    created_at: inserted.created_at,
+  };
 }
 
 /**
