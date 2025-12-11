@@ -49,19 +49,27 @@ async function sendPurchaseEventToFacebook(data) {
     throw new Error('META_PIXEL_ID e META_ACCESS_TOKEN são obrigatórios');
   }
 
-  // Extrai dados do payload do webhook
-  const {
-    email,
-    name,
-    phone,
-    value, // Valor da compra
-    currency = 'CLP', // Moeda padrão (Chile)
-    orderId, // ID único da compra
-    fbp, // Facebook Browser ID (cookie)
-    fbc, // Facebook Click ID (cookie)
-    ipAddress, // IP do cliente
-    userAgent, // User Agent do cliente
-  } = data;
+  // Função auxiliar para extrair valor de múltiplos campos possíveis
+  const getField = (data, ...possibleKeys) => {
+    for (const key of possibleKeys) {
+      if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+        return data[key];
+      }
+    }
+    return null;
+  };
+
+  // Extrai dados do payload do webhook (com suporte a múltiplos formatos)
+  const email = getField(data, 'email', 'customer_email', 'buyer_email', 'client_email', 'user_email');
+  const name = getField(data, 'name', 'customer_name', 'buyer_name', 'client_name', 'full_name', 'customer_full_name');
+  const phone = getField(data, 'phone', 'customer_phone', 'buyer_phone', 'client_phone', 'telephone', 'mobile');
+  const value = getField(data, 'value', 'amount', 'total', 'price', 'order_value', 'transaction_amount');
+  const currency = getField(data, 'currency', 'currency_code', 'order_currency') || 'CLP';
+  const orderId = getField(data, 'orderId', 'order_id', 'transaction_id', 'payment_id', 'order_number', 'transaction_number');
+  const fbp = getField(data, 'fbp', '_fbp');
+  const fbc = getField(data, 'fbc', '_fbc');
+  const ipAddress = getField(data, 'ipAddress', 'ip_address', 'client_ip', 'ip');
+  const userAgent = getField(data, 'userAgent', 'user_agent', 'client_user_agent');
 
   // Normaliza e faz hash dos dados do usuário (Advanced Matching)
   const userData = {};
@@ -164,18 +172,33 @@ export default async function handler(req, res) {
     // Log do payload recebido (sem dados sensíveis)
     console.log('Webhook recebido:', {
       timestamp: new Date().toISOString(),
-      hasEmail: !!req.body.email,
-      hasName: !!req.body.name,
-      hasPhone: !!req.body.phone,
-      orderId: req.body.orderId,
-      value: req.body.value,
+      hasEmail: !!(req.body.email || req.body.customer_email || req.body.buyer_email),
+      hasName: !!(req.body.name || req.body.customer_name || req.body.buyer_name),
+      hasPhone: !!(req.body.phone || req.body.customer_phone || req.body.buyer_phone),
+      orderId: req.body.orderId || req.body.order_id || req.body.transaction_id,
+      value: req.body.value || req.body.amount || req.body.total,
+      payloadKeys: Object.keys(req.body), // Para debug: mostra quais campos foram enviados
     });
 
-    // Validação básica
-    if (!req.body.email && !req.body.phone) {
+    // Função auxiliar para extrair valor de múltiplos campos possíveis
+    const getField = (data, ...possibleKeys) => {
+      for (const key of possibleKeys) {
+        if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+          return data[key];
+        }
+      }
+      return null;
+    };
+
+    // Validação básica (verifica múltiplos formatos)
+    const hasEmail = !!(getField(req.body, 'email', 'customer_email', 'buyer_email', 'client_email', 'user_email'));
+    const hasPhone = !!(getField(req.body, 'phone', 'customer_phone', 'buyer_phone', 'client_phone', 'telephone', 'mobile'));
+    
+    if (!hasEmail && !hasPhone) {
       return res.status(400).json({
         error: 'Bad Request',
-        message: 'Email ou telefone é obrigatório',
+        message: 'Email ou telefone é obrigatório. Campos aceitos: email/customer_email/buyer_email ou phone/customer_phone/buyer_phone',
+        receivedFields: Object.keys(req.body),
       });
     }
 
