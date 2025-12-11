@@ -70,25 +70,120 @@ async function sendPurchaseEventToFacebook(data) {
   const fbc = getField(data, 'fbc', '_fbc');
   const ipAddress = getField(data, 'ipAddress', 'ip_address', 'client_ip', 'ip');
   const userAgent = getField(data, 'userAgent', 'user_agent', 'client_user_agent');
+  
+  // Dados pessoais adicionais
+  const firstName = getField(data, 'first_name', 'firstName', 'firstname');
+  const lastName = getField(data, 'last_name', 'lastName', 'lastname');
+  const dateOfBirth = getField(data, 'date_of_birth', 'dateOfBirth', 'birthday', 'birth_date');
+  
+  // Localização
+  const city = getField(data, 'city');
+  const state = getField(data, 'state', 'region', 'province');
+  const country = getField(data, 'country');
+  const zipCode = getField(data, 'zip_code', 'zipCode', 'postal_code', 'postalCode', 'cep');
 
   // Normaliza e faz hash dos dados do usuário (Advanced Matching)
   const userData = {};
   
+  // ============================================
+  // DADOS OBRIGATÓRIOS PARA IDENTIFICAÇÃO
+  // ============================================
+  
+  // Email (hasheado)
   if (email) {
     userData.em = hashUserData(email);
   }
   
-  if (name) {
-    const { fn, ln } = splitName(name);
-    if (fn) userData.fn = hashUserData(fn);
-    if (ln) userData.ln = hashUserData(ln);
-  }
-  
+  // Telefone (hasheado)
   if (phone) {
     const normalizedPhone = normalizePhone(phone);
     if (normalizedPhone) {
       userData.ph = hashUserData(normalizedPhone);
     }
+  }
+  
+  // IP Address (texto claro - obrigatório)
+  if (ipAddress) {
+    userData.client_ip_address = ipAddress;
+  } else {
+    userData.client_ip_address = '0.0.0.0'; // Fallback
+    console.warn('⚠️ IP não encontrado - usando fallback');
+  }
+  
+  // User Agent (texto claro - obrigatório)
+  if (userAgent) {
+    userData.client_user_agent = userAgent;
+  } else {
+    userData.client_user_agent = 'Unknown'; // Fallback
+    console.warn('⚠️ User Agent não encontrado - usando fallback');
+  }
+  
+  // FBP e FBC (texto claro - CRÍTICOS para matching)
+  if (fbp) {
+    userData.fbp = fbp;
+  }
+  if (fbc) {
+    userData.fbc = fbc;
+  }
+  
+  // ============================================
+  // DADOS PESSOAIS (quando disponíveis)
+  // ============================================
+  
+  // Nome completo ou separado
+  if (name) {
+    const { fn, ln } = splitName(name);
+    if (fn) {
+      userData.fn = hashUserData(fn);
+    }
+    if (ln) {
+      userData.ln = hashUserData(ln);
+    }
+  } else {
+    // Tenta usar first_name e last_name separados
+    if (firstName) {
+      userData.fn = hashUserData(firstName);
+    }
+    if (lastName) {
+      userData.ln = hashUserData(lastName);
+    }
+  }
+  
+  // Data de nascimento (hasheado - formato YYYY-MM-DD)
+  if (dateOfBirth) {
+    let dobFormatted = dateOfBirth;
+    if (typeof dateOfBirth === 'string' && dateOfBirth.includes('/')) {
+      // Converte de DD/MM/YYYY para YYYY-MM-DD
+      const parts = dateOfBirth.split('/');
+      if (parts.length === 3) {
+        dobFormatted = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+    }
+    userData.db = hashUserData(dobFormatted);
+  }
+  
+  // ============================================
+  // LOCALIZAÇÃO (quando disponível)
+  // ============================================
+  
+  // Cidade (hasheado)
+  if (city) {
+    userData.ct = hashUserData(city);
+  }
+  
+  // Estado/Região (hasheado)
+  if (state) {
+    userData.st = hashUserData(state);
+  }
+  
+  // País (hasheado - código ISO)
+  if (country) {
+    userData.country = hashUserData(country);
+  }
+  
+  // CEP/Zip Code (hasheado)
+  if (zipCode) {
+    userData.zp = hashUserData(zipCode);
   }
 
   // Prepara o evento Purchase
@@ -98,7 +193,7 @@ async function sendPurchaseEventToFacebook(data) {
         event_name: 'Purchase',
         event_time: Math.floor(Date.now() / 1000), // Unix timestamp
         event_id: orderId || `purchase_${Date.now()}`, // ID único do evento
-        event_source_url: data.sourceUrl || 'https://seu-site.com',
+        event_source_url: data.sourceUrl || 'https://www.hackermillon.online',
         action_source: 'website',
         user_data: userData,
         custom_data: {
@@ -111,24 +206,6 @@ async function sendPurchaseEventToFacebook(data) {
       },
     ],
   };
-
-  // Adiciona fbp e fbc se disponíveis
-  if (fbp) {
-    eventData.data[0].user_data.fbp = fbp;
-  }
-  
-  if (fbc) {
-    eventData.data[0].user_data.fbc = fbc;
-  }
-
-  // Adiciona IP e User Agent se disponíveis (melhora matching)
-  if (ipAddress) {
-    eventData.data[0].user_data.client_ip_address = ipAddress;
-  }
-  
-  if (userAgent) {
-    eventData.data[0].user_data.client_user_agent = userAgent;
-  }
 
   // URL da Meta Conversions API
   const apiUrl = `https://graph.facebook.com/v18.0/${META_PIXEL_ID}/events`;

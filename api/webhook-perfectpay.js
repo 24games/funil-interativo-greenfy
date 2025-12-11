@@ -131,53 +131,175 @@ async function sendPurchaseToMeta(purchaseData, leadData) {
   // Normaliza e faz hash dos dados do usuário (Advanced Matching)
   const userData = {};
   
-  // Dados do webhook (prioridade)
-  const email = purchaseData.customer?.email || purchaseData.email;
-  const phone = purchaseData.customer?.phone_number || purchaseData.customer?.phone_formated || purchaseData.phone;
-  const fullName = purchaseData.customer?.full_name || purchaseData.name;
+  // ============================================
+  // DADOS OBRIGATÓRIOS PARA IDENTIFICAÇÃO
+  // ============================================
   
+  // Email (hasheado)
+  const email = purchaseData.customer?.email || purchaseData.email;
   if (email) {
     userData.em = hashUserData(email);
   }
   
-  if (fullName) {
-    const { fn, ln } = splitName(fullName);
-    if (fn) userData.fn = hashUserData(fn);
-    if (ln) userData.ln = hashUserData(ln);
-  }
-  
+  // Telefone (hasheado)
+  const phone = purchaseData.customer?.phone_number || purchaseData.customer?.phone_formated || purchaseData.phone;
   if (phone) {
     const normalizedPhone = normalizePhone(phone);
     if (normalizedPhone) {
       userData.ph = hashUserData(normalizedPhone);
     }
   }
-
-  // Enriquece com dados do lead (se encontrado)
+  
+  // IP Address (texto claro - obrigatório)
+  if (purchaseData.customer?.ip) {
+    userData.client_ip_address = purchaseData.customer.ip;
+  }
+  
+  // User Agent (texto claro - obrigatório)
+  if (purchaseData.customer?.user_agent) {
+    userData.client_user_agent = purchaseData.customer.user_agent;
+  }
+  
+  // FBP e FBC (texto claro - CRÍTICOS para matching)
+  // Primeiro tenta do webhook, depois do lead
+  if (purchaseData.fbp) {
+    userData.fbp = purchaseData.fbp;
+  }
+  if (purchaseData.fbc) {
+    userData.fbc = purchaseData.fbc;
+  }
+  
+  // ============================================
+  // DADOS PESSOAIS (quando disponíveis)
+  // ============================================
+  
+  // Nome completo (hasheado)
+  const fullName = purchaseData.customer?.full_name || purchaseData.name;
+  if (fullName) {
+    const { fn, ln } = splitName(fullName);
+    if (fn) {
+      userData.fn = hashUserData(fn);
+    }
+    if (ln) {
+      userData.ln = hashUserData(ln);
+    }
+  }
+  
+  // Data de nascimento (hasheado - formato YYYY-MM-DD)
+  const dateOfBirth = purchaseData.customer?.date_birth || purchaseData.customer?.birthday || purchaseData.date_of_birth;
+  if (dateOfBirth) {
+    // Normaliza para formato YYYY-MM-DD se necessário
+    let dobFormatted = dateOfBirth;
+    if (typeof dateOfBirth === 'string' && dateOfBirth.includes('/')) {
+      // Converte de DD/MM/YYYY para YYYY-MM-DD
+      const parts = dateOfBirth.split('/');
+      if (parts.length === 3) {
+        dobFormatted = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+    }
+    userData.db = hashUserData(dobFormatted);
+  }
+  
+  // ============================================
+  // LOCALIZAÇÃO (quando disponível)
+  // ============================================
+  
+  // Cidade (hasheado)
+  const city = purchaseData.customer?.city || purchaseData.city;
+  if (city) {
+    userData.ct = hashUserData(city);
+  }
+  
+  // Estado/Região (hasheado)
+  const state = purchaseData.customer?.state || purchaseData.state;
+  if (state) {
+    userData.st = hashUserData(state);
+  }
+  
+  // País (hasheado - código ISO)
+  const country = purchaseData.customer?.country || purchaseData.country;
+  if (country) {
+    userData.country = hashUserData(country);
+  }
+  
+  // CEP/Zip Code (hasheado)
+  const zipCode = purchaseData.customer?.zip_code || purchaseData.zip_code;
+  if (zipCode) {
+    userData.zp = hashUserData(zipCode);
+  }
+  
+  // ============================================
+  // ENRIQUECIMENTO COM DADOS DO LEAD
+  // ============================================
+  
   if (leadData) {
-    // FBP e FBC do lead (CRÍTICOS para matching)
-    if (leadData.fbp && !userData.fbp) {
+    // FBP e FBC do lead (CRÍTICOS - prioridade se não tiver do webhook)
+    if (!userData.fbp && leadData.fbp) {
       userData.fbp = leadData.fbp;
     }
-    if (leadData.fbc && !userData.fbc) {
+    if (!userData.fbc && leadData.fbc) {
       userData.fbc = leadData.fbc;
     }
     
-    // IP e User Agent do lead (se não tiver do webhook)
+    // IP e User Agent do lead (fallback se não tiver do webhook)
     if (!userData.client_ip_address && leadData.ip) {
       userData.client_ip_address = leadData.ip;
     }
     if (!userData.client_user_agent && leadData.user_agent) {
       userData.client_user_agent = leadData.user_agent;
     }
+    
+    // Dados pessoais do lead (se não tiver do webhook)
+    if (!userData.em && leadData.email) {
+      userData.em = hashUserData(leadData.email);
+    }
+    if (!userData.ph && leadData.phone) {
+      const normalizedPhone = normalizePhone(leadData.phone);
+      if (normalizedPhone) {
+        userData.ph = hashUserData(normalizedPhone);
+      }
+    }
+    if (!userData.fn && leadData.first_name) {
+      userData.fn = hashUserData(leadData.first_name);
+    }
+    if (!userData.ln && leadData.last_name) {
+      userData.ln = hashUserData(leadData.last_name);
+    }
+    
+    // Localização do lead (se não tiver do webhook)
+    if (!userData.ct && leadData.city) {
+      userData.ct = hashUserData(leadData.city);
+    }
+    if (!userData.st && leadData.state) {
+      userData.st = hashUserData(leadData.state);
+    }
+    if (!userData.country && leadData.country) {
+      userData.country = hashUserData(leadData.country);
+    }
+    if (!userData.zp && leadData.zip_code) {
+      userData.zp = hashUserData(leadData.zip_code);
+    }
+    
+    // Data de nascimento do lead (se não tiver do webhook)
+    if (!userData.db && leadData.date_of_birth) {
+      userData.db = hashUserData(leadData.date_of_birth);
+    }
   }
-
-  // IP e User Agent do webhook (prioridade)
-  if (purchaseData.customer?.ip) {
-    userData.client_ip_address = purchaseData.customer.ip;
+  
+  // ============================================
+  // VALIDAÇÃO FINAL - GARANTIR PARÂMETROS MÍNIMOS
+  // ============================================
+  
+  // IP e User Agent são OBRIGATÓRIOS - usar fallback se necessário
+  if (!userData.client_ip_address) {
+    // Tenta extrair do header da requisição (se disponível)
+    userData.client_ip_address = '0.0.0.0'; // Fallback mínimo
+    console.warn('⚠️ IP não encontrado - usando fallback');
   }
-  if (purchaseData.customer?.user_agent) {
-    userData.client_user_agent = purchaseData.customer.user_agent;
+  
+  if (!userData.client_user_agent) {
+    userData.client_user_agent = 'Unknown'; // Fallback mínimo
+    console.warn('⚠️ User Agent não encontrado - usando fallback');
   }
 
   // Prepara o evento Purchase
