@@ -11,8 +11,24 @@ import ProgressBar from './components/ProgressBar'
 import Back from './components/Back'
 
 function App() {
-  // Verifica a rota atual
-  const currentPath = window.location.pathname
+  const [currentPath, setCurrentPath] = useState(window.location.pathname)
+
+  useEffect(() => {
+    // Atualiza quando a rota muda
+    const handleRouteChange = () => {
+      setCurrentPath(window.location.pathname)
+    }
+
+    // Escuta mudanças de rota
+    window.addEventListener('popstate', handleRouteChange)
+    
+    // Verifica a rota inicial
+    handleRouteChange()
+
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange)
+    }
+  }, [])
 
   // Se a rota for /back, renderiza a página Back
   if (currentPath === '/back' || currentPath === '/back/') {

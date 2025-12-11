@@ -8,6 +8,10 @@
     {
       "source": "/api/webhook-purchase",
       "destination": "/api/webhook-purchase.js"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
