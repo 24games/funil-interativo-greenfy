@@ -32,7 +32,7 @@ export default function Step7() {
         className="flex items-center justify-center gap-2 mx-auto bg-neon/10 border border-neon/30 rounded-full px-6 py-2"
       >
         <Sparkles size={20} className="text-neon" />
-        <span className="text-neon font-bold text-sm">ACCESO LIBERADO</span>
+        <span className="text-neon font-bold text-sm">ÚLTIMO PASO</span>
         <Sparkles size={20} className="text-neon" />
       </motion.div>
 
@@ -43,22 +43,8 @@ export default function Step7() {
         transition={{ delay: 0.5 }}
         className="text-2xl md:text-3xl font-bold text-center leading-tight"
       >
-        Haz esto para acceder a tu IA exclusiva de operación.
+        El acceso a la I.A será liberado al final del video
       </motion.h2>
-
-      {/* Subheadline */}
-      <motion.p
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
-        className="text-xl text-center text-gray-300"
-      >
-        ¡Genera tus primeros{' '}
-        <span className="money-highlight text-2xl">
-          $150.000 CLP
-        </span>{' '}
-        hoy mismo!
-      </motion.p>
 
       {/* Video Vturb */}
       <motion.div
@@ -107,7 +93,7 @@ export default function Step7() {
           className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
           style={{ width: '50%', height: '100%' }}
         />
-        <span className="relative z-10">¡GARANTIZAR CUPO AHORA!</span>
+        <span className="relative z-10">¡APP LIBERADO!</span>
       </motion.button>
 
       {/* Lista de benefícios rápidos - Abaixo do botão */}

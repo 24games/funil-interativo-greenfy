@@ -22,13 +22,8 @@ export default function Step4({ onNext }) {
         <span className="shimmer-text text-4xl">
           $1.500.000 CLP
         </span>{' '}
-        en apenas 30 segundos
+        solo utilizando este método
       </h2>
-
-      {/* Subheadline */}
-      <p className="text-lg text-center text-gray-300 -mt-2">
-        Solo utilizando este método.
-      </p>
 
       {/* Video Vturb */}
       <VturbVideo 
@@ -71,8 +66,18 @@ export default function Step4({ onNext }) {
           className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
           style={{ width: '50%', height: '100%' }}
         />
-        <span className="relative z-10">QUIERO APRENDER ESTE MÉTODO</span>
+        <span className="relative z-10">Hacer test rápido</span>
       </motion.button>
+
+      {/* Subheadline abaixo do botão */}
+      <motion.p
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="text-sm text-center text-gray-400 mt-2"
+      >
+        Completa el test de 3 preguntas y accede a la app
+      </motion.p>
     </motion.div>
   )
 }

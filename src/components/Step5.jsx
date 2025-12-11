@@ -17,7 +17,7 @@ const questions = [
   {
     id: 'internetAccess',
     text: '¿Cómo accedes a internet normalmente?',
-    options: ['Red Móvil', 'WiFi', 'Ambos', 'Solo WiFi'],
+    options: ['Red Móvil', 'WiFi', 'Ambos', 'VPN'],
     emoji: '📶'
   }
 ]
@@ -50,10 +50,10 @@ export default function Step5({ onNext, onAnswer }) {
       transition={{ duration: 0.4, ease: "easeInOut" }}
       className="flex flex-col gap-6"
     >
-      {/* Contador de perguntas */}
-      <div className="text-center text-sm text-gray-400">
-        Pregunta {currentQuestion + 1} de {questions.length}
-      </div>
+      {/* Headline fixa */}
+      <h2 className="text-xl sm:text-2xl font-bold text-center leading-tight">
+        Tu test rápido de 3 preguntas comenzó
+      </h2>
 
       <AnimatePresence mode="wait">
         <motion.div

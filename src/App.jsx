@@ -7,6 +7,7 @@ import Step4 from './components/Step4'
 import Step5 from './components/Step5'
 import Step6 from './components/Step6'
 import Step7 from './components/Step7'
+import ProgressBar from './components/ProgressBar'
 
 function App() {
   const [currentStep, setCurrentStep] = useState(1)
@@ -46,6 +47,9 @@ function App() {
             className="md:h-16"
           />
         </div>
+
+        {/* Barra de Progresso - Aparece após Step 1 */}
+        <ProgressBar currentStep={currentStep} showPercentage={currentStep === 7} />
         
         {/* Conteúdo */}
         <div className={`w-full ${currentStep === 3 ? 'max-w-full sm:max-w-md' : 'max-w-md'} flex items-center justify-center`}>

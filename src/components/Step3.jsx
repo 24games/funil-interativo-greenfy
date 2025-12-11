@@ -156,7 +156,7 @@ export default function Step3({ onNext }) {
         onClick={onNext}
         className="neon-button w-full text-sm sm:text-base px-4 py-4 sm:py-5"
       >
-        CONTINUAR
+        ¡QUIERO GANAR PLATA COMO ELLOS!
       </button>
     </motion.div>
   )

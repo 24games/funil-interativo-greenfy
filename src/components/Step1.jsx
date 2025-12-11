@@ -3,9 +3,9 @@ import { useRef } from 'react'
 import VturbVideo from './VturbVideo'
 
 export default function Step1({ onNext }) {
-  // Configuração: botão aparece quando o vídeo chega em 20 segundos (0:20)
+  // Configuração: botão aparece quando o vídeo chega em 21 segundos (0:21)
   // O Vturb.displayHiddenElements cuida de mostrar o botão respeitando pausa do vídeo
-  const delaySeconds = 20
+  const delaySeconds = 21
   const buttonRef = useRef(null)
 
   return (
@@ -22,7 +22,7 @@ export default function Step1({ onNext }) {
         <span className="money-highlight">
           $1.000.000 a $4.500.000 CLP
         </span>{' '}
-        mensuales copiando y pegando las señales de mi I.A.
+        mensuales solo copiando la I.A.
       </h1>
 
       {/* Video Vturb */}
