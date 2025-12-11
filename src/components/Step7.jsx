@@ -83,7 +83,7 @@ export default function Step7() {
         transition={{ delay: 0.9 }}
       >
         <VturbVideo 
-          videoId="vid-6939f7c0c54455d1fed8aee0"
+          videoId="vid_6939f7c0c54455d1fed8aee0"
           playerId="6939f7c0c54455d1fed8aee0"
           delaySeconds={delaySeconds}
         />

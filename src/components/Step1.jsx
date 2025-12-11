@@ -37,7 +37,7 @@ export default function Step1({ onNext }) {
 
       {/* Video Vturb */}
       <VturbVideo 
-        videoId="vid-6939f7c83ec7593882510713"
+        videoId="vid_6939f7c83ec7593882510713"
         playerId="6939f7c83ec7593882510713"
         delaySeconds={delaySeconds}
       />
