@@ -25,7 +25,6 @@ export default function Step7() {
     let pauseStartTime = 0
     let isPaused = false
     let animationFrame = null
-    let lastProgress = 0
 
     const findVideoElement = () => {
       const videoId = 'vid_6939f7c0c54455d1fed8aee0'
@@ -53,65 +52,59 @@ export default function Step7() {
 
     const updateProgress = () => {
       const video = findVideoElement()
-      let currentIsPaused = false
+      let videoPaused = false
       
       // Verifica se o vídeo está pausado
       if (video) {
         try {
-          currentIsPaused = video.paused
+          videoPaused = video.paused
         } catch (e) {
-          // Se não conseguir acessar, assume que não está pausado
-          currentIsPaused = false
+          // Se não conseguir acessar, tenta usar currentTime se disponível
+          try {
+            // Se o vídeo tem currentTime, não está pausado (ou está muito próximo)
+            videoPaused = false
+          } catch (e2) {
+            videoPaused = false
+          }
         }
-      } else {
-        // Se não encontrou o vídeo, não atualiza (mantém o último progresso)
-        animationFrame = requestAnimationFrame(updateProgress)
-        return
       }
       
       // Detecta mudança de estado de pausa
-      if (currentIsPaused && !isPaused) {
+      if (videoPaused && !isPaused) {
         // Vídeo acabou de pausar
         isPaused = true
         pauseStartTime = Date.now()
-      } else if (!currentIsPaused && isPaused) {
+      } else if (!videoPaused && isPaused) {
         // Vídeo acabou de retomar
         isPaused = false
         pausedTime += Date.now() - pauseStartTime
       }
 
-      // Só atualiza o progresso se o vídeo NÃO estiver pausado
-      if (!isPaused && !currentIsPaused) {
-        const elapsed = Date.now() - startTime - pausedTime
-        const duration = delaySeconds * 1000
-        const progress = Math.min((elapsed / duration) * 100, 100)
-        
-        // Só atualiza se o progresso mudou (evita re-renders desnecessários)
-        if (Math.abs(progress - lastProgress) > 0.1) {
-          setLoadingProgress(progress)
-          lastProgress = progress
-        }
+      // Calcula o progresso baseado no tempo decorrido (respeitando pausas)
+      const elapsed = Date.now() - startTime - pausedTime
+      const duration = delaySeconds * 1000
+      const progress = Math.min((elapsed / duration) * 100, 100)
+      
+      // Sempre atualiza o progresso (mesmo quando pausado, para manter o estado visual)
+      setLoadingProgress(progress)
 
-        if (progress < 100) {
-          animationFrame = requestAnimationFrame(updateProgress)
-        } else {
-          // Quando chega em 100%, verifica se o botão está pronto
-          setTimeout(() => {
-            if (buttonRef.current && !buttonRef.current.classList.contains('esconder')) {
-              setIsLoading(false)
-            }
-          }, 100)
-        }
-      } else {
-        // Vídeo está pausado, continua verificando mas NÃO atualiza progresso
+      if (progress < 100) {
+        // Continua animando
         animationFrame = requestAnimationFrame(updateProgress)
+      } else {
+        // Quando chega em 100%, verifica se o botão está pronto
+        setTimeout(() => {
+          if (buttonRef.current && !buttonRef.current.classList.contains('esconder')) {
+            setIsLoading(false)
+          }
+        }, 100)
       }
     }
 
     // Aguarda um pouco para o vídeo carregar e começa a verificar
     const startDelay = setTimeout(() => {
       animationFrame = requestAnimationFrame(updateProgress)
-    }, 2000)
+    }, 1000)
 
     return () => {
       clearTimeout(startDelay)
@@ -206,9 +199,12 @@ export default function Step7() {
             {/* Barra de progresso animada (da esquerda para direita) */}
             <motion.div
               className="absolute top-0 left-0 h-full bg-gradient-to-r from-neon to-[#00FFD4]"
-              style={{
-                width: `${loadingProgress}%`,
-                transition: 'width 0.1s linear'
+              animate={{
+                width: `${loadingProgress}%`
+              }}
+              transition={{
+                duration: 0.1,
+                ease: 'linear'
               }}
             />
             {/* Texto do botão */}
