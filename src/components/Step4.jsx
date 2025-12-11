@@ -14,7 +14,7 @@ export default function Step4({ onNext }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.4, ease: "easeInOut" }}
-      className="flex flex-col gap-3"
+      className="flex flex-col items-center gap-3"
     >
       {/* Headline */}
       <h2 className="text-2xl md:text-3xl font-bold text-center leading-tight">

@@ -25,6 +25,7 @@ export default function Step7() {
     let pauseStartTime = 0
     let isPaused = false
     let animationFrame = null
+    let lastProgress = 0
 
     const findVideoElement = () => {
       const videoId = 'vid_6939f7c0c54455d1fed8aee0'
@@ -32,34 +33,64 @@ export default function Step7() {
       if (!videoDiv) return null
 
       // Tenta encontrar o elemento de vídeo dentro do player Vturb
-      return videoDiv.querySelector('video') || 
-             videoDiv.querySelector('iframe')?.contentWindow?.document?.querySelector('video') ||
-             null
+      const video = videoDiv.querySelector('video')
+      if (video) return video
+
+      // Tenta via iframe
+      const iframe = videoDiv.querySelector('iframe')
+      if (iframe && iframe.contentWindow) {
+        try {
+          const iframeDoc = iframe.contentWindow.document
+          const iframeVideo = iframeDoc.querySelector('video')
+          if (iframeVideo) return iframeVideo
+        } catch (e) {
+          // Cross-origin, não consegue acessar
+        }
+      }
+
+      return null
     }
 
     const updateProgress = () => {
       const video = findVideoElement()
+      let currentIsPaused = false
       
       // Verifica se o vídeo está pausado
       if (video) {
-        const videoPaused = video.paused
-        
-        if (videoPaused && !isPaused) {
-          // Vídeo acabou de pausar
-          isPaused = true
-          pauseStartTime = Date.now()
-        } else if (!videoPaused && isPaused) {
-          // Vídeo acabou de retomar
-          isPaused = false
-          pausedTime += Date.now() - pauseStartTime
+        try {
+          currentIsPaused = video.paused
+        } catch (e) {
+          // Se não conseguir acessar, assume que não está pausado
+          currentIsPaused = false
         }
+      } else {
+        // Se não encontrou o vídeo, não atualiza (mantém o último progresso)
+        animationFrame = requestAnimationFrame(updateProgress)
+        return
+      }
+      
+      // Detecta mudança de estado de pausa
+      if (currentIsPaused && !isPaused) {
+        // Vídeo acabou de pausar
+        isPaused = true
+        pauseStartTime = Date.now()
+      } else if (!currentIsPaused && isPaused) {
+        // Vídeo acabou de retomar
+        isPaused = false
+        pausedTime += Date.now() - pauseStartTime
       }
 
-      if (!isPaused) {
+      // Só atualiza o progresso se o vídeo NÃO estiver pausado
+      if (!isPaused && !currentIsPaused) {
         const elapsed = Date.now() - startTime - pausedTime
         const duration = delaySeconds * 1000
         const progress = Math.min((elapsed / duration) * 100, 100)
-        setLoadingProgress(progress)
+        
+        // Só atualiza se o progresso mudou (evita re-renders desnecessários)
+        if (Math.abs(progress - lastProgress) > 0.1) {
+          setLoadingProgress(progress)
+          lastProgress = progress
+        }
 
         if (progress < 100) {
           animationFrame = requestAnimationFrame(updateProgress)
@@ -72,17 +103,18 @@ export default function Step7() {
           }, 100)
         }
       } else {
-        // Vídeo está pausado, continua verificando mas não atualiza progresso
+        // Vídeo está pausado, continua verificando mas NÃO atualiza progresso
         animationFrame = requestAnimationFrame(updateProgress)
       }
     }
 
-    // Aguarda um pouco para o vídeo carregar
-    setTimeout(() => {
+    // Aguarda um pouco para o vídeo carregar e começa a verificar
+    const startDelay = setTimeout(() => {
       animationFrame = requestAnimationFrame(updateProgress)
-    }, 1000)
+    }, 2000)
 
     return () => {
+      clearTimeout(startDelay)
       if (animationFrame) {
         cancelAnimationFrame(animationFrame)
       }
