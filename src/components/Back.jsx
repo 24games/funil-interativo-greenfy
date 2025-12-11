@@ -63,7 +63,7 @@ export default function Back() {
               transition={{ delay: 0.4, duration: 0.5 }}
               className="text-lg sm:text-xl text-gray-300 leading-relaxed"
             >
-              Esta es tu última oportunidad de activar la I.A. y empezar a generar lucas diarias desde tu celular.
+              <span className="text-red-500 font-bold">Esta es tu última oportunidad</span> de activar la I.A. y empezar a generar lucas diarias desde tu celular.
             </motion.h2>
 
             <motion.p
