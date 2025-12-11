@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 
 /**
  * Componente para vídeos Vturb com bordas arredondadas e degradê
- * Usa APENAS o método oficial do Vturb com displayHiddenElements (sem fallbacks)
+ * Usa o método oficial do Vturb com displayHiddenElements, com fallback inteligente que respeita pausa
  * @param {string} videoId - ID do vídeo Vturb (ex: "vid_6939f7c83ec7593882510713")
  * @param {string} playerId - ID do player Vturb (ex: "6939f7c83ec7593882510713")
  * @param {number} delaySeconds - Segundos para mostrar elementos com classe .esconder
@@ -11,6 +11,11 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
   const containerRef = useRef(null)
   const videoDivRef = useRef(null)
   const displayConfiguredRef = useRef(false)
+  const fallbackTimerRef = useRef(null)
+  const videoElementRef = useRef(null)
+  const currentTimeRef = useRef(0)
+  const isPausedRef = useRef(true)
+  const lastUpdateTimeRef = useRef(Date.now())
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -78,16 +83,83 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
       document.head.appendChild(script)
     }
 
-    // Configura displayHiddenElements APENAS quando o player estiver pronto
-    // SEM fallbacks - apenas o método oficial do Vturb que respeita pausa
+    // Fallback inteligente que monitora o tempo de reprodução e respeita pausas
+    const startFallbackTimer = () => {
+      if (fallbackTimerRef.current) return // Já está rodando
+
+      console.log(`🔄 Iniciando fallback timer para ${delaySeconds}s`)
+
+      const checkVideoTime = () => {
+        // Tenta encontrar o elemento de vídeo
+        const video = videoDivRef.current?.querySelector('video') || 
+                     videoDivRef.current?.querySelector('iframe')?.contentWindow?.document?.querySelector('video') ||
+                     document.querySelector(`#${videoId} video`)
+
+        if (video) {
+          videoElementRef.current = video
+          
+          // Verifica se está pausado
+          const isPaused = video.paused
+          isPausedRef.current = isPaused
+
+          if (!isPaused) {
+            // Vídeo está tocando, atualiza o tempo
+            const currentTime = video.currentTime || 0
+            currentTimeRef.current = currentTime
+            lastUpdateTimeRef.current = Date.now()
+
+            // Verifica se chegou no tempo necessário
+            if (currentTime >= delaySeconds) {
+              console.log(`✅ Fallback: Vídeo chegou em ${currentTime.toFixed(1)}s, mostrando botão`)
+              const hiddenElements = document.querySelectorAll('.esconder')
+              hiddenElements.forEach(el => {
+                el.classList.remove('esconder')
+              })
+              if (fallbackTimerRef.current) {
+                clearInterval(fallbackTimerRef.current)
+                fallbackTimerRef.current = null
+              }
+              return
+            }
+          }
+        } else {
+          // Se não encontrou o vídeo ainda, tenta usar tempo decorrido (menos preciso)
+          if (!isPausedRef.current) {
+            const now = Date.now()
+            const elapsed = (now - lastUpdateTimeRef.current) / 1000
+            currentTimeRef.current += elapsed
+            lastUpdateTimeRef.current = now
+
+            if (currentTimeRef.current >= delaySeconds) {
+              console.log(`✅ Fallback: Tempo decorrido chegou em ${currentTimeRef.current.toFixed(1)}s, mostrando botão`)
+              const hiddenElements = document.querySelectorAll('.esconder')
+              hiddenElements.forEach(el => {
+                el.classList.remove('esconder')
+              })
+              if (fallbackTimerRef.current) {
+                clearInterval(fallbackTimerRef.current)
+                fallbackTimerRef.current = null
+              }
+              return
+            }
+          }
+        }
+      }
+
+      // Verifica a cada 100ms
+      fallbackTimerRef.current = setInterval(checkVideoTime, 100)
+    }
+
+    // Configura displayHiddenElements quando o player estiver pronto
     const setupVturbDisplay = () => {
       if (!videoDivRef.current || displayConfiguredRef.current) return
 
       try {
         // Função para encontrar e configurar o player
         const findAndConfigurePlayer = () => {
+          console.log(`🔍 Procurando player para ${videoId}...`)
+          
           // O Vturb geralmente expõe o método no elemento do vídeo ou em um objeto global
-          // Tenta diferentes formas de encontrar o player
           const possiblePlayers = [
             document.getElementById(videoId),
             videoDivRef.current,
@@ -95,26 +167,32 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
             videoDivRef.current.querySelector('iframe')?.contentWindow?.player,
             window[`player_${playerId}`],
             window[`vid_${playerId}`],
-            // Verifica se há um objeto global do Vturb
             window.Vturb?.players?.[playerId],
             window.Vturb?.players?.[videoId]
           ]
 
-          for (const player of possiblePlayers) {
-            if (player && typeof player.displayHiddenElements === 'function') {
-              try {
-                // Chama o método oficial do Vturb - este respeita pausa do vídeo
-                player.displayHiddenElements(delaySeconds, [".esconder"], {
-                  persist: true
-                })
-                console.log(`✅ Vturb: displayHiddenElements configurado para ${delaySeconds}s (respeita pausa)`)
-                displayConfiguredRef.current = true
-                return true
-              } catch (error) {
-                console.error('❌ Erro ao executar displayHiddenElements:', error)
+          for (let i = 0; i < possiblePlayers.length; i++) {
+            const player = possiblePlayers[i]
+            if (player) {
+              console.log(`🔍 Verificando player ${i}:`, player, typeof player.displayHiddenElements)
+              if (typeof player.displayHiddenElements === 'function') {
+                try {
+                  console.log(`✅ Encontrado displayHiddenElements! Configurando para ${delaySeconds}s`)
+                  // Chama o método oficial do Vturb - este respeita pausa do vídeo
+                  player.displayHiddenElements(delaySeconds, [".esconder"], {
+                    persist: true
+                  })
+                  console.log(`✅ Vturb: displayHiddenElements configurado com sucesso!`)
+                  displayConfiguredRef.current = true
+                  return true
+                } catch (error) {
+                  console.error('❌ Erro ao executar displayHiddenElements:', error)
+                }
               }
             }
           }
+          
+          console.warn('⚠️ displayHiddenElements não encontrado em nenhum player')
           return false
         }
 
@@ -124,10 +202,14 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
         }
 
         // Se não encontrou, aguarda o player estar pronto
-        // Listener para evento player:ready
         const handlePlayerReady = () => {
+          console.log('📢 Evento player:ready recebido')
           if (!displayConfiguredRef.current) {
-            findAndConfigurePlayer()
+            if (!findAndConfigurePlayer()) {
+              // Se ainda não encontrou, inicia o fallback
+              console.log('⚠️ displayHiddenElements não encontrado, usando fallback')
+              startFallbackTimer()
+            }
           }
         }
 
@@ -142,9 +224,9 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
           videoElement.addEventListener("player:ready", handlePlayerReady)
         }
 
-        // Verifica periodicamente se o método está disponível (máximo 30 segundos)
+        // Verifica periodicamente se o método está disponível (máximo 10 segundos)
         let attempts = 0
-        const maxAttempts = 60 // 30 segundos (60 * 500ms)
+        const maxAttempts = 20 // 10 segundos (20 * 500ms)
         
         const checkInterval = setInterval(() => {
           attempts++
@@ -160,7 +242,7 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
             }
           } else if (attempts >= maxAttempts) {
             clearInterval(checkInterval)
-            console.warn('⚠️ Vturb displayHiddenElements não disponível após 30s. Verifique se o script do Vturb foi carregado corretamente.')
+            console.warn('⚠️ displayHiddenElements não encontrado após 10s, usando fallback inteligente')
             // Remove listeners
             if (videoDivRef.current && videoDivRef.current.removeEventListener) {
               videoDivRef.current.removeEventListener("player:ready", handlePlayerReady)
@@ -168,6 +250,8 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
             if (videoElement && videoElement.removeEventListener) {
               videoElement.removeEventListener("player:ready", handlePlayerReady)
             }
+            // Inicia o fallback inteligente
+            startFallbackTimer()
           }
         }, 500)
 
@@ -183,15 +267,20 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
         }
       } catch (error) {
         console.error('Erro ao configurar Vturb displayHiddenElements:', error)
+        // Inicia o fallback em caso de erro
+        startFallbackTimer()
       }
     }
 
     // Aguarda o script carregar e o player inicializar
-    // Tenta após 1 segundo e depois verifica periodicamente
-    setTimeout(setupVturbDisplay, 1000)
+    setTimeout(setupVturbDisplay, 2000)
 
     return () => {
       // Limpa o vídeo quando o componente for desmontado
+      if (fallbackTimerRef.current) {
+        clearInterval(fallbackTimerRef.current)
+        fallbackTimerRef.current = null
+      }
       if (videoDivRef.current && containerRef.current && containerRef.current.contains(videoDivRef.current)) {
         containerRef.current.removeChild(videoDivRef.current)
         videoDivRef.current = null
