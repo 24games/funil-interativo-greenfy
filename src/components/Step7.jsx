@@ -38,7 +38,7 @@ export default function Step7() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-3"
     >
       {/* Badge de conclusão */}
       <motion.div

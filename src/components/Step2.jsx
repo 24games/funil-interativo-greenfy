@@ -26,7 +26,7 @@ export default function Step2({ onNext, onAnswer }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.4, ease: "easeInOut" }}
-      className="flex flex-col gap-6"
+      className="flex flex-col gap-4"
     >
       {/* Headline */}
       <h2 className="text-2xl md:text-3xl font-bold text-center leading-tight px-2">

@@ -31,9 +31,9 @@ function App() {
       <div className="particles-bg" />
       
       {/* Container principal */}
-      <div className="relative z-10 min-h-screen flex flex-col items-center px-4 pt-2 pb-8">
+      <div className="relative z-10 min-h-screen flex flex-col items-center px-4 pt-0 pb-8">
         {/* Logo no Topo - Menor e colada no topo */}
-        <div className="w-full max-w-md mb-2 flex justify-center">
+        <div className="w-full max-w-md mb-1 flex justify-center">
           <img 
             src="/images/HACKER MILLON PNG.png" 
             alt="24Games Logo" 
