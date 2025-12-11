@@ -20,7 +20,8 @@ const SUPABASE_CONNECTION_STRING = process.env.SUPABASE_CONNECTION_STRING ||
   'postgresql://postgres.jhyekbtcywewzrviqlos:XhoB5znX17qpM7WG@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true';
 
 // Nome da tabela (configurável por projeto)
-const TABLE_NAME = 'tracking_SQD_CAS_LP1_VSL_HACKERMILLON';
+// IMPORTANTE: PostgREST (REST API do Supabase) converte tudo para minúsculas
+const TABLE_NAME = 'tracking_sqd_cas_lp1_vsl_hackermillon';
 
 // ============================================
 // FUNÇÕES AUXILIARES
