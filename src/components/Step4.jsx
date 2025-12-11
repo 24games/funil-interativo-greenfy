@@ -69,12 +69,12 @@ export default function Step4({ onNext }) {
         <span className="relative z-10">Hacer test rápido</span>
       </motion.button>
 
-      {/* Subheadline abaixo do botão */}
+      {/* Subheadline abaixo do botão - Aparece junto com o botão */}
       <motion.p
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="text-sm text-center text-gray-400 mt-2"
+        className="esconder text-sm text-center text-gray-400 mt-2"
       >
         Completa el test de 3 preguntas y accede a la app
       </motion.p>

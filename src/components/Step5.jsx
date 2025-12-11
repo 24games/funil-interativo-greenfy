@@ -51,7 +51,7 @@ export default function Step5({ onNext, onAnswer }) {
       className="flex flex-col gap-6"
     >
       {/* Headline fixa */}
-      <h2 className="text-xl sm:text-2xl font-bold text-center leading-tight">
+      <h2 className="text-xl sm:text-2xl font-bold text-center leading-tight uppercase shimmer-text">
         Tu test rápido de 3 preguntas comenzó
       </h2>
 

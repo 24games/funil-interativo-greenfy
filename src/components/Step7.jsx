@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Sparkles } from 'lucide-react'
 import VturbVideo from './VturbVideo'
 
@@ -8,6 +8,8 @@ export default function Step7() {
   // O Vturb.displayHiddenElements cuida de mostrar o botão e elementos respeitando pausa do vídeo
   const delaySeconds = 134 // Tempo em segundos (2 minutos e 14 segundos)
   const buttonRef = useRef(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadingProgress, setLoadingProgress] = useState(0)
 
   const handleCTA = () => {
     // Aqui você pode adicionar a lógica para redirecionar
@@ -15,6 +17,50 @@ export default function Step7() {
     console.log('CTA Clicado!')
     // window.location.href = 'SEU_LINK_AQUI'
   }
+
+  // Anima o progresso do loading baseado no tempo do delay
+  useEffect(() => {
+    const startTime = Date.now()
+    const duration = delaySeconds * 1000 // Converte para milissegundos
+
+    const updateProgress = () => {
+      const elapsed = Date.now() - startTime
+      const progress = Math.min((elapsed / duration) * 100, 100)
+      setLoadingProgress(progress)
+
+      if (progress < 100) {
+        requestAnimationFrame(updateProgress)
+      } else {
+        // Quando chega em 100%, verifica se o botão está pronto
+        setTimeout(() => {
+          if (buttonRef.current && !buttonRef.current.classList.contains('esconder')) {
+            setIsLoading(false)
+          }
+        }, 100)
+      }
+    }
+
+    const animationFrame = requestAnimationFrame(updateProgress)
+
+    return () => cancelAnimationFrame(animationFrame)
+  }, [delaySeconds])
+
+  // Monitora quando o botão deve ficar pronto (quando a classe .esconder é removida)
+  useEffect(() => {
+    const checkButtonReady = () => {
+      if (buttonRef.current && !buttonRef.current.classList.contains('esconder')) {
+        // Aguarda um pouco para garantir que o loading chegou em 100%
+        if (loadingProgress >= 99) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    // Verifica periodicamente
+    const interval = setInterval(checkButtonReady, 100)
+
+    return () => clearInterval(interval)
+  }, [loadingProgress])
 
   return (
     <motion.div
@@ -59,13 +105,56 @@ export default function Step7() {
         />
       </motion.div>
 
+      {/* Botão de Loading - Aparece antes do botão final */}
+      {isLoading && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full mt-2 relative"
+        >
+          <button
+            disabled
+            className="w-full text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 px-4 relative overflow-hidden rounded-xl font-bold text-black bg-gray-700 border-2 border-gray-600 cursor-not-allowed"
+            style={{
+              boxShadow: '0 0 20px rgba(0, 255, 136, 0.3)'
+            }}
+          >
+            {/* Barra de progresso animada (da esquerda para direita) */}
+            <motion.div
+              className="absolute top-0 left-0 h-full bg-gradient-to-r from-neon to-[#00FFD4]"
+              style={{
+                width: `${loadingProgress}%`,
+                transition: 'width 0.1s linear'
+              }}
+            />
+            {/* Texto do botão */}
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              {loadingProgress < 100 ? (
+                <>
+                  <motion.span
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="inline-block"
+                  >
+                    ⏳
+                  </motion.span>
+                  Cargando...
+                </>
+              ) : (
+                '¡APP LIBERADO!'
+              )}
+            </span>
+          </button>
+        </motion.div>
+      )}
+
       {/* CTA Final - Só aparece quando o vídeo chega no tempo necessário (usando método padrão do Vturb) */}
       <motion.button
         ref={buttonRef}
         initial={{ opacity: 0, scale: 0.5, y: 30 }}
         animate={{ 
-          opacity: 1, 
-          scale: 1, 
+          opacity: isLoading ? 0 : 1, 
+          scale: isLoading ? 0.95 : 1, 
           y: 0,
         }}
         transition={{ 
@@ -74,10 +163,11 @@ export default function Step7() {
           damping: 20,
           duration: 0.6
         }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        whileHover={{ scale: isLoading ? 1 : 1.05 }}
+        whileTap={{ scale: isLoading ? 1 : 0.95 }}
         onClick={handleCTA}
-        className="esconder neon-button w-full mt-2 text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 px-4 animate-heartbeat relative overflow-hidden"
+        disabled={isLoading}
+        className={`${isLoading ? 'hidden' : 'esconder'} neon-button w-full mt-2 text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 px-4 animate-heartbeat relative overflow-hidden`}
         style={{ 
           boxShadow: '0 0 40px rgba(0, 255, 136, 0.8), 0 0 80px rgba(0, 255, 136, 0.4), 0 0 120px rgba(0, 255, 136, 0.2)'
         }}
