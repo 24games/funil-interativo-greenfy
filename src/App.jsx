@@ -116,7 +116,7 @@ function App() {
         <div className={`w-full ${currentStep === 3 ? 'max-w-full sm:max-w-md' : 'max-w-md'} flex items-center justify-center`}>
           <AnimatePresence mode="wait" initial={false}>
             {currentStep === 1 && (
-              <Step1 key="step1" onNext={nextStep} />
+              <Step1 key={`step1-${currentStep}`} onNext={nextStep} />
             )}
             {currentStep === 2 && (
               <Step2 

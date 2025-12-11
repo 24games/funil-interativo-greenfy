@@ -20,8 +20,18 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
   useEffect(() => {
     if (!containerRef.current) return
 
-    // Verifica se o vídeo já foi criado
-    if (videoDivRef.current) return
+    // Limpa qualquer vídeo existente antes de criar um novo
+    if (videoDivRef.current && containerRef.current.contains(videoDivRef.current)) {
+      containerRef.current.removeChild(videoDivRef.current)
+      videoDivRef.current = null
+      displayConfiguredRef.current = false
+    }
+
+    // Limpa timers anteriores
+    if (fallbackTimerRef.current) {
+      clearInterval(fallbackTimerRef.current)
+      fallbackTimerRef.current = null
+    }
 
     // Cria a estrutura HTML do vídeo Vturb
     const videoDiv = document.createElement('div')
@@ -276,16 +286,30 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
     setTimeout(setupVturbDisplay, 2000)
 
     return () => {
-      // Limpa o vídeo quando o componente for desmontado
+      // Limpa completamente quando o componente for desmontado
       if (fallbackTimerRef.current) {
         clearInterval(fallbackTimerRef.current)
         fallbackTimerRef.current = null
       }
+      
+      // Remove o elemento do vídeo do DOM
       if (videoDivRef.current && containerRef.current && containerRef.current.contains(videoDivRef.current)) {
         containerRef.current.removeChild(videoDivRef.current)
         videoDivRef.current = null
-        displayConfiguredRef.current = false
       }
+      
+      // Remove o elemento do DOM global também (caso tenha sido criado)
+      const existingVideoDiv = document.getElementById(videoId)
+      if (existingVideoDiv && existingVideoDiv.parentNode) {
+        existingVideoDiv.parentNode.removeChild(existingVideoDiv)
+      }
+      
+      // Reseta todas as referências
+      displayConfiguredRef.current = false
+      videoElementRef.current = null
+      currentTimeRef.current = 0
+      isPausedRef.current = true
+      lastUpdateTimeRef.current = Date.now()
     }
   }, [videoId, playerId, delaySeconds])
 
