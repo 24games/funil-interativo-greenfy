@@ -23,13 +23,13 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
     player.style.cssText = `
       display: block !important;
       margin: 0 auto !important;
-      width: calc(100% - 2px) !important;
-      height: calc(100% - 2px) !important;
+      width: 100% !important;
+      height: 100% !important;
       max-width: 400px !important;
-      border-radius: calc(1.5rem - 1px) !important;
+      border-radius: calc(1.5rem - 0.5px) !important;
       overflow: hidden !important;
       position: relative !important;
-      background: #050505 !important;
+      background: transparent !important;
     `
 
     containerRef.current.appendChild(player)
@@ -51,53 +51,88 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
       if (!playerRef.current) return
 
       try {
-        // Adiciona listener para quando o player estiver pronto
-        const handlePlayerReady = () => {
-          if (playerRef.current && delaySeconds && typeof playerRef.current.displayHiddenElements === 'function') {
-            playerRef.current.displayHiddenElements(delaySeconds, [".esconder"], {
-              persist: true
-            })
+        const player = playerRef.current
+
+        // Função para executar displayHiddenElements
+        const executeDisplay = () => {
+          if (!player || !delaySeconds) return
+          
+          // Verifica se o método existe
+          if (typeof player.displayHiddenElements === 'function') {
+            try {
+              player.displayHiddenElements(delaySeconds, [".esconder"], {
+                persist: true
+              })
+              console.log(`✅ Vturb: displayHiddenElements configurado para ${delaySeconds}s`)
+            } catch (error) {
+              console.error('❌ Erro ao executar displayHiddenElements:', error)
+            }
+          } else {
+            console.warn('⚠️ displayHiddenElements não está disponível no player')
+            // Fallback manual: remove a classe após o delay
+            setTimeout(() => {
+              const hiddenElements = document.querySelectorAll('.esconder')
+              hiddenElements.forEach(el => {
+                el.classList.remove('esconder')
+              })
+            }, delaySeconds * 1000)
           }
         }
 
-        // Tenta adicionar o listener
-        if (playerRef.current.addEventListener) {
-          playerRef.current.addEventListener("player:ready", handlePlayerReady)
+        // Tenta adicionar o listener para player:ready
+        if (player.addEventListener) {
+          player.addEventListener("player:ready", executeDisplay)
         }
 
         // Fallback: verifica periodicamente se o método está disponível
+        let attempts = 0
+        const maxAttempts = 40 // 20 segundos máximo (40 * 500ms)
+        
         const checkInterval = setInterval(() => {
-          if (playerRef.current && typeof playerRef.current.displayHiddenElements === 'function') {
+          attempts++
+          
+          if (player && typeof player.displayHiddenElements === 'function') {
             clearInterval(checkInterval)
-            handlePlayerReady()
+            executeDisplay()
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkInterval)
+            console.warn('Vturb displayHiddenElements não disponível após timeout')
           }
         }, 500)
 
-        // Timeout de segurança (para após 10 segundos)
-        setTimeout(() => {
+        // Limpa o intervalo quando o componente for desmontado
+        return () => {
           clearInterval(checkInterval)
-        }, 10000)
-
+          if (player.removeEventListener) {
+            player.removeEventListener("player:ready", executeDisplay)
+          }
+        }
       } catch (error) {
         console.error('Erro ao configurar Vturb displayHiddenElements:', error)
       }
     }
 
     // Aguarda o script carregar
-    const scriptLoadCheck = setInterval(() => {
+    let scriptLoadCheck
+    const checkScript = () => {
       if (playerRef.current) {
         clearInterval(scriptLoadCheck)
-        setTimeout(setupVturbDisplay, 1500) // Aguarda 1.5s para o player inicializar
+        // Aguarda um pouco mais para garantir que o player está totalmente inicializado
+        setTimeout(setupVturbDisplay, 2000)
       }
-    }, 300)
+    }
+    
+    scriptLoadCheck = setInterval(checkScript, 300)
 
     return () => {
       // Limpa o player quando o componente for desmontado
-      if (playerRef.current && containerRef.current) {
+      if (playerRef.current && containerRef.current && containerRef.current.contains(playerRef.current)) {
         containerRef.current.removeChild(playerRef.current)
         playerRef.current = null
       }
-      clearInterval(scriptLoadCheck)
+      if (scriptLoadCheck) {
+        clearInterval(scriptLoadCheck)
+      }
     }
   }, [videoId, playerId, delaySeconds])
 
@@ -107,9 +142,7 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
       className="w-full vturb-video-wrapper"
       style={{ 
         aspectRatio: '9/16',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
+        minHeight: '100%'
       }}
     />
   )

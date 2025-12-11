@@ -1,9 +1,22 @@
 import { motion } from 'framer-motion'
+import { useEffect, useRef } from 'react'
 import VturbVideo from './VturbVideo'
 
 export default function Step1({ onNext }) {
   // Configuração: botão aparece quando o vídeo chega em 20 segundos (0:20)
   const delaySeconds = 20
+  const buttonRef = useRef(null)
+
+  // Fallback: se o Vturb não funcionar, mostra o botão após o tempo
+  useEffect(() => {
+    const fallbackTimer = setTimeout(() => {
+      if (buttonRef.current && buttonRef.current.classList.contains('esconder')) {
+        buttonRef.current.classList.remove('esconder')
+      }
+    }, (delaySeconds + 2) * 1000) // +2 segundos de margem
+
+    return () => clearTimeout(fallbackTimer)
+  }, [delaySeconds])
 
   return (
     <motion.div
@@ -31,6 +44,7 @@ export default function Step1({ onNext }) {
 
       {/* Botão - Só aparece quando o vídeo chega no tempo necessário (usando método padrão do Vturb) */}
       <motion.button
+        ref={buttonRef}
         initial={{ opacity: 0, scale: 0.5, y: 30 }}
         animate={{ 
           opacity: 1, 

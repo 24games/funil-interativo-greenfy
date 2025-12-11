@@ -236,7 +236,7 @@ body {
 .vturb-video-wrapper {
   position: relative;
   border-radius: 1.5rem;
-  padding: 1px;
+  padding: 0.5px;
   background: linear-gradient(135deg, #00FF88, #00FFD4);
   overflow: hidden;
   isolation: isolate;
@@ -244,20 +244,20 @@ body {
 
 .vturb-video-wrapper vturb-smartplayer {
   display: block !important;
-  width: calc(100% - 2px) !important;
-  height: calc(100% - 2px) !important;
-  border-radius: calc(1.5rem - 1px) !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: calc(1.5rem - 0.5px) !important;
   overflow: hidden !important;
-  background: #050505 !important;
+  background: transparent !important;
   position: relative !important;
-  margin: 1px !important;
+  margin: 0 !important;
 }
 
 /* Força border-radius em elementos internos do Vturb */
 .vturb-video-wrapper vturb-smartplayer video,
 .vturb-video-wrapper vturb-smartplayer iframe,
 .vturb-video-wrapper vturb-smartplayer > * {
-  border-radius: calc(1.5rem - 1px) !important;
+  border-radius: calc(1.5rem - 0.5px) !important;
   overflow: hidden !important;
 }
 
