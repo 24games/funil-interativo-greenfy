@@ -14,12 +14,12 @@ export default function Step4({ onNext }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.4, ease: "easeInOut" }}
-      className="flex flex-col items-center gap-3"
+      className="flex flex-col items-center gap-2"
     >
-      {/* Headline */}
-      <h2 className="text-2xl md:text-3xl font-bold text-center leading-tight">
+      {/* Headline - Reduzida significativamente */}
+      <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-center leading-tight -mt-2">
         Mira cómo hice{' '}
-        <span className="shimmer-text text-4xl">
+        <span className="shimmer-text text-xl sm:text-2xl md:text-3xl">
           $1.500.000 CLP
         </span>{' '}
         solo utilizando este método
