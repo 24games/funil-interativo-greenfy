@@ -68,20 +68,19 @@ function generateEventId(data) {
 }
 
 /**
- * Salva dados no Supabase usando REST API
+ * Salva dados no Supabase usando conexão PostgreSQL direta
  * 
- * NOTA: Usamos a REST API do Supabase via fetch para melhor compatibilidade com Vercel
- * Alternativa: usar @supabase/supabase-js (mais simples, mas requer instalação)
+ * Usa a biblioteca pg para conexão direta com o banco
  */
 async function saveToSupabase(data) {
-  // Extrair project ref da connection string para construir URL da REST API
-  const urlMatch = SUPABASE_CONNECTION_STRING.match(/postgresql:\/\/postgres\.([^.]+)\./);
+  // Extrair credenciais da connection string
+  const urlMatch = SUPABASE_CONNECTION_STRING.match(/postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+?)(\?|$)/);
   
   if (!urlMatch) {
-    throw new Error('Formato de connection string inválido - não foi possível extrair project ref');
+    throw new Error('Formato de connection string inválido');
   }
   
-  const projectRef = urlMatch[1];
+  const [, user, password, host, port, database] = urlMatch;
   
   // Preparar dados para inserção
   const insertData = {
@@ -113,51 +112,86 @@ async function saveToSupabase(data) {
     event_id: data.event_id || generateEventId(data),
   };
   
-  // Usar REST API do Supabase (requer SUPABASE_URL e SUPABASE_ANON_KEY)
-  // Por enquanto, vamos usar uma abordagem que funciona com MCP Server
-  // NOTA: Para produção, configure SUPABASE_URL e SUPABASE_ANON_KEY nas variáveis de ambiente
+  // Usar biblioteca pg para conexão direta
+  const { Pool } = await import('pg');
   
-  const supabaseUrl = process.env.SUPABASE_URL || `https://${projectRef}.supabase.co`;
-  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseKey) {
-    // Se não tiver chave, retorna os dados preparados para uso via MCP Server
-    console.warn('SUPABASE_ANON_KEY não configurado. Dados preparados mas não salvos via REST API.');
-    return {
-      ...insertData,
-      id: null,
-      created_at: new Date().toISOString(),
-      _note: 'Dados preparados - usar MCP Server para salvar',
-    };
-  }
-  
-  // Inserir via REST API
-  const response = await fetch(`${supabaseUrl}/rest/v1/${TABLE_NAME}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': supabaseKey,
-      'Authorization': `Bearer ${supabaseKey}`,
-      'Prefer': 'return=representation',
+  const pool = new Pool({
+    connectionString: SUPABASE_CONNECTION_STRING,
+    ssl: {
+      rejectUnauthorized: false, // Supabase requer SSL
     },
-    body: JSON.stringify(insertData),
+    max: 1, // Limitar conexões em serverless
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
   });
   
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Supabase API Error: ${response.status} - ${errorText}`);
+  try {
+    // Query de inserção
+    const query = `
+      INSERT INTO ${TABLE_NAME} (
+        email, phone, ip, user_agent, fbp, fbc,
+        first_name, last_name, date_of_birth,
+        city, state, country, zip_code,
+        utm_source, utm_medium, utm_campaign, utm_term, utm_content,
+        fbclid, gclid,
+        page_url, referrer, language, timestamp, event_type, event_id
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6,
+        $7, $8, $9,
+        $10, $11, $12, $13,
+        $14, $15, $16, $17, $18,
+        $19, $20,
+        $21, $22, $23, $24, $25, $26
+      )
+      RETURNING id, event_id, created_at;
+    `;
+    
+    const values = [
+      insertData.email,
+      insertData.phone,
+      insertData.ip,
+      insertData.user_agent,
+      insertData.fbp,
+      insertData.fbc,
+      insertData.first_name,
+      insertData.last_name,
+      insertData.date_of_birth,
+      insertData.city,
+      insertData.state,
+      insertData.country,
+      insertData.zip_code,
+      insertData.utm_source,
+      insertData.utm_medium,
+      insertData.utm_campaign,
+      insertData.utm_term,
+      insertData.utm_content,
+      insertData.fbclid,
+      insertData.gclid,
+      insertData.page_url,
+      insertData.referrer,
+      insertData.language,
+      insertData.timestamp,
+      insertData.event_type,
+      insertData.event_id,
+    ];
+    
+    const result = await pool.query(query, values);
+    await pool.end();
+    
+    if (result.rows && result.rows.length > 0) {
+      return {
+        ...insertData,
+        id: result.rows[0].id,
+        created_at: result.rows[0].created_at,
+      };
+    } else {
+      throw new Error('Nenhum registro retornado após inserção');
+    }
+  } catch (error) {
+    await pool.end();
+    console.error('Erro ao salvar no Supabase:', error);
+    throw error;
   }
-  
-  const result = await response.json();
-  
-  // REST API retorna array com um objeto
-  const inserted = Array.isArray(result) ? result[0] : result;
-  
-  return {
-    ...insertData,
-    id: inserted.id,
-    created_at: inserted.created_at,
-  };
 }
 
 /**
@@ -334,14 +368,19 @@ export default async function handler(req, res) {
     
     try {
       supabaseData = await saveToSupabase(trackingData);
-      console.log('Dados salvos no Supabase:', {
+      console.log('✅ Dados salvos no Supabase:', {
         id: supabaseData.id,
         event_id: supabaseData.event_id,
         created_at: supabaseData.created_at,
       });
     } catch (error) {
       supabaseError = error.message;
-      console.error('Erro ao salvar no Supabase:', error);
+      console.error('❌ Erro ao salvar no Supabase:', {
+        message: error.message,
+        stack: error.stack,
+        connectionString: SUPABASE_CONNECTION_STRING ? 'Configurada' : 'Não configurada',
+        tableName: TABLE_NAME,
+      });
       // Continua mesmo se houver erro no Supabase (não bloqueia envio para Meta)
     }
 
