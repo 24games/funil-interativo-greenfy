@@ -1,20 +1,32 @@
 /**
- * Script de teste completo para evento Purchase com todos os parâmetros
+ * Script CORRIGIDO e TESTADO para evento Purchase
  * Execute no console do navegador (F12)
+ * Código de teste: TEST57030
  */
 
-(async function enviarTestePurchaseCompleto() {
+(async function enviarTestePurchase() {
   const META_PIXEL_ID = '1170692121796734';
   const META_ACCESS_TOKEN = 'EAADG88pNjVUBQJRLLaRpUZCdiUtZBXbxLGZB93LxdMnbV3ejomv3qbWuXu5OGBaH3zbhdqMOz722eZA7zyryFAczJtBBWKuVT9ZBYYUDcEoOF3adcK7CIHcL7yft3MZBU636aURzB16MrSnZByGBNvEmza0Kpzeka71Or87CAPFqL6CZCRw3w7QxST5BVFZANwgZDZD';
   const TEST_EVENT_CODE = 'TEST57030';
   
+  console.log('🚀 Iniciando envio de evento Purchase de teste...');
+  console.log('📊 Pixel ID:', META_PIXEL_ID);
+  console.log('🧪 Test Event Code:', TEST_EVENT_CODE);
+  console.log('');
+  
   // Função para gerar hash SHA-256
   async function hashSHA256(text) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(text.trim().toLowerCase());
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    if (!text) return null;
+    try {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(text.trim().toLowerCase());
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (error) {
+      console.error('Erro ao gerar hash:', error);
+      return null;
+    }
   }
   
   // Dados de teste
@@ -40,6 +52,9 @@
   const hashedCountry = await hashSHA256(testCountry);
   const hashedZipCode = await hashSHA256(testZipCode);
   
+  console.log('✅ Hashes gerados com sucesso');
+  console.log('');
+  
   const eventTime = Math.floor(Date.now() / 1000);
   const eventId = `test_purchase_${Date.now()}`;
   const orderId = `TEST_ORDER_${Date.now()}`;
@@ -57,7 +72,7 @@
     userData.fbc = fbc;
   }
   
-  // Adiciona dados hasheados (apenas se não forem null)
+  // Adiciona dados hasheados
   if (hashedEmail) userData.em = hashedEmail;
   if (hashedPhone) userData.ph = hashedPhone;
   if (hashedFirstName) userData.fn = hashedFirstName;
@@ -69,7 +84,7 @@
   if (hashedZipCode) userData.zp = hashedZipCode;
   
   // Estrutura do evento conforme documentação Meta
-  const eventData = {
+  const payload = {
     data: [{
       event_name: 'Purchase',
       event_time: eventTime,
@@ -93,26 +108,23 @@
   
   const apiUrl = `https://graph.facebook.com/v18.0/${META_PIXEL_ID}/events`;
   
-  console.log('🚀 Enviando evento Purchase de teste com TODOS os parâmetros...');
-  console.log('📊 Pixel ID:', META_PIXEL_ID);
-  console.log('🧪 Test Event Code:', TEST_EVENT_CODE);
-  console.log('📦 Order ID:', orderId);
-  console.log('💰 Value: BRL 39.90');
+  console.log('📋 Parâmetros incluídos no evento:');
+  console.log('  ✅ Email (em):', hashedEmail ? '✓' : '✗');
+  console.log('  ✅ Telefone (ph):', hashedPhone ? '✓' : '✗');
+  console.log('  ✅ IP (client_ip_address):', userData.client_ip_address);
+  console.log('  ✅ User Agent (client_user_agent):', userData.client_user_agent.substring(0, 50) + '...');
+  console.log('  ✅ FBP (fbp):', userData.fbp);
+  console.log('  ✅ FBC (fbc):', userData.fbc || 'não disponível');
+  console.log('  ✅ Primeiro Nome (fn):', hashedFirstName ? '✓' : '✗');
+  console.log('  ✅ Sobrenome (ln):', hashedLastName ? '✓' : '✗');
+  console.log('  ✅ Data de Nascimento (db):', hashedDateOfBirth ? '✓' : '✗');
+  console.log('  ✅ Cidade (ct):', hashedCity ? '✓' : '✗');
+  console.log('  ✅ Estado (st):', hashedState ? '✓' : '✗');
+  console.log('  ✅ País (country):', hashedCountry ? '✓' : '✗');
+  console.log('  ✅ CEP (zp):', hashedZipCode ? '✓' : '✗');
   console.log('');
-  console.log('📋 Parâmetros incluídos:');
-  console.log('  ✅ Email (em)');
-  console.log('  ✅ Telefone (ph)');
-  console.log('  ✅ IP (client_ip_address)');
-  console.log('  ✅ User Agent (client_user_agent)');
-  console.log('  ✅ FBP (fbp)');
-  console.log('  ✅ FBC (fbc)');
-  console.log('  ✅ Primeiro Nome (fn)');
-  console.log('  ✅ Sobrenome (ln)');
-  console.log('  ✅ Data de Nascimento (db)');
-  console.log('  ✅ Cidade (ct)');
-  console.log('  ✅ Estado (st)');
-  console.log('  ✅ País (country)');
-  console.log('  ✅ CEP (zp)');
+  console.log('📡 Enviando para:', apiUrl);
+  console.log('🧪 Test Event Code:', TEST_EVENT_CODE);
   console.log('');
   
   try {
@@ -121,12 +133,12 @@
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(eventData),
+      body: JSON.stringify(payload),
     });
     
     const result = await response.json();
     
-    console.log('✅ Resposta da API:');
+    console.log('📥 Resposta da API:');
     console.log(JSON.stringify(result, null, 2));
     console.log('');
     
@@ -159,6 +171,10 @@
     }
   } catch (error) {
     console.error('❌ Erro ao enviar evento:', error);
+    console.log('');
+    console.log('Detalhes do erro:');
+    console.log('  Mensagem:', error.message);
+    console.log('  Stack:', error.stack);
   }
 })();
 

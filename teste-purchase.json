@@ -1,0 +1,29 @@
+{
+  "data": [
+    {
+      "event_name": "Purchase",
+      "event_time": 1735705000,
+      "event_id": "test_purchase_1735705000",
+      "event_source_url": "https://go.centerpag.com/PPU38CQ4BNQ",
+      "action_source": "website",
+      "user_data": {
+        "client_ip_address": "192.168.1.100",
+        "client_user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "fbp": "fb.1.test.1234567890",
+        "em": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
+        "ph": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+      },
+      "custom_data": {
+        "currency": "BRL",
+        "value": 39.9,
+        "content_type": "product",
+        "content_ids": ["TEST_ORDER_123"],
+        "content_name": "HM I.A.",
+        "order_id": "TEST_ORDER_123",
+        "num_items": 1
+      }
+    }
+  ],
+  "test_event_code": "TEST57030",
+  "access_token": "EAADG88pNjVUBQJRLLaRpUZCdiUtZBXbxLGZB93LxdMnbV3ejomv3qbWuXu5OGBaH3zbhdqMOz722eZA7zyryFAczJtBBWKuVT9ZBYYUDcEoOF3adcK7CIHcL7yft3MZBU636aURzB16MrSnZByGBNvEmza0Kpzeka71Or87CAPFqL6CZCRw3w7QxST5BVFZANwgZDZD"
+}
