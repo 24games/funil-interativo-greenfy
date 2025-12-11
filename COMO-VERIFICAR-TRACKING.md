@@ -132,3 +132,4 @@ Se quiser rastrear eventos do funil (não apenas compras):
 
 **Resumo**: O tracking server-side está pronto, mas só funciona quando há uma compra e a Perfect Pay envia o webhook. Para testar agora, use o script `test-webhook.js` ou teste manualmente via cURL.
 
+

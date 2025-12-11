@@ -2,6 +2,9 @@
   "functions": {
     "api/webhook-purchase.js": {
       "maxDuration": 10
+    },
+    "api/tracking-pageview.js": {
+      "maxDuration": 10
     }
   },
   "rewrites": [
@@ -10,7 +13,11 @@
       "destination": "/api/webhook-purchase.js"
     },
     {
-      "source": "/(.*)",
+      "source": "/api/tracking-pageview",
+      "destination": "/api/tracking-pageview.js"
+    },
+    {
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]

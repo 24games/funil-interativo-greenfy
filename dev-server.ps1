@@ -10,3 +10,4 @@ Set-Location $PSScriptRoot
 # Inicia o servidor
 & "$env:ProgramFiles\nodejs\npm.cmd" run dev
 
+
