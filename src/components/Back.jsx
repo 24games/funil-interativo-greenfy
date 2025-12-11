@@ -13,8 +13,8 @@ export default function Back() {
       // Continua mesmo se houver erro no tracking
     }
     
-    // Redireciona para a página principal ou checkout
-    window.location.href = '/'
+    // Redireciona para checkout Centerpag
+    window.location.href = 'https://go.centerpag.com/PPU38CQ4BNQ'
   }
 
   return (

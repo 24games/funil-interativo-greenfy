@@ -22,10 +22,8 @@ export default function Step7() {
       // Continua mesmo se houver erro no tracking
     }
     
-    // Aqui você pode adicionar a lógica para redirecionar
-    // para WhatsApp, página de checkout, etc.
-    console.log('CTA Clicado!')
-    // window.location.href = 'SEU_LINK_AQUI'
+    // Redireciona para checkout Centerpag
+    window.location.href = 'https://go.centerpag.com/PPU38CQ4BNQ'
   }
 
   // Anima o progresso do loading baseado no tempo do delay, respeitando pausa do vídeo
