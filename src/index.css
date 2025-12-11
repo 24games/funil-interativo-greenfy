@@ -240,6 +240,12 @@ body {
   background: linear-gradient(135deg, #00FF88, #00FFD4);
   overflow: hidden;
   isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
 }
 
 .vturb-video-wrapper vturb-smartplayer {

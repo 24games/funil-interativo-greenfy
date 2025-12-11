@@ -8,12 +8,18 @@ export default function Step7() {
   const delaySeconds = 134 // Tempo em segundos (2 minutos e 14 segundos)
   const buttonRef = useRef(null)
 
-  // Fallback: se o Vturb não funcionar, mostra o botão após o tempo
+  // Fallback: se o Vturb não funcionar, mostra o botão e elementos após o tempo
   useEffect(() => {
     const fallbackTimer = setTimeout(() => {
+      // Mostra o botão
       if (buttonRef.current && buttonRef.current.classList.contains('esconder')) {
         buttonRef.current.classList.remove('esconder')
       }
+      // Mostra todos os elementos com classe .esconder (benefícios, urgência, trust badges)
+      const hiddenElements = document.querySelectorAll('.esconder')
+      hiddenElements.forEach(el => {
+        el.classList.remove('esconder')
+      })
     }, (delaySeconds + 2) * 1000)
 
     return () => clearTimeout(fallbackTimer)
@@ -125,7 +131,7 @@ export default function Step7() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.3 }}
-        className="glass-card p-6 space-y-3"
+        className="esconder glass-card p-6 space-y-3"
       >
         {[
           'Acceso inmediato a la IA',
@@ -153,7 +159,7 @@ export default function Step7() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.9 }}
-        className="text-center space-y-1"
+        className="esconder text-center space-y-1"
       >
         <p className="text-yellow-400 font-bold text-sm">⚠️ CUPOS LIMITADOS</p>
         <p className="text-gray-400 text-xs">Solo quedan 7 cupos disponibles hoy</p>
@@ -164,7 +170,7 @@ export default function Step7() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 2.1 }}
-        className="flex items-center justify-center gap-4 text-xs text-gray-500"
+        className="esconder flex items-center justify-center gap-4 text-xs text-gray-500"
       >
         <span>🔒 Pago Seguro</span>
         <span>•</span>

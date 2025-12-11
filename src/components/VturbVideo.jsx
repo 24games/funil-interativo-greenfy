@@ -22,10 +22,8 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
     player.id = videoId
     player.style.cssText = `
       display: block !important;
-      margin: 0 auto !important;
       width: 100% !important;
       height: 100% !important;
-      max-width: 400px !important;
       border-radius: calc(1.5rem - 0.5px) !important;
       overflow: hidden !important;
       position: relative !important;
