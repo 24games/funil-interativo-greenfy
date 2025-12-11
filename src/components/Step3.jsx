@@ -154,7 +154,11 @@ export default function Step3({ onNext }) {
       {/* Botão */}
       <button 
         onClick={onNext}
-        className="neon-button w-full text-sm sm:text-base px-4 py-4 sm:py-5"
+        className="neon-button w-full text-sm sm:text-base py-4 sm:py-5"
+        style={{
+          paddingLeft: '12px',
+          paddingRight: '12px'
+        }}
       >
         ¡QUIERO GANAR PLATA COMO ELLOS!
       </button>

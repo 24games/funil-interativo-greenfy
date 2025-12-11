@@ -18,31 +18,75 @@ export default function Step7() {
     // window.location.href = 'SEU_LINK_AQUI'
   }
 
-  // Anima o progresso do loading baseado no tempo do delay
+  // Anima o progresso do loading baseado no tempo do delay, respeitando pausa do vídeo
   useEffect(() => {
-    const startTime = Date.now()
-    const duration = delaySeconds * 1000 // Converte para milissegundos
+    let startTime = Date.now()
+    let pausedTime = 0
+    let pauseStartTime = 0
+    let isPaused = false
+    let animationFrame = null
+
+    const findVideoElement = () => {
+      const videoId = 'vid_6939f7c0c54455d1fed8aee0'
+      const videoDiv = document.getElementById(videoId)
+      if (!videoDiv) return null
+
+      // Tenta encontrar o elemento de vídeo dentro do player Vturb
+      return videoDiv.querySelector('video') || 
+             videoDiv.querySelector('iframe')?.contentWindow?.document?.querySelector('video') ||
+             null
+    }
 
     const updateProgress = () => {
-      const elapsed = Date.now() - startTime
-      const progress = Math.min((elapsed / duration) * 100, 100)
-      setLoadingProgress(progress)
+      const video = findVideoElement()
+      
+      // Verifica se o vídeo está pausado
+      if (video) {
+        const videoPaused = video.paused
+        
+        if (videoPaused && !isPaused) {
+          // Vídeo acabou de pausar
+          isPaused = true
+          pauseStartTime = Date.now()
+        } else if (!videoPaused && isPaused) {
+          // Vídeo acabou de retomar
+          isPaused = false
+          pausedTime += Date.now() - pauseStartTime
+        }
+      }
 
-      if (progress < 100) {
-        requestAnimationFrame(updateProgress)
+      if (!isPaused) {
+        const elapsed = Date.now() - startTime - pausedTime
+        const duration = delaySeconds * 1000
+        const progress = Math.min((elapsed / duration) * 100, 100)
+        setLoadingProgress(progress)
+
+        if (progress < 100) {
+          animationFrame = requestAnimationFrame(updateProgress)
+        } else {
+          // Quando chega em 100%, verifica se o botão está pronto
+          setTimeout(() => {
+            if (buttonRef.current && !buttonRef.current.classList.contains('esconder')) {
+              setIsLoading(false)
+            }
+          }, 100)
+        }
       } else {
-        // Quando chega em 100%, verifica se o botão está pronto
-        setTimeout(() => {
-          if (buttonRef.current && !buttonRef.current.classList.contains('esconder')) {
-            setIsLoading(false)
-          }
-        }, 100)
+        // Vídeo está pausado, continua verificando mas não atualiza progresso
+        animationFrame = requestAnimationFrame(updateProgress)
       }
     }
 
-    const animationFrame = requestAnimationFrame(updateProgress)
+    // Aguarda um pouco para o vídeo carregar
+    setTimeout(() => {
+      animationFrame = requestAnimationFrame(updateProgress)
+    }, 1000)
 
-    return () => cancelAnimationFrame(animationFrame)
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame)
+      }
+    }
   }, [delaySeconds])
 
   // Monitora quando o botão deve ficar pronto (quando a classe .esconder é removida)
@@ -110,13 +154,21 @@ export default function Step7() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full mt-2 relative"
+          className="mt-2 relative"
+          style={{
+            maxWidth: '280px',
+            width: '100%',
+            marginLeft: 'auto',
+            marginRight: 'auto'
+          }}
         >
           <button
             disabled
-            className="w-full text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 px-4 relative overflow-hidden rounded-xl font-bold text-black bg-gray-700 border-2 border-gray-600 cursor-not-allowed"
+            className="w-full text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 relative overflow-hidden rounded-xl font-bold text-black bg-gray-700 border-2 border-gray-600 cursor-not-allowed"
             style={{
-              boxShadow: '0 0 20px rgba(0, 255, 136, 0.3)'
+              boxShadow: '0 0 20px rgba(0, 255, 136, 0.3)',
+              paddingLeft: '12px',
+              paddingRight: '12px'
             }}
           >
             {/* Barra de progresso animada (da esquerda para direita) */}
@@ -167,9 +219,13 @@ export default function Step7() {
         whileTap={{ scale: isLoading ? 1 : 0.95 }}
         onClick={handleCTA}
         disabled={isLoading}
-        className={`${isLoading ? 'hidden' : 'esconder'} neon-button w-full mt-2 text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 px-4 animate-heartbeat relative overflow-hidden`}
+        className={`${isLoading ? 'hidden' : 'esconder'} neon-button mt-2 text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 animate-heartbeat relative overflow-hidden`}
         style={{ 
-          boxShadow: '0 0 40px rgba(0, 255, 136, 0.8), 0 0 80px rgba(0, 255, 136, 0.4), 0 0 120px rgba(0, 255, 136, 0.2)'
+          boxShadow: '0 0 40px rgba(0, 255, 136, 0.8), 0 0 80px rgba(0, 255, 136, 0.4), 0 0 120px rgba(0, 255, 136, 0.2)',
+          maxWidth: '280px',
+          width: '100%',
+          paddingLeft: '12px',
+          paddingRight: '12px'
         }}
       >
         <motion.span

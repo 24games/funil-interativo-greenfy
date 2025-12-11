@@ -50,9 +50,13 @@ export default function Step4({ onNext }) {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={onNext}
-        className="esconder neon-button w-full mt-2 text-sm sm:text-base px-4 relative overflow-hidden"
+        className="esconder neon-button mt-2 text-sm sm:text-base relative overflow-hidden"
         style={{
-          boxShadow: '0 0 30px rgba(0, 255, 136, 0.6), 0 0 60px rgba(0, 255, 136, 0.3)'
+          boxShadow: '0 0 30px rgba(0, 255, 136, 0.6), 0 0 60px rgba(0, 255, 136, 0.3)',
+          maxWidth: '280px',
+          width: '100%',
+          paddingLeft: '12px',
+          paddingRight: '12px'
         }}
       >
         <motion.span
