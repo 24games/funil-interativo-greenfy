@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import Step1 from './components/Step1'
 import Step2 from './components/Step2'
@@ -8,8 +8,16 @@ import Step5 from './components/Step5'
 import Step6 from './components/Step6'
 import Step7 from './components/Step7'
 import ProgressBar from './components/ProgressBar'
+import Back from './components/Back'
 
 function App() {
+  // Verifica a rota atual
+  const currentPath = window.location.pathname
+
+  // Se a rota for /back, renderiza a página Back
+  if (currentPath === '/back' || currentPath === '/back/') {
+    return <Back />
+  }
   const [currentStep, setCurrentStep] = useState(1)
   const [answers, setAnswers] = useState({
     timeToMake: null,

@@ -8,6 +8,14 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     open: false
+  },
+  // Configuração para SPA - redireciona todas as rotas para index.html
+  build: {
+    rollupOptions: {
+      input: {
+        main: './index.html'
+      }
+    }
   }
 })
 

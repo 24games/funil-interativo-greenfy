@@ -74,6 +74,11 @@ body {
   }
 }
 
+/* Gradiente radial para spotlight */
+.bg-gradient-radial {
+  background: radial-gradient(circle, var(--tw-gradient-stops));
+}
+
 /* Glassmorphism */
 .glass-card {
   background: rgba(255, 255, 255, 0.03);
