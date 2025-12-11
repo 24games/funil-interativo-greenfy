@@ -1,8 +1,18 @@
 import { motion } from 'framer-motion'
 import { X, AlertCircle } from 'lucide-react'
+import { sendInitiateCheckout } from '../utils/tracking.js'
 
 export default function Back() {
-  const handleCTA = () => {
+  const handleCTA = async () => {
+    try {
+      // Envia evento InitiateCheckout para Meta Conversions API
+      await sendInitiateCheckout();
+      console.log('✅ InitiateCheckout enviado com sucesso (página /back)');
+    } catch (error) {
+      console.error('Erro ao enviar InitiateCheckout:', error);
+      // Continua mesmo se houver erro no tracking
+    }
+    
     // Redireciona para a página principal ou checkout
     window.location.href = '/'
   }
