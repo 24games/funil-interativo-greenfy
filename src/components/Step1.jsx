@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import VturbVideo from './VturbVideo'
 
 export default function Step1({ onNext }) {
@@ -7,6 +7,13 @@ export default function Step1({ onNext }) {
   // O Vturb.displayHiddenElements cuida de mostrar o botão respeitando pausa do vídeo
   const delaySeconds = 21
   const buttonRef = useRef(null)
+  // Key única que muda a cada remontagem para forçar recriação completa do vídeo
+  const [videoKey, setVideoKey] = useState(0)
+  
+  // Quando o componente é montado, incrementa a key para forçar recriação
+  useEffect(() => {
+    setVideoKey(prev => prev + 1)
+  }, [])
 
   return (
     <motion.div
@@ -25,8 +32,9 @@ export default function Step1({ onNext }) {
         mensuales solo copiando la I.A.
       </h1>
 
-      {/* Video Vturb */}
+      {/* Video Vturb - Key única força remontagem completa */}
       <VturbVideo 
+        key={`step1-video-${videoKey}`}
         videoId="vid_6939f7c83ec7593882510713"
         playerId="6939f7c83ec7593882510713"
         delaySeconds={delaySeconds}

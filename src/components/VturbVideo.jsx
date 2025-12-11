@@ -20,78 +20,113 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
   useEffect(() => {
     if (!containerRef.current) return
 
-    // Limpa qualquer vídeo existente antes de criar um novo
+    console.log(`🎬 Inicializando vídeo ${videoId}...`)
+
+    // Limpa COMPLETAMENTE qualquer vídeo existente antes de criar um novo
     if (videoDivRef.current && containerRef.current.contains(videoDivRef.current)) {
       containerRef.current.removeChild(videoDivRef.current)
       videoDivRef.current = null
-      displayConfiguredRef.current = false
     }
+    
+    // Remove do DOM global também
+    const existingVideoDiv = document.getElementById(videoId)
+    if (existingVideoDiv && existingVideoDiv.parentNode) {
+      existingVideoDiv.parentNode.removeChild(existingVideoDiv)
+    }
+    
+    // Remove smartplayer se existir
+    const existingSmartPlayer = document.querySelector(`vturb-smartplayer[id="${videoId}"], vturb-smartplayer[id="vid-${playerId}"]`)
+    if (existingSmartPlayer && existingSmartPlayer.parentNode) {
+      existingSmartPlayer.parentNode.removeChild(existingSmartPlayer)
+    }
+    
+    // Remove scripts antigos do player
+    const oldScript = document.querySelector(`script[id="scr_${playerId}"]`)
+    if (oldScript && oldScript.parentNode) {
+      oldScript.parentNode.removeChild(oldScript)
+    }
+    
+    const oldDynamicScripts = document.querySelectorAll(`script[src*="${playerId}"]`)
+    oldDynamicScripts.forEach(script => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script)
+      }
+    })
 
     // Limpa timers anteriores
     if (fallbackTimerRef.current) {
       clearInterval(fallbackTimerRef.current)
       fallbackTimerRef.current = null
     }
-
-    // Cria a estrutura HTML do vídeo Vturb
-    const videoDiv = document.createElement('div')
-    videoDiv.id = videoId
-    videoDiv.style.cssText = `
-      position: relative;
-      width: 100%;
-      padding: 177.77777777777777% 0 0;
-      border-radius: calc(1.5rem - 0.5px);
-      overflow: hidden;
-    `
-
-    // Cria a imagem thumbnail
-    const thumbnail = document.createElement('img')
-    thumbnail.id = `thumb_${playerId}`
-    thumbnail.src = `https://images.converteai.net/af053167-2542-4323-9c93-d010e7938eb5/players/${playerId}/thumbnail.jpg`
-    thumbnail.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    `
-    thumbnail.alt = 'thumbnail'
-
-    // Cria o backdrop
-    const backdrop = document.createElement('div')
-    backdrop.id = `backdrop_${playerId}`
-    backdrop.style.cssText = `
-      -webkit-backdrop-filter: blur(5px);
-      backdrop-filter: blur(5px);
-      position: absolute;
-      top: 0;
-      height: 100%;
-      width: 100%;
-    `
-
-    videoDiv.appendChild(thumbnail)
-    videoDiv.appendChild(backdrop)
-    containerRef.current.appendChild(videoDiv)
-    videoDivRef.current = videoDiv
-
-    // Verifica se o script já foi carregado
-    const existingScript = document.querySelector(`script[id="scr_${playerId}"]`)
     
-    if (!existingScript) {
-      // Carrega o script do player Vturb
-      const script = document.createElement('script')
-      script.type = 'text/javascript'
-      script.id = `scr_${playerId}`
-      script.textContent = `
-        var s=document.createElement("script");
-        s.src="https://scripts.converteai.net/af053167-2542-4323-9c93-d010e7938eb5/players/${playerId}/player.js";
-        s.async=true;
-        document.head.appendChild(s);
+    // Reseta estado
+    displayConfiguredRef.current = false
+    videoElementRef.current = null
+    currentTimeRef.current = 0
+    isPausedRef.current = true
+    lastUpdateTimeRef.current = Date.now()
+    
+    // Aguarda um pouco para garantir que tudo foi limpo antes de criar novo
+    const initDelay = setTimeout(() => {
+      // Cria a estrutura HTML do vídeo Vturb
+      const videoDiv = document.createElement('div')
+      videoDiv.id = videoId
+      videoDiv.style.cssText = `
+        position: relative;
+        width: 100%;
+        padding: 177.77777777777777% 0 0;
+        border-radius: calc(1.5rem - 0.5px);
+        overflow: hidden;
       `
-      document.head.appendChild(script)
-    }
+
+      // Cria a imagem thumbnail
+      const thumbnail = document.createElement('img')
+      thumbnail.id = `thumb_${playerId}`
+      thumbnail.src = `https://images.converteai.net/af053167-2542-4323-9c93-d010e7938eb5/players/${playerId}/thumbnail.jpg`
+      thumbnail.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      `
+      thumbnail.alt = 'thumbnail'
+
+      // Cria o backdrop
+      const backdrop = document.createElement('div')
+      backdrop.id = `backdrop_${playerId}`
+      backdrop.style.cssText = `
+        -webkit-backdrop-filter: blur(5px);
+        backdrop-filter: blur(5px);
+        position: absolute;
+        top: 0;
+        height: 100%;
+        width: 100%;
+      `
+
+      videoDiv.appendChild(thumbnail)
+      videoDiv.appendChild(backdrop)
+      containerRef.current.appendChild(videoDiv)
+      videoDivRef.current = videoDiv
+
+      // Verifica se o script já foi carregado
+      const existingScript = document.querySelector(`script[id="scr_${playerId}"]`)
+      
+      if (!existingScript) {
+        // Carrega o script do player Vturb
+        const script = document.createElement('script')
+        script.type = 'text/javascript'
+        script.id = `scr_${playerId}`
+        script.textContent = `
+          var s=document.createElement("script");
+          s.src="https://scripts.converteai.net/af053167-2542-4323-9c93-d010e7938eb5/players/${playerId}/player.js";
+          s.async=true;
+          document.head.appendChild(s);
+        `
+        document.head.appendChild(script)
+      }
 
     // Fallback inteligente que monitora o tempo de reprodução e respeita pausas
     const startFallbackTimer = () => {
@@ -282,11 +317,15 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
       }
     }
 
-    // Aguarda o script carregar e o player inicializar
-    setTimeout(setupVturbDisplay, 2000)
+      // Aguarda o script carregar e o player inicializar
+      setTimeout(setupVturbDisplay, 2000)
+    }, 100) // Pequeno delay para garantir limpeza completa
 
     return () => {
-      // Limpa completamente quando o componente for desmontado
+      clearTimeout(initDelay)
+      console.log(`🧹 Limpando vídeo ${videoId}...`)
+      
+      // Limpa timers
       if (fallbackTimerRef.current) {
         clearInterval(fallbackTimerRef.current)
         fallbackTimerRef.current = null
@@ -304,12 +343,48 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
         existingVideoDiv.parentNode.removeChild(existingVideoDiv)
       }
       
+      // Remove o elemento vturb-smartplayer se existir
+      const smartPlayer = document.querySelector(`vturb-smartplayer[id="${videoId}"], vturb-smartplayer[id="vid-${playerId}"]`)
+      if (smartPlayer && smartPlayer.parentNode) {
+        smartPlayer.parentNode.removeChild(smartPlayer)
+      }
+      
+      // Remove o script do player Vturb
+      const scriptTag = document.querySelector(`script[id="scr_${playerId}"]`)
+      if (scriptTag && scriptTag.parentNode) {
+        scriptTag.parentNode.removeChild(scriptTag)
+      }
+      
+      // Remove scripts dinâmicos criados pelo Vturb (geralmente têm src contendo o playerId)
+      const dynamicScripts = document.querySelectorAll(`script[src*="${playerId}"]`)
+      dynamicScripts.forEach(script => {
+        if (script.parentNode) {
+          script.parentNode.removeChild(script)
+        }
+      })
+      
+      // Limpa instâncias globais do player (se existirem)
+      if (window[`player_${playerId}`]) {
+        delete window[`player_${playerId}`]
+      }
+      if (window[`vid_${playerId}`]) {
+        delete window[`vid_${playerId}`]
+      }
+      if (window.Vturb?.players?.[playerId]) {
+        delete window.Vturb.players[playerId]
+      }
+      if (window.Vturb?.players?.[videoId]) {
+        delete window.Vturb.players[videoId]
+      }
+      
       // Reseta todas as referências
       displayConfiguredRef.current = false
       videoElementRef.current = null
       currentTimeRef.current = 0
       isPausedRef.current = true
       lastUpdateTimeRef.current = Date.now()
+      
+      console.log(`✅ Limpeza completa do vídeo ${videoId}`)
     }
   }, [videoId, playerId, delaySeconds])
 
