@@ -14,6 +14,9 @@
     },
     "api/test-purchase.js": {
       "maxDuration": 10
+    },
+    "api/test-purchase-simple.js": {
+      "maxDuration": 10
     }
   },
   "rewrites": [
@@ -36,6 +39,10 @@
     {
       "source": "/api/test-purchase",
       "destination": "/api/test-purchase.js"
+    },
+    {
+      "source": "/api/test-purchase-simple",
+      "destination": "/api/test-purchase-simple.js"
     },
     {
       "source": "/((?!api/).*)",

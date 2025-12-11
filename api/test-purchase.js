@@ -44,6 +44,7 @@ export default async function handler(req, res) {
     ph: hashSHA256(testPhone),
   };
 
+  // Estrutura EXATA conforme documentação Meta
   const payload = {
     data: [{
       event_name: 'Purchase',
@@ -66,6 +67,12 @@ export default async function handler(req, res) {
     access_token: META_ACCESS_TOKEN,
   };
 
+  // Log detalhado para debug
+  console.log('🔍 DEBUG - Payload sendo enviado:', JSON.stringify(payload, null, 2));
+  console.log('🔍 DEBUG - Event Time:', eventTime, new Date(eventTime * 1000).toISOString());
+  console.log('🔍 DEBUG - Event ID:', eventId);
+  console.log('🔍 DEBUG - Test Event Code:', TEST_EVENT_CODE);
+
   const apiUrl = `https://graph.facebook.com/v18.0/${META_PIXEL_ID}/events`;
 
   try {
@@ -78,6 +85,11 @@ export default async function handler(req, res) {
     });
 
     const result = await response.json();
+
+    // Log detalhado da resposta
+    console.log('🔍 DEBUG - Resposta da API:', JSON.stringify(result, null, 2));
+    console.log('🔍 DEBUG - Status HTTP:', response.status);
+    console.log('🔍 DEBUG - Events Received:', result.events_received);
 
     if (result.events_received === 1) {
       return res.status(200).json({
