@@ -42,13 +42,14 @@ function App() {
     internetAccess: null,
   })
 
-  // Adiciona entrada no histórico quando muda de step
-  useEffect(() => {
-    if (currentStep > 1) {
-      // Adiciona uma entrada no histórico do navegador
-      window.history.pushState({ step: currentStep }, '', `?step=${currentStep}`)
-    }
-  }, [currentStep])
+  // Adiciona entrada no histórico quando muda de step (apenas quando avança)
+  const nextStep = () => {
+    const newStep = currentStep + 1
+    setCurrentStep(newStep)
+    
+    // Adiciona uma entrada no histórico do navegador
+    window.history.pushState({ step: newStep }, '', `?step=${newStep}`)
+  }
 
   // Gerencia o botão voltar do navegador
   useEffect(() => {
@@ -61,12 +62,16 @@ function App() {
 
       // Se não está no Step 7, volta para o step anterior
       if (currentStep > 1) {
-        setCurrentStep(prev => prev - 1)
+        setCurrentStep(prev => {
+          const previousStep = prev - 1
+          // Atualiza a URL sem adicionar nova entrada no histórico
+          window.history.replaceState({ step: previousStep }, '', previousStep === 1 ? '/' : `?step=${previousStep}`)
+          return previousStep
+        })
       } else {
-        // Se está no Step 1 e tenta voltar, previne o comportamento padrão
-        // (não deixa sair da página)
-        event.preventDefault()
-        window.history.pushState({ step: 1 }, '', window.location.pathname)
+        // Se está no Step 1 e tenta voltar, previne sair da página
+        // Adiciona uma entrada no histórico para manter na página
+        window.history.pushState({ step: 1 }, '', '/')
       }
     }
 
@@ -77,9 +82,6 @@ function App() {
     }
   }, [currentStep])
 
-  const nextStep = () => {
-    setCurrentStep(prev => prev + 1)
-  }
 
   const saveAnswer = (key, value) => {
     setAnswers(prev => ({ ...prev, [key]: value }))
