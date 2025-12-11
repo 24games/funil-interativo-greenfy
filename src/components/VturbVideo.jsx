@@ -140,7 +140,8 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
       className="w-full vturb-video-wrapper"
       style={{ 
         aspectRatio: '9/16',
-        minHeight: '100%'
+        maxWidth: '320px', // Reduzido de 400px para 320px
+        width: '100%'
       }}
     />
   )

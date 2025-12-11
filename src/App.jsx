@@ -31,19 +31,19 @@ function App() {
       <div className="particles-bg" />
       
       {/* Container principal */}
-      <div className="relative z-10 min-h-screen flex flex-col items-center px-4 py-8">
-        {/* Logo no Topo - Não fixa, sai ao scrollar */}
-        <div className="w-full max-w-md mb-8 flex justify-center">
+      <div className="relative z-10 min-h-screen flex flex-col items-center px-4 pt-2 pb-8">
+        {/* Logo no Topo - Menor e colada no topo */}
+        <div className="w-full max-w-md mb-2 flex justify-center">
           <img 
             src="/images/HACKER MILLON PNG.png" 
             alt="24Games Logo" 
             style={{ 
-              height: '8rem',
+              height: '4rem',
               width: 'auto',
               objectFit: 'contain',
               display: 'block'
             }}
-            className="md:h-40"
+            className="md:h-16"
           />
         </div>
         

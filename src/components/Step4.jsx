@@ -24,7 +24,7 @@ export default function Step4({ onNext }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.4, ease: "easeInOut" }}
-      className="flex flex-col gap-6"
+      className="flex flex-col gap-4"
     >
       {/* Headline */}
       <h2 className="text-2xl md:text-3xl font-bold text-center leading-tight">
@@ -65,7 +65,7 @@ export default function Step4({ onNext }) {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={onNext}
-        className="esconder neon-button w-full mt-4 text-sm sm:text-base px-4 relative overflow-hidden"
+        className="esconder neon-button w-full mt-2 text-sm sm:text-base px-4 relative overflow-hidden"
         style={{
           boxShadow: '0 0 30px rgba(0, 255, 136, 0.6), 0 0 60px rgba(0, 255, 136, 0.3)'
         }}

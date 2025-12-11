@@ -215,3 +215,4 @@ Se precisar de ajuda:
 
 **Pronto!** Após configurar, cada compra aprovada na Perfect Pay enviará automaticamente o evento Purchase para o Facebook! 🎉
 
+

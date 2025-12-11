@@ -244,7 +244,7 @@ body {
   align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 400px;
+  max-width: 320px; /* Reduzido de 400px para 320px */
   margin: 0 auto;
 }
 

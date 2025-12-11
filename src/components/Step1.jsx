@@ -24,10 +24,10 @@ export default function Step1({ onNext }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.4, ease: "easeInOut" }}
-      className="flex flex-col items-center gap-8"
+      className="flex flex-col items-center gap-4"
     >
       {/* Headline */}
-      <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-center leading-tight px-2 sm:px-4 break-words">
+      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center leading-tight px-2 sm:px-4 break-words -mt-2">
         Genera de{' '}
         <span className="money-highlight">
           $1.000.000 a $4.500.000 CLP

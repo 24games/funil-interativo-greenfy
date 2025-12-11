@@ -38,7 +38,7 @@ export default function Step7() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-col gap-6"
+      className="flex flex-col gap-4"
     >
       {/* Badge de conclusão */}
       <motion.div
@@ -107,7 +107,7 @@ export default function Step7() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={handleCTA}
-        className="esconder neon-button w-full text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 px-4 animate-heartbeat relative overflow-hidden"
+        className="esconder neon-button w-full mt-2 text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 px-4 animate-heartbeat relative overflow-hidden"
         style={{ 
           boxShadow: '0 0 40px rgba(0, 255, 136, 0.8), 0 0 80px rgba(0, 255, 136, 0.4), 0 0 120px rgba(0, 255, 136, 0.2)'
         }}
