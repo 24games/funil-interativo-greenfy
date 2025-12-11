@@ -3,6 +3,9 @@
     "api/webhook-purchase.js": {
       "maxDuration": 10
     },
+    "api/webhook-perfectpay.js": {
+      "maxDuration": 10
+    },
     "api/tracking-pageview.js": {
       "maxDuration": 10
     },
@@ -14,6 +17,10 @@
     {
       "source": "/api/webhook-purchase",
       "destination": "/api/webhook-purchase.js"
+    },
+    {
+      "source": "/api/webhook-perfectpay",
+      "destination": "/api/webhook-perfectpay.js"
     },
     {
       "source": "/api/tracking-pageview",
