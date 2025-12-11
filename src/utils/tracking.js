@@ -260,10 +260,59 @@ export function getTrackingData() {
   return getUserData();
 }
 
+/**
+ * Envia evento InitiateCheckout para API server-side
+ * Use quando o usuário clicar no botão de checkout
+ */
+export async function sendInitiateCheckout() {
+  try {
+    // Captura dados atuais
+    const userData = getUserData();
+    const ip = await getUserIP();
+    
+    const checkoutData = {
+      ip: ip,
+      user_agent: navigator.userAgent,
+      fbp: userData.fbp,
+      fbc: userData.fbc,
+      page_url: window.location.href,
+      referrer: document.referrer || null,
+      language: navigator.language,
+      utm_source: userData.utm_source,
+      utm_medium: userData.utm_medium,
+      utm_campaign: userData.utm_campaign,
+      utm_term: userData.utm_term,
+      utm_content: userData.utm_content,
+      timestamp: new Date().toISOString(),
+      // Dados adicionais podem ser passados via updateTracking antes
+    };
+    
+    const response = await fetch('/api/tracking-initiate-checkout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(checkoutData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('InitiateCheckout enviado com sucesso:', result);
+    return result;
+  } catch (error) {
+    console.error('Erro ao enviar InitiateCheckout:', error);
+    throw error;
+  }
+}
+
 // Exportar funções úteis
 export default {
   initTracking,
   updateTracking,
   getTrackingData,
+  sendInitiateCheckout,
 };
 

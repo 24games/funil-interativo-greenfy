@@ -5,6 +5,9 @@
     },
     "api/tracking-pageview.js": {
       "maxDuration": 10
+    },
+    "api/tracking-initiate-checkout.js": {
+      "maxDuration": 10
     }
   },
   "rewrites": [
@@ -15,6 +18,10 @@
     {
       "source": "/api/tracking-pageview",
       "destination": "/api/tracking-pageview.js"
+    },
+    {
+      "source": "/api/tracking-initiate-checkout",
+      "destination": "/api/tracking-initiate-checkout.js"
     },
     {
       "source": "/((?!api/).*)",

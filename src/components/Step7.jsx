@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { useRef, useState, useEffect } from 'react'
 import { Sparkles } from 'lucide-react'
 import VturbVideo from './VturbVideo'
+import { sendInitiateCheckout } from '../utils/tracking.js'
 
 export default function Step7() {
   // Configuração: botão aparece quando o vídeo chega em 134 segundos (2:14)
@@ -11,7 +12,16 @@ export default function Step7() {
   const [isLoading, setIsLoading] = useState(true)
   const [loadingProgress, setLoadingProgress] = useState(0)
 
-  const handleCTA = () => {
+  const handleCTA = async () => {
+    try {
+      // Envia evento InitiateCheckout para Meta Conversions API
+      await sendInitiateCheckout();
+      console.log('✅ InitiateCheckout enviado com sucesso');
+    } catch (error) {
+      console.error('Erro ao enviar InitiateCheckout:', error);
+      // Continua mesmo se houver erro no tracking
+    }
+    
     // Aqui você pode adicionar a lógica para redirecionar
     // para WhatsApp, página de checkout, etc.
     console.log('CTA Clicado!')
