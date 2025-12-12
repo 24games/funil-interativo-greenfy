@@ -141,7 +141,7 @@ export default function Back() {
             >
               {/* Tenta carregar a imagem, se não existir mostra placeholder */}
               <img
-                src="/images/back/print_ganhos.png"
+                src="/images/back/ganho.jpg"
                 alt="Histórico de ganhos"
                 className="w-full h-full object-cover rounded-xl"
                 onError={(e) => {

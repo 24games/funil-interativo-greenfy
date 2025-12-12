@@ -129,8 +129,12 @@ export default function Step3({ onNext }) {
                 <img
                   src={img.image}
                   alt={`Depoimento ${img.id}`}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover rounded-lg"
                   loading="lazy"
+                  onError={(e) => {
+                    console.error(`Erro ao carregar imagem: ${img.image}`)
+                    e.target.style.display = 'none'
+                  }}
                 />
               ) : (
                 // Placeholder
