@@ -4,41 +4,6 @@ import { Sparkles } from 'lucide-react'
 import VturbVideo from './VturbVideo'
 import { sendInitiateCheckout } from '../utils/tracking.js'
 
-// ============================================================================
-// STORAGE HANDLER - CÓPIA EXATA DO SCRIPT ORIGINAL
-// ============================================================================
-class StorageHandler {
-  static expiryTime = 14 * 86400000 // 14 dias em milissegundos
-
-  static set(key, value) {
-    try {
-      localStorage.setItem(
-        key,
-        JSON.stringify({ value, expiry: Date.now() + this.expiryTime })
-      )
-    } catch (e) {
-      console.error('❌ [Storage] Erro ao salvar:', e)
-    }
-  }
-
-  static get(key) {
-    try {
-      const item = localStorage.getItem(key)
-      if (!item) return null
-
-      const { value, expiry } = JSON.parse(item)
-      if (Date.now() > expiry) {
-        localStorage.removeItem(key)
-        return null
-      }
-      return value
-    } catch (e) {
-      console.error('❌ [Storage] Erro ao ler:', e)
-      return null
-    }
-  }
-}
-
 export default function Step7() {
   // ============================================================================
   // CONFIGURAÇÃO DO PROGRESS BAR BUTTON (PERFORMANCE MÁXIMA COM useRef)
@@ -78,7 +43,6 @@ export default function Step7() {
   // ============================================================================
   useEffect(() => {
     const SECONDS_TO_DISPLAY = TARGET_TIME // 126 segundos
-    const alreadyDisplayedKey = 'alreadyElsDisplayed' + SECONDS_TO_DISPLAY
     let attempts = 0
     let isConnected = false
 
@@ -91,9 +55,6 @@ export default function Step7() {
       elsHidden.forEach((e) => {
         e.style.display = 'block'
       })
-      
-      // Salva no localStorage (com expiração de 14 dias)
-      StorageHandler.set(alreadyDisplayedKey, true)
       
       // Libera o botão
       isUnlockedRef.current = true
@@ -182,19 +143,8 @@ export default function Step7() {
       console.log('✅ [Step7] Listeners configurados!')
     }
 
-    // Verifica se já assistiu (cookie com expiração)
-    const alreadyElsDisplayed = StorageHandler.get(alreadyDisplayedKey)
-    
-    if (alreadyElsDisplayed) {
-      // Já assistiu: mostra tudo instantaneamente
-      console.log('🍪 [Step7] Cookie encontrado! Liberando instantaneamente...')
-      setTimeout(() => {
-        showHiddenElements()
-      }, 100)
-    } else {
-      // Não assistiu: inicia monitoramento
-      startWatchVideoProgress()
-    }
+    // Sempre inicia o monitoramento do vídeo (sem verificação de cookies)
+    startWatchVideoProgress()
 
     // Cleanup
     return () => {
