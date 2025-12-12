@@ -88,21 +88,6 @@ export default function Step7() {
             // Calcula progresso inteligente
             const progress = calculateSmartProgress(currentTime, delaySeconds)
             setLoadingProgress(Math.min(progress, 100))
-            
-            // Quando chega a 100%, habilita o botão
-            if (progress >= 100 && !isReady) {
-              // Verifica se o Vturb já removeu a classe .esconder
-              if (buttonRef.current && !buttonRef.current.classList.contains('esconder')) {
-                setIsReady(true)
-              } else {
-                // Aguarda um pouco e tenta novamente
-                setTimeout(() => {
-                  if (buttonRef.current && !buttonRef.current.classList.contains('esconder')) {
-                    setIsReady(true)
-                  }
-                }, 100)
-              }
-            }
           }
         } catch (e) {
           // Se não conseguir acessar o vídeo, continua tentando
@@ -126,15 +111,19 @@ export default function Step7() {
     }
   }, [delaySeconds, isReady])
 
-  // Monitora quando o Vturb remove a classe .esconder (quando vídeo chega no tempo)
-  // E habilita o botão quando ambas condições são atendidas: progresso 100% + classe removida
+  // Monitora quando o Vturb remove a classe .esconder de outros elementos (quando vídeo chega no tempo)
+  // E habilita o botão quando ambas condições são atendidas: progresso 100% + Vturb removeu .esconder
   useEffect(() => {
     const checkButtonReady = () => {
-      const isVisible = buttonRef.current && !buttonRef.current.classList.contains('esconder')
+      // Verifica se algum elemento que tinha .esconder foi revelado pelo Vturb
+      // (ex: lista de benefícios, urgência, trust badges)
+      const benefitsList = document.querySelector('.glass-card')
+      const isVturbReady = benefitsList && !benefitsList.classList.contains('esconder')
+      
       const progressComplete = loadingProgress >= 100
       
-      // Só habilita quando ambas condições são atendidas
-      if (isVisible && progressComplete && !isReady) {
+      // Habilita quando: progresso 100% E Vturb removeu .esconder de outros elementos
+      if (progressComplete && isVturbReady && !isReady) {
         setIsReady(true)
       }
     }
@@ -188,10 +177,11 @@ export default function Step7() {
         />
       </motion.div>
 
-      {/* Botão único - Começa desabilitado e fica clicável quando chega a 100% */}
+      {/* Botão único - Visível desde o início, barra preenche sincronizada com vídeo */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
         className="mt-2 relative"
         style={{
           maxWidth: '280px',
@@ -204,7 +194,7 @@ export default function Step7() {
           ref={buttonRef}
           onClick={handleCTA}
           disabled={!isReady}
-          className={`esconder w-full text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 relative overflow-hidden rounded-xl font-bold ${
+          className={`w-full text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 relative overflow-hidden rounded-xl font-bold ${
             isReady 
               ? 'neon-button animate-heartbeat cursor-pointer' 
               : 'bg-gray-700 border-2 border-gray-600 cursor-not-allowed'
@@ -219,19 +209,21 @@ export default function Step7() {
           whileHover={isReady ? { scale: 1.05 } : {}}
           whileTap={isReady ? { scale: 0.95 } : {}}
         >
-          {/* Barra de progresso animada (da esquerda para direita) - Só aparece quando não está pronto */}
-          {!isReady && (
-            <motion.div
-              className="absolute top-0 left-0 h-full bg-gradient-to-r from-neon to-[#00FFD4]"
-              animate={{
-                width: `${loadingProgress}%`
-              }}
-              transition={{
-                duration: 0.1,
-                ease: 'linear'
-              }}
-            />
-          )}
+          {/* Barra de progresso animada (da esquerda para direita) - Sempre visível */}
+          <motion.div
+            className={`absolute top-0 left-0 h-full ${
+              isReady 
+                ? 'bg-gradient-to-r from-neon to-[#00FFD4]' 
+                : 'bg-gradient-to-r from-neon to-[#00FFD4]'
+            }`}
+            animate={{
+              width: `${isReady ? 100 : loadingProgress}%`
+            }}
+            transition={{
+              duration: 0.1,
+              ease: 'linear'
+            }}
+          />
           
           {/* Efeito de brilho quando está pronto */}
           {isReady && (
@@ -262,7 +254,7 @@ export default function Step7() {
                 Cargando...
               </>
             ) : (
-              '¡APP LIBERADO!'
+              'LIBERAR APP'
             )}
           </span>
         </motion.button>
