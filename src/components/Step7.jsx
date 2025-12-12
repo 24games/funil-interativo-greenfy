@@ -12,7 +12,7 @@ export default function Step7() {
   const VIDEO_ID = 'vid_693b9342f679d6950ed12c36' // ID do vídeo Vturb
   
   // Estados
-  const [progressPercent, setProgressPercent] = useState(0) // 0 a 100
+  const [progressPercent, setProgressPercent] = useState(80) // COMEÇA EM 80% (Baby Steps)
   const [isButtonReady, setIsButtonReady] = useState(false) // Controla se o botão está clicável
   const buttonRef = useRef(null)
 
@@ -52,18 +52,27 @@ export default function Step7() {
       // Obtém o tempo atual do vídeo
       const currentTime = videoElement.currentTime || 0
 
-      // CALCULA O PROGRESSO: (tempo atual / tempo alvo) * 100
-      // Exemplo: 63s / 126s = 0.5 → 50%
-      const calculatedProgress = (currentTime / TARGET_TIME) * 100
+      // ================================================================
+      // NOVA LÓGICA "BABY STEPS": 80% → 100%
+      // ================================================================
+      // A barra COMEÇA em 80% e vai até 100% conforme o vídeo roda
+      // Fórmula: 80 + (currentTime / 126) * 20
+      // 
+      // Exemplos:
+      //   0s   → 80 + (0/126)*20   = 80%
+      //   63s  → 80 + (63/126)*20  = 90%
+      //   126s → 80 + (126/126)*20 = 100%
+      // ================================================================
+      const calculatedProgress = 80 + ((currentTime / TARGET_TIME) * 20)
       
-      // Garante que o progresso fique entre 0 e 100
-      const clampedProgress = Math.min(Math.max(calculatedProgress, 0), 100)
+      // Garante que o progresso fique entre 80 e 100
+      const clampedProgress = Math.min(Math.max(calculatedProgress, 80), 100)
 
       // Atualiza o estado do progresso
       setProgressPercent(clampedProgress)
 
       // Log para debug
-      console.log(`📊 Vídeo: ${currentTime.toFixed(1)}s / ${TARGET_TIME}s | Progresso: ${clampedProgress.toFixed(1)}%`)
+      console.log(`📊 Vídeo: ${currentTime.toFixed(1)}s / ${TARGET_TIME}s | Barra: ${clampedProgress.toFixed(1)}%`)
 
       // VERIFICA SE CHEGOU NO TEMPO ALVO (126 segundos)
       if (currentTime >= TARGET_TIME && !isButtonReady) {
@@ -122,7 +131,7 @@ export default function Step7() {
         <VturbVideo 
           videoId="vid_693b9342f679d6950ed12c36"
           playerId="693b9342f679d6950ed12c36"
-          delaySeconds={delaySeconds}
+          delaySeconds={TARGET_TIME}
         />
       </motion.div>
 
@@ -146,10 +155,24 @@ export default function Step7() {
           marginRight: 'auto'
         }}
       >
-        <button
+        <motion.button
           ref={buttonRef}
           onClick={handleCTA}
           disabled={!isButtonReady}
+          // ANIMAÇÃO PULSE quando estiver pronto
+          animate={isButtonReady ? {
+            scale: [1, 1.02, 1],
+            boxShadow: [
+              '0 0 40px rgba(0, 255, 136, 0.8), 0 0 80px rgba(0, 255, 136, 0.4)',
+              '0 0 60px rgba(0, 255, 136, 1), 0 0 100px rgba(0, 255, 136, 0.6)',
+              '0 0 40px rgba(0, 255, 136, 0.8), 0 0 80px rgba(0, 255, 136, 0.4)'
+            ]
+          } : {}}
+          transition={isButtonReady ? {
+            duration: 1.5,
+            repeat: Infinity,
+            ease: "easeInOut"
+          } : {}}
           style={{
             // Container do botão
             position: 'relative',
@@ -246,7 +269,7 @@ export default function Step7() {
               '¡APP LIBERADO!'
             )}
           </span>
-        </button>
+        </motion.button>
       </motion.div>
 
       {/* Lista de benefícios rápidos - Abaixo do botão */}
