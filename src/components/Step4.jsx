@@ -20,7 +20,7 @@ export default function Step4({ onNext }) {
       <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-center leading-tight -mt-2">
         Mira cómo hice{' '}
         <span className="shimmer-text text-xl sm:text-2xl md:text-3xl">
-          $1.500.000 CLP
+          $1.500.000 pesos
         </span>{' '}
         solo utilizando este método
       </h2>

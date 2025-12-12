@@ -31,7 +31,7 @@ export default function Step2({ onNext, onAnswer }) {
       {/* Headline */}
       <h2 className="text-2xl md:text-3xl font-bold text-center leading-tight px-2">
         ¿Cuánto tiempo te tomaría hacer{' '}
-        <span className="money-highlight">$1.500.000 CLP</span>?
+        <span className="money-highlight">$1.500.000 pesos</span>?
       </h2>
 
       {/* Opções */}

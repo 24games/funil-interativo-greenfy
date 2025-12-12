@@ -27,7 +27,7 @@ export default function Step1({ onNext }) {
       <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center leading-tight px-2 sm:px-4 break-words -mt-4">
         Genera de{' '}
         <span className="money-highlight">
-          $1.000.000 a $4.500.000 CLP
+          $1.000.000 a $4.500.000 pesos
         </span>{' '}
         mensuales solo copiando la I.A.
       </h1>
