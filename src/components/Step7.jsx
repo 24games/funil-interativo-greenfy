@@ -36,51 +36,41 @@ export default function Step7() {
   }
 
   // ============================================================================
-  // INTEGRAÇÃO COM VTURB SMARTPLAYER API (BUSCA POR ID ESPECÍFICO)
+  // INTEGRAÇÃO COM VTURB SMARTPLAYER API (MONITORAMENTO GLOBAL - TODAS INSTÂNCIAS)
   // ============================================================================
   useEffect(() => {
-    // ID ESPECÍFICO do vídeo do Step 7 (extraído do embed)
-    const VIDEO_ID = '693b9342f679d6950ed12c36'
-    
     let pollingInterval = null
-    let isConnected = false
+    const connectedInstances = new Set() // Guarda IDs das instâncias já conectadas
 
-    console.log(`🔍 Iniciando busca pelo VTurb com ID: ${VIDEO_ID}...`)
+    console.log('🔍 Iniciando monitoramento GLOBAL de todas as instâncias VTurb...')
 
-    // Função que processa o tempo do vídeo
-    const handleTimeUpdate = (time) => {
-      if (time === 0) {
-        // ESTADO 0: Vídeo parado/não iniciado → 0%
-        setProgressPercent(0)
-        setHasStarted(false)
-      } 
-      else if (time > 0 && time < TARGET_TIME) {
-        // ESTADO 1 & 2: Vídeo rodando → 80% + baby steps
-        // Fórmula: 80 + (currentTime / 126) * 20
-        const progress = 80 + ((time / TARGET_TIME) * 20)
-        setProgressPercent(Math.min(progress, 100))
+    // Função que processa o tempo do vídeo (chamada por QUALQUER instância)
+    const handleTimeUpdate = (time, instanceId) => {
+      // Atualiza o estado do tempo para forçar re-render
+      setCurrentTime(time)
+      
+      if (time > 0 && time < TARGET_TIME) {
+        // Trava visual em 80% mínimo assim que der play
+        // Os 20% restantes preenchem ao longo dos 126s
+        const calc = 80 + ((time / TARGET_TIME) * 20)
+        setProgressPercent(calc)
         setHasStarted(true)
         
-        console.log(`📊 VTurb [${VIDEO_ID}]: ${time.toFixed(1)}s / ${TARGET_TIME}s | Barra: ${progress.toFixed(1)}%`)
-      }
+        console.log(`📊 [${instanceId}] Tempo: ${time.toFixed(2)}s | Barra: ${calc.toFixed(1)}%`)
+      } 
       else if (time >= TARGET_TIME) {
-        // ESTADO 3: Chegou aos 126s → 100% + botão ativo
         setProgressPercent(100)
         setHasStarted(true)
         
         if (!isButtonReady) {
-          console.log('🎉 TEMPO ALVO ATINGIDO (126s)! Habilitando botão...')
+          console.log(`🎉 [${instanceId}] TEMPO ALVO ATINGIDO (126s)! Habilitando botão...`)
           setIsButtonReady(true)
         }
       }
-      
-      setCurrentTime(time)
     }
 
-    // Função que tenta encontrar e conectar ao VTurb pelo ID ESPECÍFICO
-    const tryConnectVturb = () => {
-      if (isConnected) return
-
+    // Função que tenta conectar a TODAS as instâncias VTurb
+    const tryConnectAllVturb = () => {
       // Verifica se window.smartplayer existe
       if (!window.smartplayer) {
         console.log('⏳ Aguardando window.smartplayer...')
@@ -93,51 +83,54 @@ export default function Step7() {
         return
       }
 
-      console.log(`🔎 Procurando vídeo com ID: ${VIDEO_ID}...`)
-      console.log(`📋 Total de instâncias encontradas: ${window.smartplayer.instances.length}`)
+      const instanceCount = window.smartplayer.instances.length
+      console.log(`📋 Encontradas ${instanceCount} instância(s) de player`)
 
-      // BUSCA PELO ID ESPECÍFICO (não usa instances[0] genérico!)
-      const playerInstance = window.smartplayer.instances.find((inst) => {
-        // Tenta várias formas de encontrar pelo ID
-        const instId = inst.id || inst.options?.id || inst.videoId || ''
-        console.log(`   → Verificando instância: ${instId}`)
-        return instId === VIDEO_ID || instId === `vid_${VIDEO_ID}` || instId.includes(VIDEO_ID)
-      })
+      // LOOP EM TODAS AS INSTÂNCIAS - NÃO FILTRA POR ID
+      window.smartplayer.instances.forEach((player, index) => {
+        // Gera um ID único para esta instância
+        const instanceId = player.id || player.options?.id || player.videoId || `instance_${index}`
+        
+        // Verifica se já conectamos a esta instância
+        if (connectedInstances.has(instanceId)) {
+          return // Já conectado, pula
+        }
 
-      if (!playerInstance) {
-        console.log(`⏳ Vídeo ${VIDEO_ID} ainda não encontrado nas instâncias...`)
-        return
-      }
+        console.log(`🔗 Conectando à instância [${index}]: ${instanceId}`)
 
-      // SUCESSO! Encontrou o player correto
-      console.log(`✅ PLAYER CORRETO ENCONTRADO: ${VIDEO_ID}`)
-      isConnected = true
+        // Marca como conectado
+        connectedInstances.add(instanceId)
 
-      // Limpa o polling
-      if (pollingInterval) {
-        clearInterval(pollingInterval)
-        pollingInterval = null
-        console.log('🛑 Polling finalizado.')
-      }
+        // Adiciona listener de timeupdate nesta instância
+        try {
+          player.on('timeupdate', (data) => {
+            const time = data.currentTime || data.time || 0
+            handleTimeUpdate(time, instanceId)
+          })
 
-      // Adiciona o listener de timeupdate
-      playerInstance.on('timeupdate', (data) => {
-        const time = data.currentTime || data.time || 0
-        handleTimeUpdate(time)
-      })
+          player.on('play', () => {
+            console.log(`▶️ [${instanceId}] Play detectado!`)
+            setHasStarted(true)
+          })
 
-      // Também tenta ouvir evento de play para detectar início
-      playerInstance.on('play', () => {
-        console.log('▶️ Vídeo iniciado!')
-        setHasStarted(true)
+          console.log(`✅ Listener adicionado em [${instanceId}]`)
+        } catch (err) {
+          console.error(`❌ Erro ao adicionar listener em [${instanceId}]:`, err)
+        }
       })
     }
 
-    // POLLING: Verifica a cada 500ms até encontrar o player
-    pollingInterval = setInterval(tryConnectVturb, 500)
+    // POLLING: Verifica a cada 500ms para pegar novos players que aparecerem
+    pollingInterval = setInterval(tryConnectAllVturb, 500)
     
     // Também tenta imediatamente
-    tryConnectVturb()
+    tryConnectAllVturb()
+
+    // Verifica se o script do VTurb está no DOM, se não, injeta
+    const SCRIPT_ID = 'scr_693b9342f679d6950ed12c36'
+    if (!document.getElementById(SCRIPT_ID)) {
+      console.log('⚠️ Script VTurb não encontrado no DOM. O VturbVideo component deve injetá-lo.')
+    }
 
     // Cleanup quando o componente desmontar
     return () => {
@@ -326,6 +319,20 @@ export default function Step7() {
             )}
           </span>
         </motion.button>
+        
+        {/* ⚠️ DEBUG VISUAL - REMOVER DEPOIS ⚠️ */}
+        <p style={{
+          color: 'red',
+          fontSize: '12px',
+          textAlign: 'center',
+          marginTop: '8px',
+          fontFamily: 'monospace',
+          backgroundColor: 'rgba(255,0,0,0.1)',
+          padding: '4px 8px',
+          borderRadius: '4px'
+        }}>
+          Debug Time: {currentTime.toFixed(2)}s | Progress: {progressPercent.toFixed(1)}% | Ready: {isButtonReady ? 'YES' : 'NO'}
+        </p>
       </motion.div>
 
       {/* Lista de benefícios rápidos - Abaixo do botão */}
