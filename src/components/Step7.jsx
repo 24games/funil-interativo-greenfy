@@ -5,106 +5,83 @@ import VturbVideo from './VturbVideo'
 import { sendInitiateCheckout } from '../utils/tracking.js'
 
 export default function Step7() {
-  // Configuração: botão aparece quando o vídeo chega em 126 segundos (2:06)
-  // O Vturb.displayHiddenElements cuida de mostrar o botão e elementos respeitando pausa do vídeo
-  const delaySeconds = 126 // Tempo em segundos (2 minutos e 6 segundos)
+  // ============================================================================
+  // CONFIGURAÇÃO DO PROGRESS BAR BUTTON
+  // ============================================================================
+  const TARGET_TIME = 126 // Tempo alvo em segundos (2:06)
+  const VIDEO_ID = 'vid_693b9342f679d6950ed12c36' // ID do vídeo Vturb
+  
+  // Estados
+  const [progressPercent, setProgressPercent] = useState(0) // 0 a 100
+  const [isButtonReady, setIsButtonReady] = useState(false) // Controla se o botão está clicável
   const buttonRef = useRef(null)
-  const [loadingProgress, setLoadingProgress] = useState(0)
-  const [isReady, setIsReady] = useState(false)
 
+  // ============================================================================
+  // HANDLER DO BOTÃO CTA
+  // ============================================================================
   const handleCTA = async () => {
-    if (!isReady) return
+    if (!isButtonReady) return // Não faz nada se não estiver pronto
     
     try {
       // Envia evento InitiateCheckout para Meta Conversions API
-      await sendInitiateCheckout();
-      console.log('✅ InitiateCheckout enviado com sucesso');
+      await sendInitiateCheckout()
+      console.log('✅ InitiateCheckout enviado com sucesso')
     } catch (error) {
-      console.error('Erro ao enviar InitiateCheckout:', error);
-      // Continua mesmo se houver erro no tracking
+      console.error('❌ Erro ao enviar InitiateCheckout:', error)
     }
     
-    // Redireciona para checkout Centerpag
+    // Redireciona para checkout
     window.location.href = 'https://go.centerpag.com/PPU38CQ4BNQ'
   }
 
-  // Sincroniza o progresso do botão com o tempo do vídeo Vturb
+  // ============================================================================
+  // LÓGICA DE SINCRONIZAÇÃO COM O VÍDEO
+  // ============================================================================
   useEffect(() => {
     let intervalId = null
 
-    const updateProgress = () => {
-      if (isReady) return // Já está pronto, para de atualizar
+    // Função que atualiza o progresso baseado no tempo do vídeo
+    const updateProgressBar = () => {
+      // Busca o elemento do vídeo Vturb
+      const videoContainer = document.getElementById(VIDEO_ID)
+      if (!videoContainer) return
+
+      const videoElement = videoContainer.querySelector('video')
+      if (!videoElement) return
+
+      // Obtém o tempo atual do vídeo
+      const currentTime = videoElement.currentTime || 0
+
+      // CALCULA O PROGRESSO: (tempo atual / tempo alvo) * 100
+      // Exemplo: 63s / 126s = 0.5 → 50%
+      const calculatedProgress = (currentTime / TARGET_TIME) * 100
       
-      // Busca o vídeo de forma agressiva
-      const videoId = 'vid_693b9342f679d6950ed12c36'
-      const videoDiv = document.getElementById(videoId)
-      
-      if (!videoDiv) return
-      
-      // Procura o elemento video
-      const video = videoDiv.querySelector('video')
-      
-      if (video && video.currentTime !== undefined) {
-        const currentTime = video.currentTime
-        
-        // Calcula progresso baseado no tempo atual do vídeo
-        // Progresso vai de 0 a 100% conforme o vídeo vai de 0 a delaySeconds
-        const progress = (currentTime / delaySeconds) * 100
-        const newProgress = Math.min(Math.max(progress, 0), 100)
-        
-        console.log(`⏱️ Tempo vídeo: ${currentTime.toFixed(1)}s / ${delaySeconds}s | Barra: ${newProgress.toFixed(1)}%`)
-        
-        setLoadingProgress(newProgress)
-        
-        // Se chegou no tempo target, força 100%
-        if (currentTime >= delaySeconds) {
-          console.log('✅ Chegou aos 126 segundos!')
-          setLoadingProgress(100)
-        }
+      // Garante que o progresso fique entre 0 e 100
+      const clampedProgress = Math.min(Math.max(calculatedProgress, 0), 100)
+
+      // Atualiza o estado do progresso
+      setProgressPercent(clampedProgress)
+
+      // Log para debug
+      console.log(`📊 Vídeo: ${currentTime.toFixed(1)}s / ${TARGET_TIME}s | Progresso: ${clampedProgress.toFixed(1)}%`)
+
+      // VERIFICA SE CHEGOU NO TEMPO ALVO (126 segundos)
+      if (currentTime >= TARGET_TIME && !isButtonReady) {
+        console.log('🎉 TEMPO ALVO ATINGIDO! Habilitando botão...')
+        setProgressPercent(100) // Força 100%
+        setIsButtonReady(true) // Habilita o botão
       }
     }
 
-    // Atualiza a cada 200ms (5x por segundo)
-    intervalId = setInterval(updateProgress, 200)
+    // Executa a verificação a cada 250ms (4x por segundo)
+    // Isso é suficiente para uma animação fluida e não sobrecarrega o browser
+    intervalId = setInterval(updateProgressBar, 250)
 
+    // Cleanup: limpa o intervalo quando o componente desmontar
     return () => {
-      if (intervalId) {
-        clearInterval(intervalId)
-      }
+      if (intervalId) clearInterval(intervalId)
     }
-  }, [delaySeconds, isReady])
-
-  // Monitora quando deve habilitar o botão
-  // Habilita quando: progresso >= 100% (vídeo chegou em 126s)
-  useEffect(() => {
-    if (isReady) return // Já está pronto
-    
-    const checkButtonReady = () => {
-      // Verifica se o vídeo chegou no tempo necessário
-      const videoId = 'vid_693b9342f679d6950ed12c36'
-      const videoDiv = document.getElementById(videoId)
-      
-      if (videoDiv) {
-        const video = videoDiv.querySelector('video')
-        
-        if (video && video.currentTime !== undefined) {
-          const currentTime = video.currentTime
-          
-          // Habilita quando o vídeo chega em 126 segundos (ou quando progresso >= 99%)
-          if (currentTime >= delaySeconds || loadingProgress >= 99) {
-            console.log('🎉 BOTÃO HABILITADO! Tempo do vídeo:', currentTime.toFixed(1), 'segundos')
-            setIsReady(true)
-            setLoadingProgress(100) // Garante 100%
-          }
-        }
-      }
-    }
-
-    // Verifica a cada 200ms
-    const interval = setInterval(checkButtonReady, 200)
-
-    return () => clearInterval(interval)
-  }, [loadingProgress, isReady, delaySeconds])
+  }, [isButtonReady]) // Re-executa se isButtonReady mudar
 
   return (
     <motion.div
@@ -149,13 +126,20 @@ export default function Step7() {
         />
       </motion.div>
 
-      {/* Botão único - Visível desde o início, barra preenche sincronizada com vídeo */}
+      {/* ================================================================
+           PROGRESS BAR BUTTON
+           ================================================================
+           Botão que funciona como barra de progresso:
+           - Visível desde o início, mas não clicável (disabled)
+           - Barra verde preenche conforme o vídeo avança
+           - Aos 126s: barra completa (100%), botão clicável, texto muda
+           ================================================================ */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
-        className="mt-2"
         style={{
+          marginTop: '8px',
           maxWidth: '280px',
           width: '100%',
           marginLeft: 'auto',
@@ -165,22 +149,26 @@ export default function Step7() {
         <button
           ref={buttonRef}
           onClick={handleCTA}
-          disabled={!isReady}
-          className="w-full text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 rounded-xl font-bold uppercase"
+          disabled={!isButtonReady}
           style={{
+            // Container do botão
             position: 'relative',
+            width: '100%',
+            padding: '20px 12px',
+            borderRadius: '12px',
+            border: isButtonReady ? 'none' : '2px solid #4B5563',
+            cursor: isButtonReady ? 'pointer' : 'not-allowed',
             overflow: 'hidden',
-            border: isReady ? 'none' : '2px solid #4B5563',
-            cursor: isReady ? 'pointer' : 'not-allowed',
-            paddingLeft: '12px',
-            paddingRight: '12px',
             background: 'transparent',
-            boxShadow: isReady 
-              ? '0 0 40px rgba(0, 255, 136, 0.8), 0 0 80px rgba(0, 255, 136, 0.4), 0 0 120px rgba(0, 255, 136, 0.2)'
+            fontSize: '16px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            boxShadow: isButtonReady 
+              ? '0 0 40px rgba(0, 255, 136, 0.8), 0 0 80px rgba(0, 255, 136, 0.4)'
               : '0 0 20px rgba(0, 255, 136, 0.3)'
           }}
         >
-          {/* Fundo cinza (quando não está pronto) */}
+          {/* Layer 1: Fundo cinza (base) */}
           <div
             style={{
               position: 'absolute',
@@ -188,27 +176,27 @@ export default function Step7() {
               left: 0,
               width: '100%',
               height: '100%',
-              backgroundColor: isReady ? 'transparent' : '#374151',
+              backgroundColor: '#374151', // Cinza escuro
               zIndex: 0
             }}
           />
           
-          {/* Barra de progresso verde que preenche */}
+          {/* Layer 2: Barra de progresso VERDE (preenche da esquerda para direita) */}
           <div
             style={{
               position: 'absolute',
               top: 0,
               left: 0,
               height: '100%',
-              width: `${loadingProgress}%`,
-              background: 'linear-gradient(90deg, #00FF88, #00FFD4)',
-              transition: 'width 0.2s linear',
+              width: `${progressPercent}%`, // ← AQUI: 0% a 100% conforme o vídeo roda
+              background: 'linear-gradient(90deg, #00FF88, #00FFD4)', // Verde da marca
+              transition: 'width 0.3s ease-out', // Transição suave
               zIndex: 1
             }}
           />
           
-          {/* Efeito de brilho quando está pronto */}
-          {isReady && (
+          {/* Layer 3: Efeito de brilho quando está pronto (opcional) */}
+          {isButtonReady && (
             <motion.div
               initial={{ x: '-100%' }}
               animate={{ x: '200%' }}
@@ -229,20 +217,20 @@ export default function Step7() {
             />
           )}
           
-          {/* Texto do botão */}
+          {/* Layer 4: TEXTO do botão (sempre visível por cima) */}
           <span 
             style={{ 
               position: 'relative',
               zIndex: 10,
-              color: isReady ? '#050505' : '#ffffff',
+              color: isButtonReady ? '#050505' : '#ffffff', // Preto quando pronto, branco quando carregando
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
-              fontWeight: 'bold'
+              gap: '8px'
             }}
           >
-            {!isReady ? (
+            {!isButtonReady ? (
+              // ESTADO DE LOADING (0-99%)
               <>
                 <motion.span
                   animate={{ rotate: 360 }}
@@ -254,6 +242,7 @@ export default function Step7() {
                 Cargando...
               </>
             ) : (
+              // ESTADO PRONTO (100%)
               '¡APP LIBERADO!'
             )}
           </span>
