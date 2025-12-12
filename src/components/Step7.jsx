@@ -9,10 +9,11 @@ export default function Step7() {
   // CONFIGURAÇÃO DO PROGRESS BAR BUTTON
   // ============================================================================
   const TARGET_TIME = 126 // Tempo alvo em segundos (2:06)
-  const VIDEO_ID = 'vid_693b9342f679d6950ed12c36' // ID do vídeo Vturb
   
   // Estados
-  const [progressPercent, setProgressPercent] = useState(80) // COMEÇA EM 80% (Baby Steps)
+  const [currentTime, setCurrentTime] = useState(0) // Tempo atual do vídeo
+  const [hasStarted, setHasStarted] = useState(false) // Se o vídeo já começou a rodar
+  const [progressPercent, setProgressPercent] = useState(0) // COMEÇA EM 0%
   const [isButtonReady, setIsButtonReady] = useState(false) // Controla se o botão está clicável
   const buttonRef = useRef(null)
 
@@ -35,62 +36,86 @@ export default function Step7() {
   }
 
   // ============================================================================
-  // LÓGICA DE SINCRONIZAÇÃO COM O VÍDEO
+  // INTEGRAÇÃO COM VTURB SMARTPLAYER API
   // ============================================================================
   useEffect(() => {
-    let intervalId = null
+    let checkInterval = null
+    let listenerAdded = false
 
-    // Função que atualiza o progresso baseado no tempo do vídeo
-    const updateProgressBar = () => {
-      // Busca o elemento do vídeo Vturb
-      const videoContainer = document.getElementById(VIDEO_ID)
-      if (!videoContainer) return
-
-      const videoElement = videoContainer.querySelector('video')
-      if (!videoElement) return
-
-      // Obtém o tempo atual do vídeo
-      const currentTime = videoElement.currentTime || 0
-
-      // ================================================================
-      // NOVA LÓGICA "BABY STEPS": 80% → 100%
-      // ================================================================
-      // A barra COMEÇA em 80% e vai até 100% conforme o vídeo roda
-      // Fórmula: 80 + (currentTime / 126) * 20
-      // 
-      // Exemplos:
-      //   0s   → 80 + (0/126)*20   = 80%
-      //   63s  → 80 + (63/126)*20  = 90%
-      //   126s → 80 + (126/126)*20 = 100%
-      // ================================================================
-      const calculatedProgress = 80 + ((currentTime / TARGET_TIME) * 20)
-      
-      // Garante que o progresso fique entre 80 e 100
-      const clampedProgress = Math.min(Math.max(calculatedProgress, 80), 100)
-
-      // Atualiza o estado do progresso
-      setProgressPercent(clampedProgress)
-
-      // Log para debug
-      console.log(`📊 Vídeo: ${currentTime.toFixed(1)}s / ${TARGET_TIME}s | Barra: ${clampedProgress.toFixed(1)}%`)
-
-      // VERIFICA SE CHEGOU NO TEMPO ALVO (126 segundos)
-      if (currentTime >= TARGET_TIME && !isButtonReady) {
-        console.log('🎉 TEMPO ALVO ATINGIDO! Habilitando botão...')
-        setProgressPercent(100) // Força 100%
-        setIsButtonReady(true) // Habilita o botão
+    const setupVturbListener = () => {
+      // Verifica se o smartplayer do VTurb está disponível
+      if (window.smartplayer && window.smartplayer.instances && window.smartplayer.instances.length > 0) {
+        const player = window.smartplayer.instances[0]
+        
+        if (player && !listenerAdded) {
+          console.log('✅ VTurb SmartPlayer encontrado! Adicionando listener...')
+          
+          // Adiciona listener para o evento timeupdate
+          player.on('timeupdate', (data) => {
+            const time = data.currentTime || 0
+            setCurrentTime(time)
+            
+            // Marca que o vídeo começou quando o tempo for > 0
+            if (time > 0 && !hasStarted) {
+              setHasStarted(true)
+              console.log('▶️ Vídeo iniciado!')
+            }
+          })
+          
+          listenerAdded = true
+          
+          // Para de verificar pois já adicionou o listener
+          if (checkInterval) {
+            clearInterval(checkInterval)
+            checkInterval = null
+          }
+        }
       }
     }
 
-    // Executa a verificação a cada 250ms (4x por segundo)
-    // Isso é suficiente para uma animação fluida e não sobrecarrega o browser
-    intervalId = setInterval(updateProgressBar, 250)
-
-    // Cleanup: limpa o intervalo quando o componente desmontar
-    return () => {
-      if (intervalId) clearInterval(intervalId)
+    // Tenta configurar o listener imediatamente
+    setupVturbListener()
+    
+    // Se não conseguiu, tenta a cada 500ms até encontrar
+    if (!listenerAdded) {
+      checkInterval = setInterval(setupVturbListener, 500)
     }
-  }, [isButtonReady]) // Re-executa se isButtonReady mudar
+
+    // Cleanup
+    return () => {
+      if (checkInterval) clearInterval(checkInterval)
+    }
+  }, [hasStarted])
+
+  // ============================================================================
+  // LÓGICA DE CÁLCULO DO PROGRESSO
+  // ============================================================================
+  useEffect(() => {
+    // Estado 0: Vídeo não iniciado → Barra em 0%
+    if (!hasStarted || currentTime === 0) {
+      setProgressPercent(0)
+      return
+    }
+
+    // Estado 1 & 2: Vídeo rodando
+    // A barra pula para 80% quando o vídeo começa, depois vai de 80% a 100%
+    // Fórmula: 80 + (currentTime / 126) * 20
+    let calculatedProgress = 80 + ((currentTime / TARGET_TIME) * 20)
+    
+    // Garante máximo de 100%
+    calculatedProgress = Math.min(calculatedProgress, 100)
+    
+    setProgressPercent(calculatedProgress)
+    
+    console.log(`📊 VTurb: ${currentTime.toFixed(1)}s / ${TARGET_TIME}s | Barra: ${calculatedProgress.toFixed(1)}%`)
+
+    // Estado 3: Chegou aos 126 segundos
+    if (currentTime >= TARGET_TIME && !isButtonReady) {
+      console.log('🎉 TEMPO ALVO ATINGIDO! Habilitando botão...')
+      setProgressPercent(100)
+      setIsButtonReady(true)
+    }
+  }, [currentTime, hasStarted, isButtonReady])
 
   return (
     <motion.div
@@ -211,9 +236,13 @@ export default function Step7() {
               top: 0,
               left: 0,
               height: '100%',
-              width: `${progressPercent}%`, // ← AQUI: 0% a 100% conforme o vídeo roda
+              width: `${progressPercent}%`,
               background: 'linear-gradient(90deg, #00FF88, #00FFD4)', // Verde da marca
-              transition: 'width 0.3s ease-out', // Transição suave
+              // Transição mais longa (1s) para o "salto" de 0% → 80% ser suave
+              // Depois fica mais lenta (0.5s) para os baby steps
+              transition: hasStarted && progressPercent < 85 
+                ? 'width 1s ease-out'  // Salto inicial suave
+                : 'width 0.5s ease-out', // Baby steps
               zIndex: 1
             }}
           />
