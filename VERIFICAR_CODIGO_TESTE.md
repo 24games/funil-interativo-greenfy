@@ -75,3 +75,4 @@ Execute este código no console para verificar o que está acontecendo:
 **Execute o script de diagnóstico para ver detalhes completos!**
 
 
+

@@ -116,3 +116,4 @@ Após configurar, você pode testar pedindo ao Cursor:
 - [Repositório MCP Server Postgres](https://github.com/modelcontextprotocol/servers/tree/main/src/postgres)
 
 
+

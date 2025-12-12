@@ -7,7 +7,11 @@ export default defineConfig({
     host: 'localhost',
     port: 5173,
     strictPort: true,
-    open: false
+    open: false,
+    // Garante que arquivos estáticos sejam servidos corretamente
+    fs: {
+      strict: false
+    }
   },
   // Configuração para SPA - redireciona todas as rotas para index.html
   build: {
@@ -15,8 +19,12 @@ export default defineConfig({
       input: {
         main: './index.html'
       }
-    }
-  }
+    },
+    // Garante que arquivos estáticos sejam copiados corretamente
+    assetsInclude: ['**/*.webp', '**/*.jpg', '**/*.jpeg', '**/*.png']
+  },
+  // Garante que a pasta public seja servida corretamente
+  publicDir: 'public'
 })
 
 

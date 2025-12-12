@@ -21,6 +21,7 @@ const placeholderImages = [
 const testimonialImages = testimonialImageFiles.length > 0 
   ? testimonialImageFiles.map((file, index) => {
       // Caminho absoluto a partir da raiz (public/)
+      // Vite serve arquivos da pasta public/ diretamente na raiz
       const imagePath = `/images/depoimentos/${file}`
       return {
         id: index + 1,
@@ -136,12 +137,23 @@ export default function Step3({ onNext }) {
                   className="w-full h-full object-cover rounded-lg"
                   loading="lazy"
                   onError={(e) => {
-                    console.error(`[Step3] ❌ Erro ao carregar: ${img.image}`)
-                    console.error(`[Step3] Verifique se existe: public${img.image}`)
-                    e.target.style.display = 'none'
+                    console.error(`[Step3] ❌ Erro ao carregar imagem: ${img.image}`)
+                    console.error(`[Step3] Caminho completo tentado: ${e.target.src}`)
+                    
+                    // Tenta adicionar timestamp para forçar reload (bypass cache)
+                    const url = new URL(e.target.src)
+                    if (!url.searchParams.has('v')) {
+                      url.searchParams.set('v', Date.now())
+                      e.target.src = url.toString()
+                      console.log(`[Step3] Tentando com cache-bust: ${url.toString()}`)
+                    } else {
+                      // Se já tentou com cache-bust, esconde a imagem
+                      console.error(`[Step3] Arquivo não encontrado após tentativas: public${img.image}`)
+                      e.target.style.display = 'none'
+                    }
                   }}
                   onLoad={() => {
-                    console.log(`[Step3] ✅ Carregada: ${img.image}`)
+                    console.log(`[Step3] ✅ Imagem carregada: ${img.image}`)
                   }}
                 />
               ) : (

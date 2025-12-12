@@ -11,3 +11,4 @@ powershell -ExecutionPolicy Bypass -File "%~dp0configurar-mcp-supabase.ps1"
 pause
 
 
+
