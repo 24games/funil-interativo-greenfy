@@ -5,28 +5,36 @@ import VturbVideo from './VturbVideo'
 import { sendInitiateCheckout } from '../utils/tracking.js'
 
 // ============================================================================
-// STORAGE HANDLER - Persistência via localStorage
+// STORAGE HANDLER - CÓPIA EXATA DO SCRIPT ORIGINAL
 // ============================================================================
-const StorageHandler = {
-  STORAGE_KEY: 'alreadyElsDisplayed126',
-  
-  // Verifica se já assistiu até 126s
-  hasWatched() {
+class StorageHandler {
+  static expiryTime = 14 * 86400000 // 14 dias em milissegundos
+
+  static set(key, value) {
     try {
-      const value = localStorage.getItem(this.STORAGE_KEY)
-      return value === 'true'
-    } catch {
-      return false
-    }
-  },
-  
-  // Salva que já assistiu
-  markAsWatched() {
-    try {
-      localStorage.setItem(this.STORAGE_KEY, 'true')
-      console.log('💾 [Storage] Cookie salvo: alreadyElsDisplayed126 = true')
+      localStorage.setItem(
+        key,
+        JSON.stringify({ value, expiry: Date.now() + this.expiryTime })
+      )
     } catch (e) {
       console.error('❌ [Storage] Erro ao salvar:', e)
+    }
+  }
+
+  static get(key) {
+    try {
+      const item = localStorage.getItem(key)
+      if (!item) return null
+
+      const { value, expiry } = JSON.parse(item)
+      if (Date.now() > expiry) {
+        localStorage.removeItem(key)
+        return null
+      }
+      return value
+    } catch (e) {
+      console.error('❌ [Storage] Erro ao ler:', e)
+      return null
     }
   }
 }
@@ -48,28 +56,6 @@ export default function Step7() {
   const [isButtonReady, setIsButtonReady] = useState(false)
 
   // ============================================================================
-  // FUNÇÃO DE DESBLOQUEIO DO BOTÃO
-  // ============================================================================
-  const unlockButton = () => {
-    // Já desbloqueado? Ignora
-    if (isUnlockedRef.current) return
-    
-    console.log('🔓 [Step7] DESBLOQUEANDO BOTÃO!')
-    isUnlockedRef.current = true
-    
-    // Salva no localStorage (cookie)
-    StorageHandler.markAsWatched()
-    
-    // Força barra para 100%
-    if (progressBarRef.current) {
-      progressBarRef.current.style.width = '100%'
-    }
-    
-    // Atualiza estado do React (muda texto e habilita clique)
-    setIsButtonReady(true)
-  }
-
-  // ============================================================================
   // HANDLER DO BOTÃO CTA
   // ============================================================================
   const handleCTA = async () => {
@@ -88,51 +74,45 @@ export default function Step7() {
   }
 
   // ============================================================================
-  // VERIFICAÇÃO DE COOKIE NA MONTAGEM
+  // ADAPTAÇÃO EXATA DO SCRIPT ORIGINAL PARA STEP 7
   // ============================================================================
   useEffect(() => {
-    // Verifica se já assistiu (cookie)
-    if (StorageHandler.hasWatched()) {
-      console.log('🍪 [Step7] Cookie encontrado! Liberando botão instantaneamente...')
+    const SECONDS_TO_DISPLAY = TARGET_TIME // 126 segundos
+    const alreadyDisplayedKey = 'alreadyElsDisplayed' + SECONDS_TO_DISPLAY
+    let attempts = 0
+    let isConnected = false
+
+    // Função que mostra elementos .esconder E libera o botão
+    const showHiddenElements = () => {
+      console.log('✅ [Step7] Mostrando elementos e liberando botão!')
+      
+      // Mostra elementos com classe .esconder
+      const elsHidden = document.querySelectorAll('.esconder')
+      elsHidden.forEach((e) => {
+        e.style.display = 'block'
+      })
+      
+      // Salva no localStorage (com expiração de 14 dias)
+      StorageHandler.set(alreadyDisplayedKey, true)
+      
+      // Libera o botão
       isUnlockedRef.current = true
       setIsButtonReady(true)
       
-      // Força barra para 100% após o render
-      setTimeout(() => {
-        if (progressBarRef.current) {
-          progressBarRef.current.style.width = '100%'
-        }
-      }, 100)
+      // Força barra para 100%
+      if (progressBarRef.current) {
+        progressBarRef.current.style.width = '100%'
+      }
     }
-  }, [])
 
-  // ============================================================================
-  // INTEGRAÇÃO COM VTURB - SINCRONIA PERFEITA COM O VÍDEO
-  // ============================================================================
-  useEffect(() => {
-    let pollingInterval = null
-    let isConnected = false
-
-    console.log(`🔍 [Step7] Iniciando busca pelo vídeo ID: ${TARGET_VIDEO_ID}`)
-
-    // Função de busca pelo player
-    const findAndConnectPlayer = () => {
-      // Já conectado? Sai
-      if (isConnected) return
-      
-      // Já desbloqueado pelo cookie? Não precisa conectar
-      if (isUnlockedRef.current) {
-        if (pollingInterval) clearInterval(pollingInterval)
-        return
-      }
-
-      // Verifica se smartplayer existe
+    // Função que busca o player pelo ID específico
+    const findPlayerById = () => {
       if (!window.smartplayer || !window.smartplayer.instances) {
-        return
+        return null
       }
 
-      // Busca profunda pelo ID
-      const player = window.smartplayer.instances.find(inst => {
+      // Busca pelo ID específico (não usa instances[0] genérico!)
+      return window.smartplayer.instances.find(inst => {
         const id1 = String(inst.id || '')
         const id2 = String(inst.options?.id || '')
         const id3 = String(inst.video?.id || '')
@@ -143,82 +123,85 @@ export default function Step7() {
                id3.includes(TARGET_VIDEO_ID) ||
                id4.includes(TARGET_VIDEO_ID)
       })
+    }
 
-      if (!player) return
-
-      // ENCONTROU!
-      console.log(`🎯 [Step7] PLAYER ENCONTRADO: ${TARGET_VIDEO_ID}`)
-      isConnected = true
-
-      // Para o polling de busca
-      if (pollingInterval) {
-        clearInterval(pollingInterval)
-        pollingInterval = null
-        console.log(`🛑 [Step7] Polling finalizado.`)
+    // Função que monitora o progresso do vídeo (CÓPIA EXATA DO SCRIPT)
+    const startWatchVideoProgress = () => {
+      const player = findPlayerById()
+      
+      if (!player) {
+        if (attempts >= 10) {
+          console.error('❌ [Step7] Timeout: Player não encontrado após 10 tentativas')
+          return
+        }
+        attempts++
+        return setTimeout(startWatchVideoProgress, 1000)
       }
 
-      // ================================================================
-      // LISTENER DE TIMEUPDATE - SINCRONIA PERFEITA (PAUSA = PARA)
-      // ================================================================
-      player.on('timeupdate', function(data) {
-        // Se já desbloqueado pelo cookie, ignora
+      // ENCONTROU O PLAYER!
+      console.log(`🎯 [Step7] Player encontrado: ${TARGET_VIDEO_ID}`)
+      isConnected = true
+
+      // Listener de timeupdate (LÓGICA EXATA DO SCRIPT ORIGINAL)
+      player.on('timeupdate', () => {
+        // Se já mostrou, ignora
         if (isUnlockedRef.current) return
         
-        const time = data.currentTime || data.time || 0
-
-        // --- CÁLCULO DA PORCENTAGEM (Regra: 80% + Baby Steps) ---
-        // Isso garante que a barra só ande se o 'time' aumentar.
-        // Se pausar, 'time' não muda, logo 'width' não muda.
-        let width = 0
+        // Se for autoplay, ignora (lógica do script original)
+        if (player.smartAutoPlay) return
         
-        if (time > 0) {
-          // Mapeia 0-126s para o range visual de 80%-100%
-          // Math.min trava em 100%
-          const visualProgress = 80 + ((time / TARGET_TIME) * 20)
-          width = Math.min(visualProgress, 100)
-        }
-
-        // --- ATUALIZAÇÃO DIRETA (Zero Lag) ---
+        // AQUI ESTÁ A DIFERENÇA: Usa player.video.currentTime (como no script original)
+        const currentTime = player.video?.currentTime || 0
+        
+        // Atualiza a barra de progresso em tempo real
         if (progressBarRef.current) {
+          let width = 0
+          if (currentTime > 0) {
+            // 80% + baby steps
+            const visualProgress = 80 + ((currentTime / SECONDS_TO_DISPLAY) * 20)
+            width = Math.min(visualProgress, 100)
+          }
           progressBarRef.current.style.width = `${width}%`
         }
         
-        // Log a cada 10 segundos para não poluir
-        if (Math.floor(time) % 10 === 0 && time > 0) {
-          console.log(`📊 [Step7] Tempo: ${time.toFixed(1)}s | Barra: ${width.toFixed(1)}%`)
-        }
-
-        // --- DESBLOQUEIO aos 126s ---
-        if (time >= TARGET_TIME) {
-          unlockButton()
-        }
+        // LÓGICA EXATA DO SCRIPT: Se currentTime < SECONDS_TO_DISPLAY, retorna
+        if (currentTime < SECONDS_TO_DISPLAY) return
+        
+        // Se chegou aqui, atingiu 126s! Mostra elementos e libera botão
+        showHiddenElements()
       })
 
       // Listener de play - Força 80% imediatamente
-      player.on('play', function() {
+      player.on('play', () => {
         if (isUnlockedRef.current) return
-        console.log(`▶️ [Step7] Play detectado! Forçando 80%...`)
+        console.log('▶️ [Step7] Play detectado! Forçando 80%...')
         if (progressBarRef.current) {
           progressBarRef.current.style.width = '80%'
         }
       })
 
-      console.log(`✅ [Step7] Listeners configurados com sucesso!`)
+      console.log('✅ [Step7] Listeners configurados!')
     }
 
-    // POLLING: Verifica a cada 500ms
-    pollingInterval = setInterval(findAndConnectPlayer, 500)
+    // Verifica se já assistiu (cookie com expiração)
+    const alreadyElsDisplayed = StorageHandler.get(alreadyDisplayedKey)
     
-    // Tenta imediatamente também
-    findAndConnectPlayer()
-
-    // Cleanup quando o componente desmontar
-    return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval)
-      }
+    if (alreadyElsDisplayed) {
+      // Já assistiu: mostra tudo instantaneamente
+      console.log('🍪 [Step7] Cookie encontrado! Liberando instantaneamente...')
+      setTimeout(() => {
+        showHiddenElements()
+      }, 100)
+    } else {
+      // Não assistiu: inicia monitoramento
+      startWatchVideoProgress()
     }
-  }, []) // Array vazio = roda apenas uma vez na montagem
+
+    // Cleanup
+    return () => {
+      // Cleanup se necessário
+    }
+  }, [])
 
   return (
     <motion.div
