@@ -47,7 +47,8 @@ export default function Step7() {
   // Sincroniza o progresso do botão com o tempo do vídeo Vturb
   useEffect(() => {
     let animationFrame = null
-    let lastVideoTime = 0
+    let lastVideoTime = -1
+    let isRunning = true
 
     const findVideoElement = () => {
       const videoId = 'vid_693b9342f679d6950ed12c36'
@@ -74,52 +75,46 @@ export default function Step7() {
     }
 
     const updateProgress = () => {
+      if (!isRunning || isReady) return
+      
       const video = findVideoElement()
       
       if (video) {
         try {
           // Usa o currentTime do vídeo (já sincroniza com pausas automaticamente)
+          // Quando o vídeo pausa, currentTime não muda, então o progresso para também
           const currentTime = video.currentTime || 0
           
-          // Atualiza sempre que o tempo mudar (usa comparação com tolerância para evitar updates muito frequentes)
-          if (Math.abs(currentTime - lastVideoTime) > 0.05) {
+          // Atualiza o progresso sempre que o tempo mudar (mesmo pequenas mudanças)
+          // Quando o vídeo está pausado, currentTime não muda, então o progresso para automaticamente
+          if (Math.abs(currentTime - lastVideoTime) > 0.01) {
             lastVideoTime = currentTime
             
-            // Calcula progresso inteligente
+            // Calcula progresso inteligente baseado no tempo atual do vídeo
             const progress = calculateSmartProgress(currentTime, delaySeconds)
-            const newProgress = Math.min(progress, 100)
+            const newProgress = Math.min(Math.max(progress, 0), 100) // Garante entre 0 e 100
             setLoadingProgress(newProgress)
-            
-            // Se chegou a 100%, verifica se pode habilitar o botão
-            if (newProgress >= 100) {
-              // Verifica se o Vturb já removeu a classe .esconder
-              const benefitsList = document.querySelector('.glass-card')
-              const isVturbReady = benefitsList && !benefitsList.classList.contains('esconder')
-              
-              if (isVturbReady && !isReady) {
-                setIsReady(true)
-              }
-            }
           }
         } catch (e) {
           // Se não conseguir acessar o vídeo, continua tentando
-          console.log('Aguardando vídeo carregar...')
         }
-      } else {
-        // Se o vídeo ainda não foi encontrado, tenta novamente
-        // Mas não atualiza o progresso para evitar bugs
       }
       
-      // Continua animando
-      animationFrame = requestAnimationFrame(updateProgress)
+      // Continua animando (sempre, para detectar mudanças no vídeo)
+      if (isRunning && !isReady) {
+        animationFrame = requestAnimationFrame(updateProgress)
+      }
     }
 
     // Aguarda um pouco para o vídeo carregar e começa a verificar
     const startDelay = setTimeout(() => {
-      animationFrame = requestAnimationFrame(updateProgress)
+      if (isRunning) {
+        animationFrame = requestAnimationFrame(updateProgress)
+      }
     }, 1000)
 
     return () => {
+      isRunning = false
       clearTimeout(startDelay)
       if (animationFrame) {
         cancelAnimationFrame(animationFrame)
@@ -130,6 +125,8 @@ export default function Step7() {
   // Monitora quando o Vturb remove a classe .esconder de outros elementos (quando vídeo chega no tempo)
   // E habilita o botão quando ambas condições são atendidas: progresso 100% + Vturb removeu .esconder
   useEffect(() => {
+    if (isReady) return // Já está pronto, não precisa verificar
+    
     const checkButtonReady = () => {
       if (isReady) return // Já está pronto, não precisa verificar
       
@@ -138,16 +135,18 @@ export default function Step7() {
       const benefitsList = document.querySelector('.glass-card')
       const isVturbReady = benefitsList && !benefitsList.classList.contains('esconder')
       
-      const progressComplete = loadingProgress >= 99.5 // Usa 99.5 para evitar problemas de arredondamento
+      // Verifica se o progresso chegou a 100% (ou muito próximo)
+      const progressComplete = loadingProgress >= 99.9
       
-      // Habilita quando: progresso >= 99.5% E Vturb removeu .esconder de outros elementos
+      // Habilita quando: progresso >= 99.9% E Vturb removeu .esconder de outros elementos
+      // Isso garante que o botão só fica clicável quando o vídeo realmente chegou no timing certo
       if (progressComplete && isVturbReady) {
         setIsReady(true)
       }
     }
 
-    // Verifica periodicamente
-    const interval = setInterval(checkButtonReady, 50) // Verifica mais frequentemente
+    // Verifica periodicamente (a cada 100ms)
+    const interval = setInterval(checkButtonReady, 100)
 
     return () => clearInterval(interval)
   }, [loadingProgress, isReady])
