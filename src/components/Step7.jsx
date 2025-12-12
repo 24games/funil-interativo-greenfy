@@ -255,13 +255,14 @@ export default function Step7() {
         whileTap={{ scale: isLoading ? 1 : 0.95 }}
         onClick={handleCTA}
         disabled={isLoading}
-        className={`${isLoading ? 'hidden' : 'esconder'} neon-button mt-2 text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 animate-heartbeat relative overflow-hidden`}
+        className={`${isLoading ? 'hidden' : 'esconder'} neon-button mt-2 text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 animate-heartbeat relative overflow-hidden mx-auto`}
         style={{ 
           boxShadow: '0 0 40px rgba(0, 255, 136, 0.8), 0 0 80px rgba(0, 255, 136, 0.4), 0 0 120px rgba(0, 255, 136, 0.2)',
           maxWidth: '280px',
           width: '100%',
           paddingLeft: '12px',
-          paddingRight: '12px'
+          paddingRight: '12px',
+          display: 'block'
         }}
       >
         <motion.span
