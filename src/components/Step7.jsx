@@ -4,20 +4,70 @@ import { Sparkles } from 'lucide-react'
 import VturbVideo from './VturbVideo'
 import { sendInitiateCheckout } from '../utils/tracking.js'
 
+// ============================================================================
+// STORAGE HANDLER - Persistência via localStorage
+// ============================================================================
+const StorageHandler = {
+  STORAGE_KEY: 'alreadyElsDisplayed126',
+  
+  // Verifica se já assistiu até 126s
+  hasWatched() {
+    try {
+      const value = localStorage.getItem(this.STORAGE_KEY)
+      return value === 'true'
+    } catch {
+      return false
+    }
+  },
+  
+  // Salva que já assistiu
+  markAsWatched() {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, 'true')
+      console.log('💾 [Storage] Cookie salvo: alreadyElsDisplayed126 = true')
+    } catch (e) {
+      console.error('❌ [Storage] Erro ao salvar:', e)
+    }
+  }
+}
+
 export default function Step7() {
   // ============================================================================
   // CONFIGURAÇÃO DO PROGRESS BAR BUTTON (PERFORMANCE MÁXIMA COM useRef)
   // ============================================================================
   const TARGET_TIME = 126 // Tempo alvo em segundos (2:06)
+  const TARGET_VIDEO_ID = '693b9342f679d6950ed12c36' // ID do vídeo
   
   // REFS para manipulação direta do DOM (evita re-renders)
   const progressBarRef = useRef(null) // Referência para a barra verde
   const buttonRef = useRef(null) // Referência para o botão
-  const isLockedRef = useRef(true) // Controle de desbloqueio (sem re-render)
+  const isUnlockedRef = useRef(false) // Controle de desbloqueio (sem re-render)
   const textRef = useRef(null) // Referência para o texto do botão
   
-  // Estado ÚNICO para controlar o clique (só muda UMA VEZ aos 126s)
+  // Estado ÚNICO para controlar o clique (só muda UMA VEZ)
   const [isButtonReady, setIsButtonReady] = useState(false)
+
+  // ============================================================================
+  // FUNÇÃO DE DESBLOQUEIO DO BOTÃO
+  // ============================================================================
+  const unlockButton = () => {
+    // Já desbloqueado? Ignora
+    if (isUnlockedRef.current) return
+    
+    console.log('🔓 [Step7] DESBLOQUEANDO BOTÃO!')
+    isUnlockedRef.current = true
+    
+    // Salva no localStorage (cookie)
+    StorageHandler.markAsWatched()
+    
+    // Força barra para 100%
+    if (progressBarRef.current) {
+      progressBarRef.current.style.width = '100%'
+    }
+    
+    // Atualiza estado do React (muda texto e habilita clique)
+    setIsButtonReady(true)
+  }
 
   // ============================================================================
   // HANDLER DO BOTÃO CTA
@@ -38,12 +88,28 @@ export default function Step7() {
   }
 
   // ============================================================================
-  // INTEGRAÇÃO COM VTURB - MANIPULAÇÃO DIRETA DO DOM (PERFORMANCE MÁXIMA)
+  // VERIFICAÇÃO DE COOKIE NA MONTAGEM
   // ============================================================================
   useEffect(() => {
-    // ID ESPECÍFICO DO VÍDEO DO STEP 7
-    const TARGET_VIDEO_ID = '693b9342f679d6950ed12c36'
-    
+    // Verifica se já assistiu (cookie)
+    if (StorageHandler.hasWatched()) {
+      console.log('🍪 [Step7] Cookie encontrado! Liberando botão instantaneamente...')
+      isUnlockedRef.current = true
+      setIsButtonReady(true)
+      
+      // Força barra para 100% após o render
+      setTimeout(() => {
+        if (progressBarRef.current) {
+          progressBarRef.current.style.width = '100%'
+        }
+      }, 100)
+    }
+  }, [])
+
+  // ============================================================================
+  // INTEGRAÇÃO COM VTURB - SINCRONIA PERFEITA COM O VÍDEO
+  // ============================================================================
+  useEffect(() => {
     let pollingInterval = null
     let isConnected = false
 
@@ -53,6 +119,12 @@ export default function Step7() {
     const findAndConnectPlayer = () => {
       // Já conectado? Sai
       if (isConnected) return
+      
+      // Já desbloqueado pelo cookie? Não precisa conectar
+      if (isUnlockedRef.current) {
+        if (pollingInterval) clearInterval(pollingInterval)
+        return
+      }
 
       // Verifica se smartplayer existe
       if (!window.smartplayer || !window.smartplayer.instances) {
@@ -86,53 +158,45 @@ export default function Step7() {
       }
 
       // ================================================================
-      // LISTENER DE TIMEUPDATE - MANIPULAÇÃO DIRETA DO DOM (SEM useState!)
+      // LISTENER DE TIMEUPDATE - SINCRONIA PERFEITA (PAUSA = PARA)
       // ================================================================
       player.on('timeupdate', function(data) {
+        // Se já desbloqueado pelo cookie, ignora
+        if (isUnlockedRef.current) return
+        
         const time = data.currentTime || data.time || 0
 
-        // 1. MANIPULAÇÃO DIRETA DO DOM (Super Rápido, Sem Travas)
-        if (progressBarRef.current) {
-          let width = 0
-          
-          if (time > 0) {
-            // Cálculo: Começa em 80%, completa os 20% restantes em 126s
-            // Fórmula: 80 + ((time / 126) * 20)
-            const increment = (time / TARGET_TIME) * 20
-            width = Math.min(80 + increment, 100)
-          }
-          
-          // Aplica direto no CSS, ignorando o React
-          progressBarRef.current.style.width = `${width}%`
-          
-          // Log a cada 10 segundos para não poluir
-          if (Math.floor(time) % 10 === 0 && time > 0) {
-            console.log(`📊 [Step7] Tempo: ${time.toFixed(1)}s | Barra: ${width.toFixed(1)}%`)
-          }
+        // --- CÁLCULO DA PORCENTAGEM (Regra: 80% + Baby Steps) ---
+        // Isso garante que a barra só ande se o 'time' aumentar.
+        // Se pausar, 'time' não muda, logo 'width' não muda.
+        let width = 0
+        
+        if (time > 0) {
+          // Mapeia 0-126s para o range visual de 80%-100%
+          // Math.min trava em 100%
+          const visualProgress = 80 + ((time / TARGET_TIME) * 20)
+          width = Math.min(visualProgress, 100)
         }
 
-        // 2. LÓGICA DE DESBLOQUEIO (Dispara State APENAS UMA VEZ)
-        if (time >= TARGET_TIME && isLockedRef.current) {
-          console.log(`🔓 [Step7] DESBLOQUEANDO BOTÃO AGORA! (${time.toFixed(1)}s)`)
-          isLockedRef.current = false // Trava para não executar de novo
+        // --- ATUALIZAÇÃO DIRETA (Zero Lag) ---
+        if (progressBarRef.current) {
+          progressBarRef.current.style.width = `${width}%`
+        }
+        
+        // Log a cada 10 segundos para não poluir
+        if (Math.floor(time) % 10 === 0 && time > 0) {
+          console.log(`📊 [Step7] Tempo: ${time.toFixed(1)}s | Barra: ${width.toFixed(1)}%`)
+        }
 
-          // Força barra para 100%
-          if (progressBarRef.current) {
-            progressBarRef.current.style.width = '100%'
-          }
-
-          // Muda o texto do botão
-          if (textRef.current) {
-            textRef.current.textContent = '¡APP LIBERADO!'
-          }
-
-          // Aqui sim chamamos o React para liberar o clique (UMA VEZ)
-          setIsButtonReady(true)
+        // --- DESBLOQUEIO aos 126s ---
+        if (time >= TARGET_TIME) {
+          unlockButton()
         }
       })
 
       // Listener de play - Força 80% imediatamente
       player.on('play', function() {
+        if (isUnlockedRef.current) return
         console.log(`▶️ [Step7] Play detectado! Forçando 80%...`)
         if (progressBarRef.current) {
           progressBarRef.current.style.width = '80%'
@@ -281,8 +345,8 @@ export default function Step7() {
               height: '100%',
               width: '0%', // COMEÇA EM 0% - Manipulado via ref.current.style.width
               background: 'linear-gradient(90deg, #00FF88, #00FFD4)', // Verde da marca
-              // Transição LINEAR para acompanhar o vídeo em tempo real
-              transition: 'width 0.2s linear',
+              // Transição 0.1s linear - Rápida para acompanhar, para instantâneo ao pausar
+              transition: 'width 0.1s linear',
               zIndex: 1
             }}
           />
