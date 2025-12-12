@@ -19,11 +19,15 @@ const placeholderImages = [
 
 // Usa imagens reais se disponíveis, senão usa placeholders
 const testimonialImages = testimonialImageFiles.length > 0 
-  ? testimonialImageFiles.map((file, index) => ({
-      id: index + 1,
-      image: `/images/depoimentos/${file}`,
-      isReal: true
-    }))
+  ? testimonialImageFiles.map((file, index) => {
+      // Caminho absoluto a partir da raiz (public/)
+      const imagePath = `/images/depoimentos/${file}`
+      return {
+        id: index + 1,
+        image: imagePath,
+        isReal: true
+      }
+    })
   : placeholderImages.map(img => ({ ...img, isReal: false }))
 
 export default function Step3({ onNext }) {
@@ -132,8 +136,12 @@ export default function Step3({ onNext }) {
                   className="w-full h-full object-cover rounded-lg"
                   loading="lazy"
                   onError={(e) => {
-                    console.error(`Erro ao carregar imagem: ${img.image}`)
+                    console.error(`[Step3] ❌ Erro ao carregar: ${img.image}`)
+                    console.error(`[Step3] Verifique se existe: public${img.image}`)
                     e.target.style.display = 'none'
+                  }}
+                  onLoad={() => {
+                    console.log(`[Step3] ✅ Carregada: ${img.image}`)
                   }}
                 />
               ) : (

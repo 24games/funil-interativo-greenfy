@@ -146,9 +146,14 @@ export default function Back() {
                 className="w-full h-full object-cover rounded-xl"
                 onError={(e) => {
                   // Se a imagem não existir, mostra placeholder
+                  console.error('[Back] Erro ao carregar imagem. Tentou:', e.target.src)
+                  console.error('[Back] Verifique se o arquivo existe em: public/images/back/ganho.jpg')
                   e.target.style.display = 'none'
                   const placeholder = e.target.nextElementSibling
                   if (placeholder) placeholder.style.display = 'flex'
+                }}
+                onLoad={() => {
+                  console.log('[Back] ✅ Imagem carregada com sucesso!')
                 }}
               />
               {/* Placeholder (oculto por padrão, aparece se imagem falhar) */}
