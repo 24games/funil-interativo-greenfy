@@ -3,9 +3,9 @@ import { useRef } from 'react'
 import VturbVideo from './VturbVideo'
 
 export default function Step4({ onNext }) {
-  // Configuração: botão aparece quando o vídeo chega em 49 segundos (0:49)
+  // Configuração: botão aparece quando o vídeo chega em 39 segundos (0:39)
   // O Vturb.displayHiddenElements cuida de mostrar o botão respeitando pausa do vídeo
-  const delaySeconds = 49
+  const delaySeconds = 39
   const buttonRef = useRef(null)
 
   return (
@@ -27,8 +27,8 @@ export default function Step4({ onNext }) {
 
       {/* Video Vturb */}
       <VturbVideo 
-        videoId="vid_6939f7aadee6875e65a4963d"
-        playerId="6939f7aadee6875e65a4963d"
+        videoId="vid_693b934e33df7d648114b2c8"
+        playerId="693b934e33df7d648114b2c8"
         delaySeconds={delaySeconds}
       />
 

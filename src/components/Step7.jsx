@@ -5,9 +5,9 @@ import VturbVideo from './VturbVideo'
 import { sendInitiateCheckout } from '../utils/tracking.js'
 
 export default function Step7() {
-  // Configuração: botão aparece quando o vídeo chega em 134 segundos (2:14)
+  // Configuração: botão aparece quando o vídeo chega em 126 segundos (2:06)
   // O Vturb.displayHiddenElements cuida de mostrar o botão e elementos respeitando pausa do vídeo
-  const delaySeconds = 134 // Tempo em segundos (2 minutos e 14 segundos)
+  const delaySeconds = 126 // Tempo em segundos (2 minutos e 6 segundos)
   const buttonRef = useRef(null)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [isReady, setIsReady] = useState(false)
@@ -50,7 +50,7 @@ export default function Step7() {
     let lastVideoTime = 0
 
     const findVideoElement = () => {
-      const videoId = 'vid_6939f7c0c54455d1fed8aee0'
+      const videoId = 'vid_693b9342f679d6950ed12c36'
       const videoDiv = document.getElementById(videoId)
       if (!videoDiv) return null
 
@@ -81,17 +81,33 @@ export default function Step7() {
           // Usa o currentTime do vídeo (já sincroniza com pausas automaticamente)
           const currentTime = video.currentTime || 0
           
-          // Só atualiza se o tempo mudou (evita updates desnecessários)
-          if (Math.abs(currentTime - lastVideoTime) > 0.1) {
+          // Atualiza sempre que o tempo mudar (usa comparação com tolerância para evitar updates muito frequentes)
+          if (Math.abs(currentTime - lastVideoTime) > 0.05) {
             lastVideoTime = currentTime
             
             // Calcula progresso inteligente
             const progress = calculateSmartProgress(currentTime, delaySeconds)
-            setLoadingProgress(Math.min(progress, 100))
+            const newProgress = Math.min(progress, 100)
+            setLoadingProgress(newProgress)
+            
+            // Se chegou a 100%, verifica se pode habilitar o botão
+            if (newProgress >= 100) {
+              // Verifica se o Vturb já removeu a classe .esconder
+              const benefitsList = document.querySelector('.glass-card')
+              const isVturbReady = benefitsList && !benefitsList.classList.contains('esconder')
+              
+              if (isVturbReady && !isReady) {
+                setIsReady(true)
+              }
+            }
           }
         } catch (e) {
           // Se não conseguir acessar o vídeo, continua tentando
+          console.log('Aguardando vídeo carregar...')
         }
+      } else {
+        // Se o vídeo ainda não foi encontrado, tenta novamente
+        // Mas não atualiza o progresso para evitar bugs
       }
       
       // Continua animando
@@ -115,21 +131,23 @@ export default function Step7() {
   // E habilita o botão quando ambas condições são atendidas: progresso 100% + Vturb removeu .esconder
   useEffect(() => {
     const checkButtonReady = () => {
+      if (isReady) return // Já está pronto, não precisa verificar
+      
       // Verifica se algum elemento que tinha .esconder foi revelado pelo Vturb
       // (ex: lista de benefícios, urgência, trust badges)
       const benefitsList = document.querySelector('.glass-card')
       const isVturbReady = benefitsList && !benefitsList.classList.contains('esconder')
       
-      const progressComplete = loadingProgress >= 100
+      const progressComplete = loadingProgress >= 99.5 // Usa 99.5 para evitar problemas de arredondamento
       
-      // Habilita quando: progresso 100% E Vturb removeu .esconder de outros elementos
-      if (progressComplete && isVturbReady && !isReady) {
+      // Habilita quando: progresso >= 99.5% E Vturb removeu .esconder de outros elementos
+      if (progressComplete && isVturbReady) {
         setIsReady(true)
       }
     }
 
     // Verifica periodicamente
-    const interval = setInterval(checkButtonReady, 100)
+    const interval = setInterval(checkButtonReady, 50) // Verifica mais frequentemente
 
     return () => clearInterval(interval)
   }, [loadingProgress, isReady])
@@ -171,8 +189,8 @@ export default function Step7() {
         transition={{ delay: 0.9 }}
       >
         <VturbVideo 
-          videoId="vid_6939f7c0c54455d1fed8aee0"
-          playerId="6939f7c0c54455d1fed8aee0"
+          videoId="vid_693b9342f679d6950ed12c36"
+          playerId="693b9342f679d6950ed12c36"
           delaySeconds={delaySeconds}
         />
       </motion.div>
