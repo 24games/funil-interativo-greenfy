@@ -126,7 +126,7 @@ export default function Back() {
               <span className="relative z-10 block">¡CLIC AQUÍ PARA ACCEDER AHORA MISMO!</span>
             </motion.button>
 
-            {/* Placeholder para Print de Ganhos */}
+            {/* Print de Ganhos */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -136,14 +136,26 @@ export default function Back() {
                 border: '1px solid rgba(0, 255, 136, 0.3)',
                 boxShadow: '0 0 30px rgba(0, 255, 136, 0.3), inset 0 0 30px rgba(0, 255, 136, 0.1)',
                 background: 'rgba(0, 255, 136, 0.05)',
-                minHeight: '300px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
+                minHeight: '300px'
               }}
             >
-              {/* Placeholder text */}
-              <div className="text-center p-8">
+              {/* Tenta carregar a imagem, se não existir mostra placeholder */}
+              <img
+                src="/images/back/print_ganhos.png"
+                alt="Histórico de ganhos"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Se a imagem não existir, mostra placeholder
+                  e.target.style.display = 'none'
+                  const placeholder = e.target.nextElementSibling
+                  if (placeholder) placeholder.style.display = 'flex'
+                }}
+              />
+              {/* Placeholder (oculto por padrão, aparece se imagem falhar) */}
+              <div 
+                className="text-center p-8 items-center justify-center"
+                style={{ display: 'none', minHeight: '300px' }}
+              >
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neon/20 flex items-center justify-center">
                   <span className="text-3xl">📊</span>
                 </div>
