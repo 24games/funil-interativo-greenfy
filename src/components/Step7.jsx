@@ -46,106 +46,110 @@ export default function Step7() {
 
   // Sincroniza o progresso do botão com o tempo do vídeo Vturb
   useEffect(() => {
-    let animationFrame = null
+    let intervalId = null
     let lastVideoTime = -1
-    let isRunning = true
 
     const findVideoElement = () => {
       const videoId = 'vid_693b9342f679d6950ed12c36'
+      
+      // Tenta múltiplas formas de encontrar o vídeo
       const videoDiv = document.getElementById(videoId)
-      if (!videoDiv) return null
+      if (!videoDiv) {
+        console.log('🔍 Video div não encontrado ainda...')
+        return null
+      }
 
-      // Tenta encontrar o elemento de vídeo dentro do player Vturb
+      // Procura elemento video
       const video = videoDiv.querySelector('video')
-      if (video) return video
+      if (video) {
+        console.log('✅ Video element encontrado!')
+        return video
+      }
 
-      // Tenta via iframe
-      const iframe = videoDiv.querySelector('iframe')
-      if (iframe && iframe.contentWindow) {
-        try {
-          const iframeDoc = iframe.contentWindow.document
-          const iframeVideo = iframeDoc.querySelector('video')
-          if (iframeVideo) return iframeVideo
-        } catch (e) {
-          // Cross-origin, não consegue acessar
+      // Procura em shadow root (alguns players usam)
+      if (videoDiv.shadowRoot) {
+        const shadowVideo = videoDiv.shadowRoot.querySelector('video')
+        if (shadowVideo) {
+          console.log('✅ Video encontrado no shadow root!')
+          return shadowVideo
         }
       }
 
+      console.log('⏳ Video element ainda não disponível...')
       return null
     }
 
     const updateProgress = () => {
-      if (!isRunning || isReady) return
+      if (isReady) return // Já está pronto, para de atualizar
       
       const video = findVideoElement()
       
       if (video) {
         try {
-          // Usa o currentTime do vídeo (já sincroniza com pausas automaticamente)
-          // Quando o vídeo pausa, currentTime não muda, então o progresso para também
           const currentTime = video.currentTime || 0
           
-          // Atualiza o progresso sempre que o tempo mudar (mesmo pequenas mudanças)
-          // Quando o vídeo está pausado, currentTime não muda, então o progresso para automaticamente
-          if (Math.abs(currentTime - lastVideoTime) > 0.01) {
+          // Atualiza sempre, independente se mudou muito ou pouco
+          // Isso garante atualizações frequentes
+          if (currentTime !== lastVideoTime) {
             lastVideoTime = currentTime
             
-            // Calcula progresso inteligente baseado no tempo atual do vídeo
+            // Calcula progresso inteligente
             const progress = calculateSmartProgress(currentTime, delaySeconds)
-            const newProgress = Math.min(Math.max(progress, 0), 100) // Garante entre 0 e 100
+            const newProgress = Math.min(Math.max(progress, 0), 100)
+            
+            console.log(`⏱️ Video: ${currentTime.toFixed(1)}s | Progresso: ${newProgress.toFixed(1)}% | Target: ${delaySeconds}s`)
+            
             setLoadingProgress(newProgress)
+            
+            // Verifica se chegou no tempo correto
+            if (currentTime >= delaySeconds) {
+              console.log('✅ Vídeo chegou no tempo necessário!')
+              // Força 100% quando chegar no tempo
+              setLoadingProgress(100)
+            }
           }
         } catch (e) {
-          // Se não conseguir acessar o vídeo, continua tentando
+          console.error('❌ Erro ao acessar vídeo:', e)
         }
-      }
-      
-      // Continua animando (sempre, para detectar mudanças no vídeo)
-      if (isRunning && !isReady) {
-        animationFrame = requestAnimationFrame(updateProgress)
       }
     }
 
-    // Aguarda um pouco para o vídeo carregar e começa a verificar
-    const startDelay = setTimeout(() => {
-      if (isRunning) {
-        animationFrame = requestAnimationFrame(updateProgress)
-      }
-    }, 1000)
+    // Usa setInterval ao invés de requestAnimationFrame para garantir execução constante
+    intervalId = setInterval(updateProgress, 100) // Atualiza a cada 100ms
 
     return () => {
-      isRunning = false
-      clearTimeout(startDelay)
-      if (animationFrame) {
-        cancelAnimationFrame(animationFrame)
+      if (intervalId) {
+        clearInterval(intervalId)
       }
     }
   }, [delaySeconds, isReady])
 
-  // Monitora quando o Vturb remove a classe .esconder de outros elementos (quando vídeo chega no tempo)
-  // E habilita o botão quando ambas condições são atendidas: progresso 100% + Vturb removeu .esconder
+  // Monitora quando deve habilitar o botão
+  // Habilita quando: progresso >= 100% OU quando o Vturb remove a classe .esconder
   useEffect(() => {
-    if (isReady) return // Já está pronto, não precisa verificar
+    if (isReady) return // Já está pronto
     
     const checkButtonReady = () => {
-      if (isReady) return // Já está pronto, não precisa verificar
+      // Verifica se o progresso chegou a 100%
+      const progressComplete = loadingProgress >= 100
       
-      // Verifica se algum elemento que tinha .esconder foi revelado pelo Vturb
-      // (ex: lista de benefícios, urgência, trust badges)
+      // Verifica se o Vturb removeu a classe .esconder de algum elemento
       const benefitsList = document.querySelector('.glass-card')
       const isVturbReady = benefitsList && !benefitsList.classList.contains('esconder')
       
-      // Verifica se o progresso chegou a 100% (ou muito próximo)
-      const progressComplete = loadingProgress >= 99.9
+      console.log(`🎯 Check: Progresso ${loadingProgress.toFixed(1)}% | Vturb Ready: ${isVturbReady}`)
       
-      // Habilita quando: progresso >= 99.9% E Vturb removeu .esconder de outros elementos
-      // Isso garante que o botão só fica clicável quando o vídeo realmente chegou no timing certo
-      if (progressComplete && isVturbReady) {
+      // Habilita quando QUALQUER uma das condições for verdadeira:
+      // 1. Progresso chegou a 100% (baseado no tempo do vídeo)
+      // 2. Vturb removeu a classe .esconder (timing do displayHiddenElements)
+      if (progressComplete || isVturbReady) {
+        console.log('🎉 BOTÃO HABILITADO!')
         setIsReady(true)
+        setLoadingProgress(100) // Garante que está em 100%
       }
     }
 
-    // Verifica periodicamente (a cada 100ms)
+    // Verifica a cada 100ms
     const interval = setInterval(checkButtonReady, 100)
 
     return () => clearInterval(interval)
@@ -228,17 +232,11 @@ export default function Step7() {
         >
           {/* Barra de progresso animada (da esquerda para direita) - Sempre visível */}
           <motion.div
-            className={`absolute top-0 left-0 h-full ${
-              isReady 
-                ? 'bg-gradient-to-r from-neon to-[#00FFD4]' 
-                : 'bg-gradient-to-r from-neon to-[#00FFD4]'
-            }`}
-            animate={{
-              width: `${isReady ? 100 : loadingProgress}%`
-            }}
-            transition={{
-              duration: 0.1,
-              ease: 'linear'
+            className="absolute top-0 left-0 h-full bg-gradient-to-r from-neon to-[#00FFD4]"
+            style={{
+              width: `${isReady ? 100 : loadingProgress}%`,
+              zIndex: 1,
+              transition: 'width 0.1s linear'
             }}
           />
           
@@ -258,7 +256,13 @@ export default function Step7() {
           )}
           
           {/* Texto do botão */}
-          <span className="relative z-10 flex items-center justify-center gap-2">
+          <span 
+            className="relative flex items-center justify-center gap-2"
+            style={{ 
+              zIndex: 10,
+              color: isReady ? '#050505' : '#ffffff'
+            }}
+          >
             {!isReady ? (
               <>
                 <motion.span
@@ -271,7 +275,7 @@ export default function Step7() {
                 Cargando...
               </>
             ) : (
-              'LIBERAR APP'
+              '¡APP LIBERADO!'
             )}
           </span>
         </motion.button>
