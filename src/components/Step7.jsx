@@ -28,94 +28,44 @@ export default function Step7() {
     window.location.href = 'https://go.centerpag.com/PPU38CQ4BNQ'
   }
 
-  // Função para calcular progresso inteligente (maior parte rápido, depois baby steps)
-  const calculateSmartProgress = (videoTime, targetTime) => {
-    if (videoTime >= targetTime) return 100
-    
-    const ratio = videoTime / targetTime
-    
-    // Até 85%: carrega rápido (85% do tempo = 85% do progresso)
-    if (ratio <= 0.85) {
-      return (ratio / 0.85) * 85
-    }
-    
-    // De 85% a 100%: baby steps (15% do tempo = 15% do progresso)
-    const remainingRatio = (ratio - 0.85) / 0.15
-    return 85 + (remainingRatio * 15)
-  }
-
   // Sincroniza o progresso do botão com o tempo do vídeo Vturb
   useEffect(() => {
     let intervalId = null
-    let lastVideoTime = -1
-
-    const findVideoElement = () => {
-      const videoId = 'vid_693b9342f679d6950ed12c36'
-      
-      // Tenta múltiplas formas de encontrar o vídeo
-      const videoDiv = document.getElementById(videoId)
-      if (!videoDiv) {
-        console.log('🔍 Video div não encontrado ainda...')
-        return null
-      }
-
-      // Procura elemento video
-      const video = videoDiv.querySelector('video')
-      if (video) {
-        console.log('✅ Video element encontrado!')
-        return video
-      }
-
-      // Procura em shadow root (alguns players usam)
-      if (videoDiv.shadowRoot) {
-        const shadowVideo = videoDiv.shadowRoot.querySelector('video')
-        if (shadowVideo) {
-          console.log('✅ Video encontrado no shadow root!')
-          return shadowVideo
-        }
-      }
-
-      console.log('⏳ Video element ainda não disponível...')
-      return null
-    }
 
     const updateProgress = () => {
       if (isReady) return // Já está pronto, para de atualizar
       
-      const video = findVideoElement()
+      // Busca o vídeo de forma agressiva
+      const videoId = 'vid_693b9342f679d6950ed12c36'
+      const videoDiv = document.getElementById(videoId)
       
-      if (video) {
-        try {
-          const currentTime = video.currentTime || 0
-          
-          // Atualiza sempre, independente se mudou muito ou pouco
-          // Isso garante atualizações frequentes
-          if (currentTime !== lastVideoTime) {
-            lastVideoTime = currentTime
-            
-            // Calcula progresso inteligente
-            const progress = calculateSmartProgress(currentTime, delaySeconds)
-            const newProgress = Math.min(Math.max(progress, 0), 100)
-            
-            console.log(`⏱️ Video: ${currentTime.toFixed(1)}s | Progresso: ${newProgress.toFixed(1)}% | Target: ${delaySeconds}s`)
-            
-            setLoadingProgress(newProgress)
-            
-            // Verifica se chegou no tempo correto
-            if (currentTime >= delaySeconds) {
-              console.log('✅ Vídeo chegou no tempo necessário!')
-              // Força 100% quando chegar no tempo
-              setLoadingProgress(100)
-            }
-          }
-        } catch (e) {
-          console.error('❌ Erro ao acessar vídeo:', e)
+      if (!videoDiv) return
+      
+      // Procura o elemento video
+      const video = videoDiv.querySelector('video')
+      
+      if (video && video.currentTime !== undefined) {
+        const currentTime = video.currentTime
+        
+        // Calcula progresso baseado no tempo atual do vídeo
+        // Progresso vai de 0 a 100% conforme o vídeo vai de 0 a delaySeconds
+        const progress = (currentTime / delaySeconds) * 100
+        const newProgress = Math.min(Math.max(progress, 0), 100)
+        
+        console.log(`⏱️ Tempo vídeo: ${currentTime.toFixed(1)}s / ${delaySeconds}s | Barra: ${newProgress.toFixed(1)}%`)
+        
+        setLoadingProgress(newProgress)
+        
+        // Se chegou no tempo target, força 100%
+        if (currentTime >= delaySeconds) {
+          console.log('✅ Chegou aos 126 segundos!')
+          setLoadingProgress(100)
         }
       }
     }
 
-    // Usa setInterval ao invés de requestAnimationFrame para garantir execução constante
-    intervalId = setInterval(updateProgress, 100) // Atualiza a cada 100ms
+    // Atualiza a cada 200ms (5x por segundo)
+    intervalId = setInterval(updateProgress, 200)
 
     return () => {
       if (intervalId) {
@@ -125,35 +75,36 @@ export default function Step7() {
   }, [delaySeconds, isReady])
 
   // Monitora quando deve habilitar o botão
-  // Habilita quando: progresso >= 100% OU quando o Vturb remove a classe .esconder
+  // Habilita quando: progresso >= 100% (vídeo chegou em 126s)
   useEffect(() => {
     if (isReady) return // Já está pronto
     
     const checkButtonReady = () => {
-      // Verifica se o progresso chegou a 100%
-      const progressComplete = loadingProgress >= 100
+      // Verifica se o vídeo chegou no tempo necessário
+      const videoId = 'vid_693b9342f679d6950ed12c36'
+      const videoDiv = document.getElementById(videoId)
       
-      // Verifica se o Vturb removeu a classe .esconder de algum elemento
-      const benefitsList = document.querySelector('.glass-card')
-      const isVturbReady = benefitsList && !benefitsList.classList.contains('esconder')
-      
-      console.log(`🎯 Check: Progresso ${loadingProgress.toFixed(1)}% | Vturb Ready: ${isVturbReady}`)
-      
-      // Habilita quando QUALQUER uma das condições for verdadeira:
-      // 1. Progresso chegou a 100% (baseado no tempo do vídeo)
-      // 2. Vturb removeu a classe .esconder (timing do displayHiddenElements)
-      if (progressComplete || isVturbReady) {
-        console.log('🎉 BOTÃO HABILITADO!')
-        setIsReady(true)
-        setLoadingProgress(100) // Garante que está em 100%
+      if (videoDiv) {
+        const video = videoDiv.querySelector('video')
+        
+        if (video && video.currentTime !== undefined) {
+          const currentTime = video.currentTime
+          
+          // Habilita quando o vídeo chega em 126 segundos (ou quando progresso >= 99%)
+          if (currentTime >= delaySeconds || loadingProgress >= 99) {
+            console.log('🎉 BOTÃO HABILITADO! Tempo do vídeo:', currentTime.toFixed(1), 'segundos')
+            setIsReady(true)
+            setLoadingProgress(100) // Garante 100%
+          }
+        }
       }
     }
 
-    // Verifica a cada 100ms
-    const interval = setInterval(checkButtonReady, 100)
+    // Verifica a cada 200ms
+    const interval = setInterval(checkButtonReady, 200)
 
     return () => clearInterval(interval)
-  }, [loadingProgress, isReady])
+  }, [loadingProgress, isReady, delaySeconds])
 
   return (
     <motion.div
@@ -203,7 +154,7 @@ export default function Step7() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
-        className="mt-2 relative"
+        className="mt-2"
         style={{
           maxWidth: '280px',
           width: '100%',
@@ -211,56 +162,84 @@ export default function Step7() {
           marginRight: 'auto'
         }}
       >
-        <motion.button
+        <button
           ref={buttonRef}
           onClick={handleCTA}
           disabled={!isReady}
-          className={`w-full text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 relative overflow-hidden rounded-xl font-bold ${
-            isReady 
-              ? 'neon-button animate-heartbeat cursor-pointer' 
-              : 'bg-gray-700 border-2 border-gray-600 cursor-not-allowed'
-          }`}
-          style={{ 
+          className="w-full text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 rounded-xl font-bold uppercase"
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            border: isReady ? 'none' : '2px solid #4B5563',
+            cursor: isReady ? 'pointer' : 'not-allowed',
+            paddingLeft: '12px',
+            paddingRight: '12px',
+            background: 'transparent',
             boxShadow: isReady 
               ? '0 0 40px rgba(0, 255, 136, 0.8), 0 0 80px rgba(0, 255, 136, 0.4), 0 0 120px rgba(0, 255, 136, 0.2)'
-              : '0 0 20px rgba(0, 255, 136, 0.3)',
-            paddingLeft: '12px',
-            paddingRight: '12px'
+              : '0 0 20px rgba(0, 255, 136, 0.3)'
           }}
-          whileHover={isReady ? { scale: 1.05 } : {}}
-          whileTap={isReady ? { scale: 0.95 } : {}}
         >
-          {/* Barra de progresso animada (da esquerda para direita) - Sempre visível */}
-          <motion.div
-            className="absolute top-0 left-0 h-full bg-gradient-to-r from-neon to-[#00FFD4]"
+          {/* Fundo cinza (quando não está pronto) */}
+          <div
             style={{
-              width: `${isReady ? 100 : loadingProgress}%`,
-              zIndex: 1,
-              transition: 'width 0.1s linear'
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              backgroundColor: isReady ? 'transparent' : '#374151',
+              zIndex: 0
+            }}
+          />
+          
+          {/* Barra de progresso verde que preenche */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              height: '100%',
+              width: `${loadingProgress}%`,
+              background: 'linear-gradient(90deg, #00FF88, #00FFD4)',
+              transition: 'width 0.2s linear',
+              zIndex: 1
             }}
           />
           
           {/* Efeito de brilho quando está pronto */}
           {isReady && (
-            <motion.span
-              initial={{ x: -100 }}
-              animate={{ x: 200 }}
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: '200%' }}
               transition={{
                 repeat: Infinity,
                 duration: 2,
                 ease: "linear"
               }}
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-              style={{ width: '50%', height: '100%' }}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '50%',
+                height: '100%',
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                zIndex: 2
+              }}
             />
           )}
           
           {/* Texto do botão */}
           <span 
-            className="relative flex items-center justify-center gap-2"
             style={{ 
+              position: 'relative',
               zIndex: 10,
-              color: isReady ? '#050505' : '#ffffff'
+              color: isReady ? '#050505' : '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              fontWeight: 'bold'
             }}
           >
             {!isReady ? (
@@ -268,7 +247,7 @@ export default function Step7() {
                 <motion.span
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="inline-block"
+                  style={{ display: 'inline-block' }}
                 >
                   ⏳
                 </motion.span>
@@ -278,7 +257,7 @@ export default function Step7() {
               '¡APP LIBERADO!'
             )}
           </span>
-        </motion.button>
+        </button>
       </motion.div>
 
       {/* Lista de benefícios rápidos - Abaixo do botão */}
