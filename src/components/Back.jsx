@@ -143,7 +143,7 @@ export default function Back() {
               <img
                 src="/images/back/print_ganhos.png"
                 alt="Histórico de ganhos"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover rounded-xl"
                 onError={(e) => {
                   // Se a imagem não existir, mostra placeholder
                   e.target.style.display = 'none'
