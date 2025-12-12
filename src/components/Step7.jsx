@@ -36,86 +36,101 @@ export default function Step7() {
   }
 
   // ============================================================================
-  // INTEGRAÇÃO COM VTURB SMARTPLAYER API
+  // INTEGRAÇÃO COM VTURB SMARTPLAYER API (COM POLLING ROBUSTO)
   // ============================================================================
   useEffect(() => {
-    let checkInterval = null
-    let listenerAdded = false
+    let pollingInterval = null
+    let isConnected = false
 
-    const setupVturbListener = () => {
-      // Verifica se o smartplayer do VTurb está disponível
-      if (window.smartplayer && window.smartplayer.instances && window.smartplayer.instances.length > 0) {
-        const player = window.smartplayer.instances[0]
+    console.log('🔍 Iniciando busca pelo VTurb SmartPlayer...')
+
+    // Função que tenta encontrar e conectar ao VTurb
+    const tryConnectVturb = () => {
+      // Verifica se já está conectado
+      if (isConnected) return
+
+      // Verifica se window.smartplayer existe
+      if (!window.smartplayer) {
+        console.log('⏳ Aguardando window.smartplayer...')
+        return
+      }
+
+      // Verifica se instances existe e tem pelo menos um player
+      if (!window.smartplayer.instances || window.smartplayer.instances.length === 0) {
+        console.log('⏳ Aguardando smartplayer.instances...')
+        return
+      }
+
+      // Pega a primeira instância do player
+      const player = window.smartplayer.instances[0]
+      
+      if (!player) {
+        console.log('⏳ Aguardando instância do player...')
+        return
+      }
+
+      // SUCESSO! Encontrou o player
+      console.log('✅ VTurb SmartPlayer ENCONTRADO E CONECTADO!')
+      isConnected = true
+
+      // Limpa o polling - não precisa mais verificar
+      if (pollingInterval) {
+        clearInterval(pollingInterval)
+        pollingInterval = null
+        console.log('🛑 Polling finalizado.')
+      }
+
+      // Adiciona o listener de timeupdate
+      player.on('timeupdate', (data) => {
+        const time = data.currentTime || 0
         
-        if (player && !listenerAdded) {
-          console.log('✅ VTurb SmartPlayer encontrado! Adicionando listener...')
+        // ================================================================
+        // LÓGICA VISUAL (MATEMÁTICA EXATA)
+        // ================================================================
+        
+        if (time === 0) {
+          // ESTADO 0: Vídeo parado/não iniciado → 0%
+          setProgressPercent(0)
+          setHasStarted(false)
+        } 
+        else if (time > 0 && time < TARGET_TIME) {
+          // ESTADO 1 & 2: Vídeo rodando → 80% + baby steps
+          // Fórmula: 80 + (currentTime / 126) * 20
+          const progress = 80 + ((time / TARGET_TIME) * 20)
+          setProgressPercent(Math.min(progress, 100))
+          setHasStarted(true)
           
-          // Adiciona listener para o evento timeupdate
-          player.on('timeupdate', (data) => {
-            const time = data.currentTime || 0
-            setCurrentTime(time)
-            
-            // Marca que o vídeo começou quando o tempo for > 0
-            if (time > 0 && !hasStarted) {
-              setHasStarted(true)
-              console.log('▶️ Vídeo iniciado!')
-            }
-          })
+          console.log(`📊 VTurb: ${time.toFixed(1)}s / ${TARGET_TIME}s | Barra: ${progress.toFixed(1)}%`)
+        }
+        else if (time >= TARGET_TIME) {
+          // ESTADO 3: Chegou aos 126s → 100% + botão ativo
+          setProgressPercent(100)
+          setHasStarted(true)
           
-          listenerAdded = true
-          
-          // Para de verificar pois já adicionou o listener
-          if (checkInterval) {
-            clearInterval(checkInterval)
-            checkInterval = null
+          if (!isButtonReady) {
+            console.log('🎉 TEMPO ALVO ATINGIDO (126s)! Habilitando botão...')
+            setIsButtonReady(true)
           }
         }
+        
+        // Atualiza o estado do tempo
+        setCurrentTime(time)
+      })
+    }
+
+    // POLLING: Verifica a cada 500ms até encontrar o player
+    pollingInterval = setInterval(tryConnectVturb, 500)
+    
+    // Também tenta imediatamente (caso já esteja carregado)
+    tryConnectVturb()
+
+    // Cleanup quando o componente desmontar
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval)
       }
     }
-
-    // Tenta configurar o listener imediatamente
-    setupVturbListener()
-    
-    // Se não conseguiu, tenta a cada 500ms até encontrar
-    if (!listenerAdded) {
-      checkInterval = setInterval(setupVturbListener, 500)
-    }
-
-    // Cleanup
-    return () => {
-      if (checkInterval) clearInterval(checkInterval)
-    }
-  }, [hasStarted])
-
-  // ============================================================================
-  // LÓGICA DE CÁLCULO DO PROGRESSO
-  // ============================================================================
-  useEffect(() => {
-    // Estado 0: Vídeo não iniciado → Barra em 0%
-    if (!hasStarted || currentTime === 0) {
-      setProgressPercent(0)
-      return
-    }
-
-    // Estado 1 & 2: Vídeo rodando
-    // A barra pula para 80% quando o vídeo começa, depois vai de 80% a 100%
-    // Fórmula: 80 + (currentTime / 126) * 20
-    let calculatedProgress = 80 + ((currentTime / TARGET_TIME) * 20)
-    
-    // Garante máximo de 100%
-    calculatedProgress = Math.min(calculatedProgress, 100)
-    
-    setProgressPercent(calculatedProgress)
-    
-    console.log(`📊 VTurb: ${currentTime.toFixed(1)}s / ${TARGET_TIME}s | Barra: ${calculatedProgress.toFixed(1)}%`)
-
-    // Estado 3: Chegou aos 126 segundos
-    if (currentTime >= TARGET_TIME && !isButtonReady) {
-      console.log('🎉 TEMPO ALVO ATINGIDO! Habilitando botão...')
-      setProgressPercent(100)
-      setIsButtonReady(true)
-    }
-  }, [currentTime, hasStarted, isButtonReady])
+  }, []) // Array vazio = roda apenas uma vez na montagem
 
   return (
     <motion.div
@@ -238,11 +253,8 @@ export default function Step7() {
               height: '100%',
               width: `${progressPercent}%`,
               background: 'linear-gradient(90deg, #00FF88, #00FFD4)', // Verde da marca
-              // Transição mais longa (1s) para o "salto" de 0% → 80% ser suave
-              // Depois fica mais lenta (0.5s) para os baby steps
-              transition: hasStarted && progressPercent < 85 
-                ? 'width 1s ease-out'  // Salto inicial suave
-                : 'width 0.5s ease-out', // Baby steps
+              // Transição de 0.5s para animação suave (0% → 80% desliza bonito)
+              transition: 'width 0.5s ease-out',
               zIndex: 1
             }}
           />
