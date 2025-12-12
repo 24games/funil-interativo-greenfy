@@ -3,12 +3,11 @@ import { useEffect, useState, useRef } from 'react'
 
 // Lista de imagens de depoimentos
 const testimonialImageFiles = [
-  '1.jpeg',
-  '2-certo.jpg',
-  '3.jpeg',
-  '4.jpg',
-  '5.jpeg',
-  '6.jpg',
+  'd1.webp',
+  'd2.webp',
+  'd3.webp',
+  'd4.webp',
+  'd5.webp',
 ]
 
 // Placeholders caso não haja imagens reais
@@ -41,7 +40,7 @@ export default function Step3({ onNext }) {
     return 188 // w-44 (176px) + gap-3 (12px) mobile
   }
 
-  // Largura total para mostrar todas as 6 imagens
+  // Largura total para mostrar todas as imagens
   const imageWidth = getImageWidth()
   const totalWidth = imageWidth * testimonialImages.length
 
@@ -57,7 +56,7 @@ export default function Step3({ onNext }) {
       if (deltaTime >= 16) { // ~60fps
         setScrollPosition(prev => {
           const newPosition = prev + speed
-          // Quando chegar ao final da primeira cópia (6 imagens), reseta para 0
+          // Quando chegar ao final da primeira cópia, reseta para 0
           // Como temos 3 cópias idênticas, o reset é totalmente imperceptível
           if (newPosition >= totalWidth) {
             // Reset instantâneo sem transição - imperceptível porque a segunda cópia é idêntica
