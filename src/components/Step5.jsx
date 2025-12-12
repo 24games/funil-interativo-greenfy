@@ -25,11 +25,17 @@ const questions = [
 export default function Step5({ onNext, onAnswer }) {
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [selected, setSelected] = useState(null)
+  const [showHeadline, setShowHeadline] = useState(true)
 
   const handleSelect = (option) => {
     setSelected(option)
     const currentQ = questions[currentQuestion]
     onAnswer(currentQ.id, option)
+
+    // Se é a primeira pergunta, esconde a headline com fade out
+    if (currentQuestion === 0) {
+      setShowHeadline(false)
+    }
 
     setTimeout(() => {
       if (currentQuestion < questions.length - 1) {
@@ -50,10 +56,32 @@ export default function Step5({ onNext, onAnswer }) {
       transition={{ duration: 0.4, ease: "easeInOut" }}
       className="flex flex-col gap-6"
     >
-      {/* Headline fixa */}
-      <h2 className="text-xl sm:text-2xl font-bold text-center leading-tight uppercase shimmer-text">
-        Tu test rápido de 3 preguntas comenzó
-      </h2>
+      {/* Headline - Só aparece na primeira pergunta e some com fade out */}
+      <AnimatePresence>
+        {showHeadline && currentQuestion === 0 && (
+          <motion.h2
+            initial={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className="text-xl sm:text-2xl font-bold text-center leading-tight uppercase shimmer-text"
+          >
+            Tu test rápido de 3 preguntas comenzó
+          </motion.h2>
+        )}
+      </AnimatePresence>
+
+      {/* Numeração da pergunta */}
+      <motion.div
+        key={`number-${currentQuestion}`}
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="text-center"
+      >
+        <span className="text-lg sm:text-xl font-semibold text-gray-300">
+          Pergunta {currentQuestion + 1}/{questions.length}
+        </span>
+      </motion.div>
 
       <AnimatePresence mode="wait">
         <motion.div
