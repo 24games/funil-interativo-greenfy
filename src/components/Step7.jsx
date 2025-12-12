@@ -6,16 +6,18 @@ import { sendInitiateCheckout } from '../utils/tracking.js'
 
 export default function Step7() {
   // ============================================================================
-  // CONFIGURAÇÃO DO PROGRESS BAR BUTTON
+  // CONFIGURAÇÃO DO PROGRESS BAR BUTTON (PERFORMANCE MÁXIMA COM useRef)
   // ============================================================================
   const TARGET_TIME = 126 // Tempo alvo em segundos (2:06)
   
-  // Estados
-  const [currentTime, setCurrentTime] = useState(0) // Tempo atual do vídeo
-  const [hasStarted, setHasStarted] = useState(false) // Se o vídeo já começou a rodar
-  const [progressPercent, setProgressPercent] = useState(0) // COMEÇA EM 0%
-  const [isButtonReady, setIsButtonReady] = useState(false) // Controla se o botão está clicável
-  const buttonRef = useRef(null)
+  // REFS para manipulação direta do DOM (evita re-renders)
+  const progressBarRef = useRef(null) // Referência para a barra verde
+  const buttonRef = useRef(null) // Referência para o botão
+  const isLockedRef = useRef(true) // Controle de desbloqueio (sem re-render)
+  const textRef = useRef(null) // Referência para o texto do botão
+  
+  // Estado ÚNICO para controlar o clique (só muda UMA VEZ aos 126s)
+  const [isButtonReady, setIsButtonReady] = useState(false)
 
   // ============================================================================
   // HANDLER DO BOTÃO CTA
@@ -36,7 +38,7 @@ export default function Step7() {
   }
 
   // ============================================================================
-  // INTEGRAÇÃO COM VTURB SMARTPLAYER API (LISTENER CONTÍNUO)
+  // INTEGRAÇÃO COM VTURB - MANIPULAÇÃO DIRETA DO DOM (PERFORMANCE MÁXIMA)
   // ============================================================================
   useEffect(() => {
     // ID ESPECÍFICO DO VÍDEO DO STEP 7
@@ -44,14 +46,13 @@ export default function Step7() {
     
     let pollingInterval = null
     let isConnected = false
-    let playerRef = null // Guarda referência do player
 
     console.log(`🔍 [Step7] Iniciando busca pelo vídeo ID: ${TARGET_VIDEO_ID}`)
 
     // Função de busca pelo player
     const findAndConnectPlayer = () => {
       // Já conectado? Sai
-      if (isConnected && playerRef) return
+      if (isConnected) return
 
       // Verifica se smartplayer existe
       if (!window.smartplayer || !window.smartplayer.instances) {
@@ -76,52 +77,66 @@ export default function Step7() {
       // ENCONTROU!
       console.log(`🎯 [Step7] PLAYER ENCONTRADO: ${TARGET_VIDEO_ID}`)
       isConnected = true
-      playerRef = player
 
       // Para o polling de busca
       if (pollingInterval) {
         clearInterval(pollingInterval)
         pollingInterval = null
+        console.log(`🛑 [Step7] Polling finalizado.`)
       }
 
       // ================================================================
-      // LISTENER DE TIMEUPDATE (CRÍTICO - DEVE RODAR CONTINUAMENTE)
+      // LISTENER DE TIMEUPDATE - MANIPULAÇÃO DIRETA DO DOM (SEM useState!)
       // ================================================================
       player.on('timeupdate', function(data) {
         const time = data.currentTime || data.time || 0
-        
-        // Log a cada 5 segundos para não poluir
-        if (Math.floor(time) % 5 === 0) {
-          console.log(`📊 [Step7] timeupdate: ${time.toFixed(2)}s`)
+
+        // 1. MANIPULAÇÃO DIRETA DO DOM (Super Rápido, Sem Travas)
+        if (progressBarRef.current) {
+          let width = 0
+          
+          if (time > 0) {
+            // Cálculo: Começa em 80%, completa os 20% restantes em 126s
+            // Fórmula: 80 + ((time / 126) * 20)
+            const increment = (time / TARGET_TIME) * 20
+            width = Math.min(80 + increment, 100)
+          }
+          
+          // Aplica direto no CSS, ignorando o React
+          progressBarRef.current.style.width = `${width}%`
+          
+          // Log a cada 10 segundos para não poluir
+          if (Math.floor(time) % 10 === 0 && time > 0) {
+            console.log(`📊 [Step7] Tempo: ${time.toFixed(1)}s | Barra: ${width.toFixed(1)}%`)
+          }
         }
 
-        // 1. CÁLCULO DO PROGRESSO
-        let newProgress = 0
+        // 2. LÓGICA DE DESBLOQUEIO (Dispara State APENAS UMA VEZ)
+        if (time >= TARGET_TIME && isLockedRef.current) {
+          console.log(`🔓 [Step7] DESBLOQUEANDO BOTÃO AGORA! (${time.toFixed(1)}s)`)
+          isLockedRef.current = false // Trava para não executar de novo
 
-        if (time > 0) {
-          // Começa em 80% e preenche os 20% restantes ao longo de 126s
-          const babySteps = (time / 126) * 20
-          newProgress = Math.min(80 + babySteps, 100)
-        }
+          // Força barra para 100%
+          if (progressBarRef.current) {
+            progressBarRef.current.style.width = '100%'
+          }
 
-        // 2. DESBLOQUEIO AOS 126 SEGUNDOS
-        if (time >= 126) {
-          newProgress = 100
+          // Muda o texto do botão
+          if (textRef.current) {
+            textRef.current.textContent = '¡APP LIBERADO!'
+          }
+
+          // Aqui sim chamamos o React para liberar o clique (UMA VEZ)
           setIsButtonReady(true)
-          console.log(`🎉 [Step7] 126s atingidos! Botão liberado.`)
         }
-
-        // 3. ATUALIZA ESTADOS (FORÇA RE-RENDER)
-        setCurrentTime(time)
-        setProgressPercent(newProgress)
-        if (time > 0) setHasStarted(true)
       })
 
-      // Listener de play
+      // Listener de play - Força 80% imediatamente
       player.on('play', function() {
-        console.log(`▶️ [Step7] Play detectado!`)
-        setHasStarted(true)
-        setProgressPercent(prev => Math.max(prev, 80)) // Garante pelo menos 80%
+        console.log(`▶️ [Step7] Play detectado! Forçando 80%...`)
+        if (progressBarRef.current) {
+          progressBarRef.current.style.width = '80%'
+        }
       })
 
       console.log(`✅ [Step7] Listeners configurados com sucesso!`)
@@ -256,14 +271,15 @@ export default function Step7() {
             }}
           />
           
-          {/* Layer 2: Barra de progresso VERDE (preenche da esquerda para direita) */}
+          {/* Layer 2: Barra de progresso VERDE (controlada via REF para performance) */}
           <div
+            ref={progressBarRef}
             style={{
               position: 'absolute',
               top: 0,
               left: 0,
               height: '100%',
-              width: `${progressPercent}%`,
+              width: '0%', // COMEÇA EM 0% - Manipulado via ref.current.style.width
               background: 'linear-gradient(90deg, #00FF88, #00FFD4)', // Verde da marca
               // Transição LINEAR para acompanhar o vídeo em tempo real
               transition: 'width 0.2s linear',
@@ -293,8 +309,9 @@ export default function Step7() {
             />
           )}
           
-          {/* Layer 4: TEXTO do botão (sempre visível por cima) */}
+          {/* Layer 4: TEXTO do botão (controlado via REF para performance) */}
           <span 
+            ref={textRef}
             style={{ 
               position: 'relative',
               zIndex: 10,
@@ -302,7 +319,8 @@ export default function Step7() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px'
+              gap: '8px',
+              transition: 'color 0.3s ease'
             }}
           >
             {!isButtonReady ? (
@@ -318,7 +336,7 @@ export default function Step7() {
                 Cargando...
               </>
             ) : (
-              // ESTADO PRONTO (100%)
+              // ESTADO PRONTO (100%) - Texto atualizado via JS
               '¡APP LIBERADO!'
             )}
           </span>
