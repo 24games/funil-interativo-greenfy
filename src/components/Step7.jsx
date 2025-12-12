@@ -157,9 +157,17 @@ export default function Step7() {
         if (progressBarRef.current) {
           let width = 0
           if (currentTime > 0) {
-            // 80% + baby steps
-            const visualProgress = 80 + ((currentTime / SECONDS_TO_DISPLAY) * 20)
-            width = Math.min(visualProgress, 100)
+            if (currentTime <= 20) {
+              // Primeiros 20 segundos: preenche de 0% a 80%
+              width = (currentTime / 20) * 80
+            } else {
+              // Depois de 20 segundos: baby steps de 80% até 100%
+              const remainingTime = currentTime - 20
+              const remainingSeconds = SECONDS_TO_DISPLAY - 20
+              const progressFrom80 = (remainingTime / remainingSeconds) * 20
+              width = 80 + progressFrom80
+            }
+            width = Math.min(width, 100)
           }
           progressBarRef.current.style.width = `${width}%`
         }
@@ -169,15 +177,6 @@ export default function Step7() {
         
         // Se chegou aqui, atingiu 126s! Mostra elementos e libera botão
         showHiddenElements()
-      })
-
-      // Listener de play - Força 80% imediatamente
-      player.on('play', () => {
-        if (isUnlockedRef.current) return
-        console.log('▶️ [Step7] Play detectado! Forçando 80%...')
-        if (progressBarRef.current) {
-          progressBarRef.current.style.width = '80%'
-        }
       })
 
       console.log('✅ [Step7] Listeners configurados!')
