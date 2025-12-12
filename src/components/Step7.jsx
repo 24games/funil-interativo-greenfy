@@ -36,117 +36,102 @@ export default function Step7() {
   }
 
   // ============================================================================
-  // INTEGRAÇÃO COM VTURB SMARTPLAYER API (BUSCA ESPECÍFICA PELO ID)
+  // INTEGRAÇÃO COM VTURB SMARTPLAYER API (LISTENER CONTÍNUO)
   // ============================================================================
   useEffect(() => {
-    // ID ESPECÍFICO DO VÍDEO DO STEP 7 (extraído do embed)
+    // ID ESPECÍFICO DO VÍDEO DO STEP 7
     const TARGET_VIDEO_ID = '693b9342f679d6950ed12c36'
     
     let pollingInterval = null
     let isConnected = false
+    let playerRef = null // Guarda referência do player
 
-    console.log(`🔍 Iniciando busca pelo vídeo ID: ${TARGET_VIDEO_ID}`)
+    console.log(`🔍 [Step7] Iniciando busca pelo vídeo ID: ${TARGET_VIDEO_ID}`)
 
-    // Função que processa o tempo do vídeo
-    const handleTimeUpdate = (time) => {
-      // Atualiza o estado do tempo para forçar re-render
-      setCurrentTime(time)
-      
-      if (time > 0 && time < TARGET_TIME) {
-        // Trava visual em 80% mínimo assim que der play
-        // Os 20% restantes preenchem ao longo dos 126s
-        // Fórmula: 80 + ((currentTime / 126) * 20)
-        const calc = 80 + ((time / TARGET_TIME) * 20)
-        setProgressPercent(Math.min(calc, 100))
-        setHasStarted(true)
-        
-        console.log(`📊 Tempo: ${time.toFixed(2)}s | Barra: ${calc.toFixed(1)}%`)
-      } 
-      else if (time >= TARGET_TIME) {
-        setProgressPercent(100)
-        setHasStarted(true)
-        
-        if (!isButtonReady) {
-          console.log('🎉 TEMPO ALVO ATINGIDO (126s)! Habilitando botão...')
-          setIsButtonReady(true)
-        }
-      }
-    }
-
-    // Função de busca específica pelo ID do vídeo
-    const findTargetPlayer = () => {
-      if (isConnected) return // Já conectado, não precisa mais
+    // Função de busca pelo player
+    const findAndConnectPlayer = () => {
+      // Já conectado? Sai
+      if (isConnected && playerRef) return
 
       // Verifica se smartplayer existe
       if (!window.smartplayer || !window.smartplayer.instances) {
-        console.log('⏳ Aguardando smartplayer...')
         return
       }
 
-      console.log(`🔎 Procurando vídeo ${TARGET_VIDEO_ID} em ${window.smartplayer.instances.length} instâncias...`)
-
-      // BUSCA PROFUNDA PELO ID ESPECÍFICO
+      // Busca profunda pelo ID
       const player = window.smartplayer.instances.find(inst => {
-        // Verifica em várias propriedades onde o ID pode estar
-        const id1 = inst.id || ''
-        const id2 = inst.options?.id || ''
-        const id3 = inst.video?.id || ''
-        const id4 = inst.videoId || ''
+        const id1 = String(inst.id || '')
+        const id2 = String(inst.options?.id || '')
+        const id3 = String(inst.video?.id || '')
+        const id4 = String(inst.videoId || '')
         
-        return id1 === TARGET_VIDEO_ID ||
-               id1 === `vid_${TARGET_VIDEO_ID}` ||
-               id1.includes(TARGET_VIDEO_ID) ||
-               id2 === TARGET_VIDEO_ID ||
+        return id1.includes(TARGET_VIDEO_ID) ||
                id2.includes(TARGET_VIDEO_ID) ||
-               id3 === TARGET_VIDEO_ID ||
                id3.includes(TARGET_VIDEO_ID) ||
-               id4 === TARGET_VIDEO_ID ||
                id4.includes(TARGET_VIDEO_ID)
       })
 
-      if (!player) {
-        console.log(`⏳ Vídeo ${TARGET_VIDEO_ID} ainda não encontrado...`)
-        return
-      }
+      if (!player) return
 
-      // SUCESSO! Encontrou o player correto
-      console.log(`🎯 VÍDEO ALVO ENCONTRADO: ${TARGET_VIDEO_ID}`)
+      // ENCONTROU!
+      console.log(`🎯 [Step7] PLAYER ENCONTRADO: ${TARGET_VIDEO_ID}`)
       isConnected = true
+      playerRef = player
 
-      // Para o polling
+      // Para o polling de busca
       if (pollingInterval) {
         clearInterval(pollingInterval)
         pollingInterval = null
-        console.log('🛑 Polling finalizado.')
       }
 
-      // Adiciona listener de timeupdate
-      try {
-        player.on('timeupdate', (data) => {
-          const time = data.currentTime || data.time || 0
-          handleTimeUpdate(time)
-        })
+      // ================================================================
+      // LISTENER DE TIMEUPDATE (CRÍTICO - DEVE RODAR CONTINUAMENTE)
+      // ================================================================
+      player.on('timeupdate', function(data) {
+        const time = data.currentTime || data.time || 0
+        
+        // Log a cada 5 segundos para não poluir
+        if (Math.floor(time) % 5 === 0) {
+          console.log(`📊 [Step7] timeupdate: ${time.toFixed(2)}s`)
+        }
 
-        player.on('play', () => {
-          console.log('▶️ Play detectado!')
-          setHasStarted(true)
-          // Força 80% no play
-          if (progressPercent < 80) {
-            setProgressPercent(80)
-          }
-        })
+        // 1. CÁLCULO DO PROGRESSO
+        let newProgress = 0
 
-        console.log('✅ Listeners adicionados com sucesso!')
-      } catch (err) {
-        console.error('❌ Erro ao adicionar listeners:', err)
-      }
+        if (time > 0) {
+          // Começa em 80% e preenche os 20% restantes ao longo de 126s
+          const babySteps = (time / 126) * 20
+          newProgress = Math.min(80 + babySteps, 100)
+        }
+
+        // 2. DESBLOQUEIO AOS 126 SEGUNDOS
+        if (time >= 126) {
+          newProgress = 100
+          setIsButtonReady(true)
+          console.log(`🎉 [Step7] 126s atingidos! Botão liberado.`)
+        }
+
+        // 3. ATUALIZA ESTADOS (FORÇA RE-RENDER)
+        setCurrentTime(time)
+        setProgressPercent(newProgress)
+        if (time > 0) setHasStarted(true)
+      })
+
+      // Listener de play
+      player.on('play', function() {
+        console.log(`▶️ [Step7] Play detectado!`)
+        setHasStarted(true)
+        setProgressPercent(prev => Math.max(prev, 80)) // Garante pelo menos 80%
+      })
+
+      console.log(`✅ [Step7] Listeners configurados com sucesso!`)
     }
 
-    // POLLING: Verifica a cada 500ms até encontrar o player correto
-    pollingInterval = setInterval(findTargetPlayer, 500)
+    // POLLING: Verifica a cada 500ms
+    pollingInterval = setInterval(findAndConnectPlayer, 500)
     
-    // Também tenta imediatamente
-    findTargetPlayer()
+    // Tenta imediatamente também
+    findAndConnectPlayer()
 
     // Cleanup quando o componente desmontar
     return () => {
@@ -280,8 +265,8 @@ export default function Step7() {
               height: '100%',
               width: `${progressPercent}%`,
               background: 'linear-gradient(90deg, #00FF88, #00FFD4)', // Verde da marca
-              // Transição de 0.5s para animação suave (0% → 80% desliza bonito)
-              transition: 'width 0.5s ease-out',
+              // Transição LINEAR para acompanhar o vídeo em tempo real
+              transition: 'width 0.2s linear',
               zIndex: 1
             }}
           />
