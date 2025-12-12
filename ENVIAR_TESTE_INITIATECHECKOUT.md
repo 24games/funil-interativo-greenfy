@@ -124,3 +124,4 @@ Execute o arquivo `enviar-teste-initiate-checkout.ps1` que foi criado.
 
 **Pronto para testar!** 🚀
 
+

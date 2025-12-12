@@ -9,10 +9,12 @@ export default function Step7() {
   // O Vturb.displayHiddenElements cuida de mostrar o botão e elementos respeitando pausa do vídeo
   const delaySeconds = 134 // Tempo em segundos (2 minutos e 14 segundos)
   const buttonRef = useRef(null)
-  const [isLoading, setIsLoading] = useState(true)
   const [loadingProgress, setLoadingProgress] = useState(0)
+  const [isReady, setIsReady] = useState(false)
 
   const handleCTA = async () => {
+    if (!isReady) return
+    
     try {
       // Envia evento InitiateCheckout para Meta Conversions API
       await sendInitiateCheckout();
@@ -26,13 +28,26 @@ export default function Step7() {
     window.location.href = 'https://go.centerpag.com/PPU38CQ4BNQ'
   }
 
-  // Anima o progresso do loading baseado no tempo do delay, respeitando pausa do vídeo
+  // Função para calcular progresso inteligente (maior parte rápido, depois baby steps)
+  const calculateSmartProgress = (videoTime, targetTime) => {
+    if (videoTime >= targetTime) return 100
+    
+    const ratio = videoTime / targetTime
+    
+    // Até 85%: carrega rápido (85% do tempo = 85% do progresso)
+    if (ratio <= 0.85) {
+      return (ratio / 0.85) * 85
+    }
+    
+    // De 85% a 100%: baby steps (15% do tempo = 15% do progresso)
+    const remainingRatio = (ratio - 0.85) / 0.15
+    return 85 + (remainingRatio * 15)
+  }
+
+  // Sincroniza o progresso do botão com o tempo do vídeo Vturb
   useEffect(() => {
-    let startTime = Date.now()
-    let pausedTime = 0
-    let pauseStartTime = 0
-    let isPaused = false
     let animationFrame = null
+    let lastVideoTime = 0
 
     const findVideoElement = () => {
       const videoId = 'vid_6939f7c0c54455d1fed8aee0'
@@ -60,53 +75,42 @@ export default function Step7() {
 
     const updateProgress = () => {
       const video = findVideoElement()
-      let videoPaused = false
       
-      // Verifica se o vídeo está pausado
       if (video) {
         try {
-          videoPaused = video.paused
-        } catch (e) {
-          // Se não conseguir acessar, tenta usar currentTime se disponível
-          try {
-            // Se o vídeo tem currentTime, não está pausado (ou está muito próximo)
-            videoPaused = false
-          } catch (e2) {
-            videoPaused = false
+          // Usa o currentTime do vídeo (já sincroniza com pausas automaticamente)
+          const currentTime = video.currentTime || 0
+          
+          // Só atualiza se o tempo mudou (evita updates desnecessários)
+          if (Math.abs(currentTime - lastVideoTime) > 0.1) {
+            lastVideoTime = currentTime
+            
+            // Calcula progresso inteligente
+            const progress = calculateSmartProgress(currentTime, delaySeconds)
+            setLoadingProgress(Math.min(progress, 100))
+            
+            // Quando chega a 100%, habilita o botão
+            if (progress >= 100 && !isReady) {
+              // Verifica se o Vturb já removeu a classe .esconder
+              if (buttonRef.current && !buttonRef.current.classList.contains('esconder')) {
+                setIsReady(true)
+              } else {
+                // Aguarda um pouco e tenta novamente
+                setTimeout(() => {
+                  if (buttonRef.current && !buttonRef.current.classList.contains('esconder')) {
+                    setIsReady(true)
+                  }
+                }, 100)
+              }
+            }
           }
+        } catch (e) {
+          // Se não conseguir acessar o vídeo, continua tentando
         }
       }
       
-      // Detecta mudança de estado de pausa
-      if (videoPaused && !isPaused) {
-        // Vídeo acabou de pausar
-        isPaused = true
-        pauseStartTime = Date.now()
-      } else if (!videoPaused && isPaused) {
-        // Vídeo acabou de retomar
-        isPaused = false
-        pausedTime += Date.now() - pauseStartTime
-      }
-
-      // Calcula o progresso baseado no tempo decorrido (respeitando pausas)
-      const elapsed = Date.now() - startTime - pausedTime
-      const duration = delaySeconds * 1000
-      const progress = Math.min((elapsed / duration) * 100, 100)
-      
-      // Sempre atualiza o progresso (mesmo quando pausado, para manter o estado visual)
-      setLoadingProgress(progress)
-
-      if (progress < 100) {
-        // Continua animando
-        animationFrame = requestAnimationFrame(updateProgress)
-      } else {
-        // Quando chega em 100%, verifica se o botão está pronto
-        setTimeout(() => {
-          if (buttonRef.current && !buttonRef.current.classList.contains('esconder')) {
-            setIsLoading(false)
-          }
-        }, 100)
-      }
+      // Continua animando
+      animationFrame = requestAnimationFrame(updateProgress)
     }
 
     // Aguarda um pouco para o vídeo carregar e começa a verificar
@@ -120,16 +124,18 @@ export default function Step7() {
         cancelAnimationFrame(animationFrame)
       }
     }
-  }, [delaySeconds])
+  }, [delaySeconds, isReady])
 
-  // Monitora quando o botão deve ficar pronto (quando a classe .esconder é removida)
+  // Monitora quando o Vturb remove a classe .esconder (quando vídeo chega no tempo)
+  // E habilita o botão quando ambas condições são atendidas: progresso 100% + classe removida
   useEffect(() => {
     const checkButtonReady = () => {
-      if (buttonRef.current && !buttonRef.current.classList.contains('esconder')) {
-        // Aguarda um pouco para garantir que o loading chegou em 100%
-        if (loadingProgress >= 99) {
-          setIsLoading(false)
-        }
+      const isVisible = buttonRef.current && !buttonRef.current.classList.contains('esconder')
+      const progressComplete = loadingProgress >= 100
+      
+      // Só habilita quando ambas condições são atendidas
+      if (isVisible && progressComplete && !isReady) {
+        setIsReady(true)
       }
     }
 
@@ -137,7 +143,7 @@ export default function Step7() {
     const interval = setInterval(checkButtonReady, 100)
 
     return () => clearInterval(interval)
-  }, [loadingProgress])
+  }, [loadingProgress, isReady])
 
   return (
     <motion.div
@@ -182,29 +188,39 @@ export default function Step7() {
         />
       </motion.div>
 
-      {/* Botão de Loading - Aparece antes do botão final */}
-      {isLoading && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-2 relative"
-          style={{
-            maxWidth: '280px',
-            width: '100%',
-            marginLeft: 'auto',
-            marginRight: 'auto'
+      {/* Botão único - Começa desabilitado e fica clicável quando chega a 100% */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mt-2 relative"
+        style={{
+          maxWidth: '280px',
+          width: '100%',
+          marginLeft: 'auto',
+          marginRight: 'auto'
+        }}
+      >
+        <motion.button
+          ref={buttonRef}
+          onClick={handleCTA}
+          disabled={!isReady}
+          className={`esconder w-full text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 relative overflow-hidden rounded-xl font-bold ${
+            isReady 
+              ? 'neon-button animate-heartbeat cursor-pointer' 
+              : 'bg-gray-700 border-2 border-gray-600 cursor-not-allowed'
+          }`}
+          style={{ 
+            boxShadow: isReady 
+              ? '0 0 40px rgba(0, 255, 136, 0.8), 0 0 80px rgba(0, 255, 136, 0.4), 0 0 120px rgba(0, 255, 136, 0.2)'
+              : '0 0 20px rgba(0, 255, 136, 0.3)',
+            paddingLeft: '12px',
+            paddingRight: '12px'
           }}
+          whileHover={isReady ? { scale: 1.05 } : {}}
+          whileTap={isReady ? { scale: 0.95 } : {}}
         >
-          <button
-            disabled
-            className="w-full text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 relative overflow-hidden rounded-xl font-bold text-black bg-gray-700 border-2 border-gray-600 cursor-not-allowed"
-            style={{
-              boxShadow: '0 0 20px rgba(0, 255, 136, 0.3)',
-              paddingLeft: '12px',
-              paddingRight: '12px'
-            }}
-          >
-            {/* Barra de progresso animada (da esquerda para direita) */}
+          {/* Barra de progresso animada (da esquerda para direita) - Só aparece quando não está pronto */}
+          {!isReady && (
             <motion.div
               className="absolute top-0 left-0 h-full bg-gradient-to-r from-neon to-[#00FFD4]"
               animate={{
@@ -215,69 +231,42 @@ export default function Step7() {
                 ease: 'linear'
               }}
             />
-            {/* Texto do botão */}
-            <span className="relative z-10 flex items-center justify-center gap-2">
-              {loadingProgress < 100 ? (
-                <>
-                  <motion.span
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="inline-block"
-                  >
-                    ⏳
-                  </motion.span>
-                  Cargando...
-                </>
-              ) : (
-                '¡APP LIBERADO!'
-              )}
-            </span>
-          </button>
-        </motion.div>
-      )}
-
-      {/* CTA Final - Só aparece quando o vídeo chega no tempo necessário (usando método padrão do Vturb) */}
-      <motion.button
-        ref={buttonRef}
-        initial={{ opacity: 0, scale: 0.5, y: 30 }}
-        animate={{ 
-          opacity: isLoading ? 0 : 1, 
-          scale: isLoading ? 0.95 : 1, 
-          y: 0,
-        }}
-        transition={{ 
-          type: "spring",
-          stiffness: 300,
-          damping: 20,
-          duration: 0.6
-        }}
-        whileHover={{ scale: isLoading ? 1 : 1.05 }}
-        whileTap={{ scale: isLoading ? 1 : 0.95 }}
-        onClick={handleCTA}
-        disabled={isLoading}
-        className={`${isLoading ? 'hidden' : 'esconder'} neon-button mt-2 text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 animate-heartbeat relative overflow-hidden mx-auto`}
-        style={{ 
-          boxShadow: '0 0 40px rgba(0, 255, 136, 0.8), 0 0 80px rgba(0, 255, 136, 0.4), 0 0 120px rgba(0, 255, 136, 0.2)',
-          maxWidth: '280px',
-          width: '100%',
-          paddingLeft: '12px',
-          paddingRight: '12px',
-          display: 'block'
-        }}
-      >
-        <motion.span
-          initial={{ x: -100 }}
-          animate={{ x: 200 }}
-          transition={{
-            repeat: Infinity,
-            duration: 2,
-            ease: "linear"
-          }}
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-          style={{ width: '50%', height: '100%' }}
-        />
-        <span className="relative z-10">¡APP LIBERADO!</span>
-      </motion.button>
+          )}
+          
+          {/* Efeito de brilho quando está pronto */}
+          {isReady && (
+            <motion.span
+              initial={{ x: -100 }}
+              animate={{ x: 200 }}
+              transition={{
+                repeat: Infinity,
+                duration: 2,
+                ease: "linear"
+              }}
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+              style={{ width: '50%', height: '100%' }}
+            />
+          )}
+          
+          {/* Texto do botão */}
+          <span className="relative z-10 flex items-center justify-center gap-2">
+            {!isReady ? (
+              <>
+                <motion.span
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="inline-block"
+                >
+                  ⏳
+                </motion.span>
+                Cargando...
+              </>
+            ) : (
+              '¡APP LIBERADO!'
+            )}
+          </span>
+        </motion.button>
+      </motion.div>
 
       {/* Lista de benefícios rápidos - Abaixo do botão */}
       <motion.div

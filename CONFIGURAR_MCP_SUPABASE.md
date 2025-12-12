@@ -115,3 +115,4 @@ Após configurar, você pode testar pedindo ao Cursor:
 - [Documentação Oficial Supabase MCP](https://supabase.com/mcp)
 - [Repositório MCP Server Postgres](https://github.com/modelcontextprotocol/servers/tree/main/src/postgres)
 
+

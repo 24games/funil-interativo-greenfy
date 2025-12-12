@@ -78,3 +78,4 @@
   console.log('   3. Verifique no Supabase: SELECT * FROM tracking_SQD_CAS_LP1_VSL_HACKERMILLON ORDER BY created_at DESC LIMIT 1;');
 })();
 
+

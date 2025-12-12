@@ -129,3 +129,4 @@ fetch('https://www.hackermillon.online/api/tracking-pageview', {
 
 4. **Se ainda não funcionar:** Verificar logs do Vercel e estrutura de arquivos
 
+

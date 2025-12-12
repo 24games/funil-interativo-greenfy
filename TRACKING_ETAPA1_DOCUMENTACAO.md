@@ -378,3 +378,4 @@ Quando implementar a ETAPA 2, você poderá:
 **Data:** Novembro 2025  
 **Versão:** 1.0.0
 
+

@@ -464,3 +464,4 @@ Em caso de problemas:
 **Última atualização:** 27 de Novembro de 2025  
 **Versão:** 1.0.0
 
+

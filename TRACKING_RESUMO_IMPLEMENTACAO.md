@@ -237,3 +237,4 @@ LIMIT 10;
 **Data:** Novembro 2025  
 **Versão:** 1.0.0
 
+

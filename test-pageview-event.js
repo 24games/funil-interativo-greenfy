@@ -74,3 +74,4 @@ fetch(apiUrl, {
     console.error('❌ Erro ao enviar evento:', error);
   });
 
+
