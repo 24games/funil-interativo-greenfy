@@ -171,6 +171,9 @@ async function updateTrackingData(additionalData) {
 
 /**
  * Inicializa o Meta Pixel (código padrão do Facebook)
+ * 
+ * NOTA: O pixel já é carregado na <head> do index.html.
+ * Esta função apenas garante que está funcionando e pode enviar eventos adicionais.
  */
 function initMetaPixel() {
   if (!META_PIXEL_ID) {
@@ -178,12 +181,15 @@ function initMetaPixel() {
     return;
   }
 
-  // Verifica se o pixel já foi inicializado
-  if (window.fbq) {
-    console.log('Meta Pixel já inicializado');
+  // Verifica se o pixel já foi inicializado (carregado na head)
+  if (window.fbq && window.fbq.loaded) {
+    console.log('✅ Meta Pixel já carregado na head. Usando instância existente.');
     return;
   }
 
+  // Se não foi carregado na head, carrega via JavaScript (fallback)
+  console.warn('⚠️ Meta Pixel não encontrado na head. Carregando via JavaScript...');
+  
   // Código padrão do Meta Pixel
   !function(f,b,e,v,n,t,s)
   {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -194,13 +200,12 @@ function initMetaPixel() {
   s.parentNode.insertBefore(t,s)}(window, document,'script',
   'https://connect.facebook.net/en_US/fbevents.js');
   
-  // Inicializa o pixel
-  fbq('init', META_PIXEL_ID);
-  
-  // Envia evento PageView padrão (além do CAPI)
-  fbq('track', 'PageView');
-  
-  console.log('Meta Pixel inicializado:', META_PIXEL_ID);
+  // Inicializa o pixel (se ainda não foi inicializado)
+  if (!window.fbq.loaded) {
+    fbq('init', META_PIXEL_ID);
+    fbq('track', 'PageView');
+    console.log('✅ Meta Pixel inicializado via JavaScript:', META_PIXEL_ID);
+  }
 }
 
 // ============================================
