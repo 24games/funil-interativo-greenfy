@@ -50,6 +50,93 @@ function getUrlParams() {
 }
 
 /**
+ * Obtém UTMs dos cookies (UTMify salva aqui)
+ */
+function getUtmsFromCookies() {
+  return {
+    utm_source: getCookie('utm_source'),
+    utm_medium: getCookie('utm_medium'),
+    utm_campaign: getCookie('utm_campaign'),
+    utm_term: getCookie('utm_term'),
+    utm_content: getCookie('utm_content'),
+    fbclid: getCookie('fbclid'),
+    gclid: getCookie('gclid'),
+  };
+}
+
+/**
+ * Obtém UTMs do localStorage (fallback caso UTMify use)
+ */
+function getUtmsFromLocalStorage() {
+  try {
+    return {
+      utm_source: localStorage.getItem('utm_source'),
+      utm_medium: localStorage.getItem('utm_medium'),
+      utm_campaign: localStorage.getItem('utm_campaign'),
+      utm_term: localStorage.getItem('utm_term'),
+      utm_content: localStorage.getItem('utm_content'),
+      fbclid: localStorage.getItem('fbclid'),
+      gclid: localStorage.getItem('gclid'),
+    };
+  } catch (error) {
+    console.warn('Erro ao ler localStorage:', error);
+    return {};
+  }
+}
+
+/**
+ * Obtém UTMs do objeto window.utmify (se disponível)
+ */
+function getUtmsFromUtmify() {
+  try {
+    if (window.utmify && typeof window.utmify === 'object') {
+      return {
+        utm_source: window.utmify.utm_source || window.utmify.source,
+        utm_medium: window.utmify.utm_medium || window.utmify.medium,
+        utm_campaign: window.utmify.utm_campaign || window.utmify.campaign,
+        utm_term: window.utmify.utm_term || window.utmify.term,
+        utm_content: window.utmify.utm_content || window.utmify.content,
+        fbclid: window.utmify.fbclid,
+        gclid: window.utmify.gclid,
+      };
+    }
+  } catch (error) {
+    console.warn('Erro ao ler window.utmify:', error);
+  }
+  return {};
+}
+
+/**
+ * Obtém todos os parâmetros de tracking (UTMs, fbclid, gclid)
+ * Prioridade: URL > Cookies > localStorage > window.utmify
+ * Garante que os UTMs sejam capturados mesmo quando a URL muda
+ */
+function getAllTrackingParams() {
+  // 1. Primeiro tenta da URL (mais confiável se presente)
+  const urlParams = getUrlParams();
+  
+  // 2. Busca dos cookies (UTMify geralmente salva aqui)
+  const cookieParams = getUtmsFromCookies();
+  
+  // 3. Busca do localStorage (fallback)
+  const storageParams = getUtmsFromLocalStorage();
+  
+  // 4. Busca do window.utmify (se disponível)
+  const utmifyParams = getUtmsFromUtmify();
+  
+  // Combina com prioridade: URL > Cookies > localStorage > utmify
+  return {
+    utm_source: urlParams.utm_source || cookieParams.utm_source || storageParams.utm_source || utmifyParams.utm_source || null,
+    utm_medium: urlParams.utm_medium || cookieParams.utm_medium || storageParams.utm_medium || utmifyParams.utm_medium || null,
+    utm_campaign: urlParams.utm_campaign || cookieParams.utm_campaign || storageParams.utm_campaign || utmifyParams.utm_campaign || null,
+    utm_term: urlParams.utm_term || cookieParams.utm_term || storageParams.utm_term || utmifyParams.utm_term || null,
+    utm_content: urlParams.utm_content || cookieParams.utm_content || storageParams.utm_content || utmifyParams.utm_content || null,
+    fbclid: urlParams.fbclid || cookieParams.fbclid || storageParams.fbclid || utmifyParams.fbclid || null,
+    gclid: urlParams.gclid || cookieParams.gclid || storageParams.gclid || utmifyParams.gclid || null,
+  };
+}
+
+/**
  * Obtém dados do usuário do navegador
  */
 function getUserData() {
@@ -63,8 +150,9 @@ function getUserData() {
     referrer: document.referrer || null,
     language: navigator.language || navigator.userLanguage,
     
-    // Parâmetros da URL
-    ...getUrlParams(),
+    // Parâmetros de tracking (UTMs, fbclid, gclid)
+    // Usa getAllTrackingParams() que busca de múltiplas fontes
+    ...getAllTrackingParams(),
   };
 }
 

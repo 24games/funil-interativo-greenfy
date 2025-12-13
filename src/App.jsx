@@ -34,7 +34,20 @@ function App() {
   if (currentPath === '/back' || currentPath === '/back/') {
     return <Back />
   }
-  const [currentStep, setCurrentStep] = useState(1)
+  // Inicializa o step a partir da URL (se presente)
+  const getInitialStep = () => {
+    const params = new URLSearchParams(window.location.search)
+    const stepParam = params.get('step')
+    if (stepParam) {
+      const step = parseInt(stepParam, 10)
+      if (step >= 1 && step <= 7) {
+        return step
+      }
+    }
+    return 1
+  }
+
+  const [currentStep, setCurrentStep] = useState(getInitialStep())
   const [answers, setAnswers] = useState({
     timeToMake: null,
     freeTime: null,
@@ -42,21 +55,207 @@ function App() {
     internetAccess: null,
   })
 
+  // Sincroniza o step com a URL quando a página carrega
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const stepParam = params.get('step')
+    if (stepParam) {
+      const step = parseInt(stepParam, 10)
+      if (step >= 1 && step <= 7 && step !== currentStep) {
+        setCurrentStep(step)
+      }
+    }
+  }, [])
+
+  /**
+   * Preserva os UTMs e outros parâmetros de tracking na URL
+   * Busca de múltiplas fontes: URL atual, cookies, localStorage
+   */
+  const getPreservedParams = () => {
+    const params = new URLSearchParams()
+    
+    // Adiciona o step
+    params.set('step', currentStep + 1)
+    
+    // Busca UTMs da URL atual
+    const currentUrl = new URLSearchParams(window.location.search)
+    const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid', 'gclid']
+    
+    utmParams.forEach(param => {
+      const value = currentUrl.get(param)
+      if (value) {
+        params.set(param, value)
+      }
+    })
+    
+    // Se não encontrou na URL, busca dos cookies (UTMify)
+    if (!params.has('utm_source')) {
+      const getCookie = (name) => {
+        const value = `; ${document.cookie}`
+        const parts = value.split(`; ${name}=`)
+        if (parts.length === 2) return parts.pop().split(';').shift()
+        return null
+      }
+      
+      utmParams.forEach(param => {
+        if (!params.has(param)) {
+          const cookieValue = getCookie(param)
+          if (cookieValue) {
+            params.set(param, cookieValue)
+          }
+        }
+      })
+    }
+    
+    // Se ainda não encontrou, busca do localStorage
+    if (!params.has('utm_source')) {
+      try {
+        utmParams.forEach(param => {
+          if (!params.has(param)) {
+            const storageValue = localStorage.getItem(param)
+            if (storageValue) {
+              params.set(param, storageValue)
+            }
+          }
+        })
+      } catch (error) {
+        console.warn('Erro ao ler localStorage:', error)
+      }
+    }
+    
+    return params.toString()
+  }
+
   // Adiciona entrada no histórico quando muda de step (apenas quando avança)
   const nextStep = () => {
     const newStep = currentStep + 1
     setCurrentStep(newStep)
     
+    // Preserva UTMs na URL ao navegar
+    const preservedParams = getPreservedParams()
+    const newUrl = preservedParams ? `?${preservedParams}` : `?step=${newStep}`
+    
     // Adiciona uma entrada no histórico do navegador
-    window.history.pushState({ step: newStep }, '', `?step=${newStep}`)
+    window.history.pushState({ step: newStep }, '', newUrl)
+  }
+
+  /**
+   * Preserva UTMs ao voltar para um step anterior
+   */
+  const getPreservedParamsForStep = (step) => {
+    const params = new URLSearchParams()
+    
+    if (step > 1) {
+      params.set('step', step)
+    }
+    
+    // Busca UTMs da URL atual
+    const currentUrl = new URLSearchParams(window.location.search)
+    const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid', 'gclid']
+    
+    utmParams.forEach(param => {
+      const value = currentUrl.get(param)
+      if (value) {
+        params.set(param, value)
+      }
+    })
+    
+    // Se não encontrou na URL, busca dos cookies (UTMify)
+    if (!params.has('utm_source')) {
+      const getCookie = (name) => {
+        const value = `; ${document.cookie}`
+        const parts = value.split(`; ${name}=`)
+        if (parts.length === 2) return parts.pop().split(';').shift()
+        return null
+      }
+      
+      utmParams.forEach(param => {
+        if (!params.has(param)) {
+          const cookieValue = getCookie(param)
+          if (cookieValue) {
+            params.set(param, cookieValue)
+          }
+        }
+      })
+    }
+    
+    // Se ainda não encontrou, busca do localStorage
+    if (!params.has('utm_source')) {
+      try {
+        utmParams.forEach(param => {
+          if (!params.has(param)) {
+            const storageValue = localStorage.getItem(param)
+            if (storageValue) {
+              params.set(param, storageValue)
+            }
+          }
+        })
+      } catch (error) {
+        console.warn('Erro ao ler localStorage:', error)
+      }
+    }
+    
+    const queryString = params.toString()
+    return queryString ? `?${queryString}` : (step === 1 ? '/' : `?step=${step}`)
   }
 
   // Gerencia o botão voltar do navegador
   useEffect(() => {
     const handlePopState = (event) => {
-      // Se está no Step 7 e tenta voltar, redireciona para /back
+      // Se está no Step 7 e tenta voltar, redireciona para /back (preservando UTMs)
       if (currentStep === 7) {
-        window.location.href = '/back'
+        const params = new URLSearchParams()
+        
+        // Busca UTMs da URL atual
+        const currentUrl = new URLSearchParams(window.location.search)
+        const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid', 'gclid']
+        
+        utmParams.forEach(param => {
+          const value = currentUrl.get(param)
+          if (value) {
+            params.set(param, value)
+          }
+        })
+        
+        // Se não encontrou na URL, busca dos cookies (UTMify)
+        if (!params.has('utm_source')) {
+          const getCookie = (name) => {
+            const value = `; ${document.cookie}`
+            const parts = value.split(`; ${name}=`)
+            if (parts.length === 2) return parts.pop().split(';').shift()
+            return null
+          }
+          
+          utmParams.forEach(param => {
+            if (!params.has(param)) {
+              const cookieValue = getCookie(param)
+              if (cookieValue) {
+                params.set(param, cookieValue)
+              }
+            }
+          })
+        }
+        
+        // Se ainda não encontrou, busca do localStorage
+        if (!params.has('utm_source')) {
+          try {
+            utmParams.forEach(param => {
+              if (!params.has(param)) {
+                const storageValue = localStorage.getItem(param)
+                if (storageValue) {
+                  params.set(param, storageValue)
+                }
+              }
+            })
+          } catch (error) {
+            console.warn('Erro ao ler localStorage:', error)
+          }
+        }
+        
+        // Monta URL do /back preservando UTMs
+        const queryString = params.toString()
+        const backUrl = queryString ? `/back?${queryString}` : '/back'
+        window.location.href = backUrl
         return
       }
 
@@ -64,14 +263,18 @@ function App() {
       if (currentStep > 1) {
         setCurrentStep(prev => {
           const previousStep = prev - 1
+          // Preserva UTMs na URL ao voltar
+          const newUrl = getPreservedParamsForStep(previousStep)
           // Atualiza a URL sem adicionar nova entrada no histórico
-          window.history.replaceState({ step: previousStep }, '', previousStep === 1 ? '/' : `?step=${previousStep}`)
+          window.history.replaceState({ step: previousStep }, '', newUrl)
           return previousStep
         })
       } else {
         // Se está no Step 1 e tenta voltar, previne sair da página
+        // Preserva UTMs se existirem
+        const newUrl = getPreservedParamsForStep(1)
         // Adiciona uma entrada no histórico para manter na página
-        window.history.pushState({ step: 1 }, '', '/')
+        window.history.pushState({ step: 1 }, '', newUrl)
       }
     }
 
