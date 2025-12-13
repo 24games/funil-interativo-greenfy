@@ -11,7 +11,12 @@ import ProgressBar from './components/ProgressBar'
 import Back from './components/Back'
 
 function App() {
-  const [currentPath, setCurrentPath] = useState(window.location.pathname)
+  const [currentPath, setCurrentPath] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.location.pathname
+    }
+    return '/'
+  })
 
   useEffect(() => {
     // Atualiza quando a rota muda

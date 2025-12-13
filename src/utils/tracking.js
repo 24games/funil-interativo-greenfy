@@ -17,7 +17,7 @@
 const META_PIXEL_ID = '1170692121796734';
 
 // Endpoint da API (ajustar conforme ambiente)
-const API_ENDPOINT = process.env.VITE_API_ENDPOINT || '/api/tracking-pageview';
+const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || '/api/tracking-pageview';
 
 // ============================================
 // FUNÇÕES DE CAPTURA DE DADOS
