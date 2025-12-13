@@ -1,16 +1,6 @@
 import { motion } from 'framer-motion'
-import { useEffect } from 'react'
 
 export default function Step3({ onNext }) {
-  useEffect(() => {
-    // Avança automaticamente após 8 segundos
-    const timer = setTimeout(() => {
-      onNext()
-    }, 8000)
-
-    return () => clearTimeout(timer)
-  }, [onNext])
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -76,6 +66,38 @@ export default function Step3({ onNext }) {
       >
         Más de 10.000 personas ya están ganando dinero con este método
       </motion.p>
+
+      {/* Botão para avançar */}
+      <motion.button
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.2 }}
+        onClick={onNext}
+        className="neon-button mt-4 text-base relative overflow-hidden"
+        style={{
+          boxShadow: '0 0 30px rgba(0, 255, 136, 0.6), 0 0 60px rgba(0, 255, 136, 0.3)',
+          maxWidth: '280px',
+          width: '100%',
+          margin: '0 auto',
+          paddingLeft: '12px',
+          paddingRight: '12px'
+        }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <motion.span
+          initial={{ x: -100 }}
+          animate={{ x: 200 }}
+          transition={{
+            repeat: Infinity,
+            duration: 2,
+            ease: "linear"
+          }}
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+          style={{ width: '50%', height: '100%' }}
+        />
+        <span className="relative z-10">Continuar</span>
+      </motion.button>
     </motion.div>
   )
 }
