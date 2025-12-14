@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+﻿import { motion } from 'framer-motion'
 import { useRef, useState, useEffect } from 'react'
 import { Sparkles } from 'lucide-react'
 import VturbVideo from './VturbVideo'
@@ -6,32 +6,32 @@ import { sendInitiateCheckout } from '../utils/tracking.js'
 
 export default function Step7() {
   // ============================================================================
-  // CONFIGURAÇÃO DO PROGRESS BAR BUTTON (PERFORMANCE MÁXIMA COM useRef)
+  // CONFIGURAÃ‡ÃƒO DO PROGRESS BAR BUTTON (PERFORMANCE MÃXIMA COM useRef)
   // ============================================================================
   const TARGET_TIME = 126 // Tempo alvo em segundos (2:06)
-  const TARGET_VIDEO_ID = '693b9342f679d6950ed12c36' // ID do vídeo
+  const TARGET_VIDEO_ID = '693b9342f679d6950ed12c36' // ID do vÃ­deo
   
-  // REFS para manipulação direta do DOM (evita re-renders)
-  const progressBarRef = useRef(null) // Referência para a barra verde
-  const buttonRef = useRef(null) // Referência para o botão
+  // REFS para manipulaÃ§Ã£o direta do DOM (evita re-renders)
+  const progressBarRef = useRef(null) // ReferÃªncia para a barra verde
+  const buttonRef = useRef(null) // ReferÃªncia para o botÃ£o
   const isUnlockedRef = useRef(false) // Controle de desbloqueio (sem re-render)
-  const textRef = useRef(null) // Referência para o texto do botão
+  const textRef = useRef(null) // ReferÃªncia para o texto do botÃ£o
   
-  // Estado ÚNICO para controlar o clique (só muda UMA VEZ)
+  // Estado ÃšNICO para controlar o clique (sÃ³ muda UMA VEZ)
   const [isButtonReady, setIsButtonReady] = useState(false)
 
   // ============================================================================
-  // HANDLER DO BOTÃO CTA
+  // HANDLER DO BOTÃƒO CTA
   // ============================================================================
   const handleCTA = async () => {
-    if (!isButtonReady) return // Não faz nada se não estiver pronto
+    if (!isButtonReady) return // NÃ£o faz nada se nÃ£o estiver pronto
     
     try {
       // Envia evento InitiateCheckout para Meta Conversions API
       await sendInitiateCheckout()
-      console.log('✅ InitiateCheckout enviado com sucesso')
+      console.log('âœ… InitiateCheckout enviado com sucesso')
     } catch (error) {
-      console.error('❌ Erro ao enviar InitiateCheckout:', error)
+      console.error('âŒ Erro ao enviar InitiateCheckout:', error)
     }
     
     // Redireciona para checkout
@@ -39,16 +39,16 @@ export default function Step7() {
   }
 
   // ============================================================================
-  // ADAPTAÇÃO EXATA DO SCRIPT ORIGINAL PARA STEP 7
+  // ADAPTAÃ‡ÃƒO EXATA DO SCRIPT ORIGINAL PARA STEP 7
   // ============================================================================
   useEffect(() => {
     const SECONDS_TO_DISPLAY = TARGET_TIME // 126 segundos
     let attempts = 0
     let isConnected = false
 
-    // Função que mostra elementos .esconder E libera o botão
+    // FunÃ§Ã£o que mostra elementos .esconder E libera o botÃ£o
     const showHiddenElements = () => {
-      console.log('✅ [Step7] Mostrando elementos e liberando botão!')
+      console.log('âœ… [Step7] Mostrando elementos e liberando botÃ£o!')
       
       // Mostra elementos com classe .esconder
       const elsHidden = document.querySelectorAll('.esconder')
@@ -56,23 +56,23 @@ export default function Step7() {
         e.style.display = 'block'
       })
       
-      // Libera o botão
+      // Libera o botÃ£o
       isUnlockedRef.current = true
       setIsButtonReady(true)
       
-      // Força barra para 100%
+      // ForÃ§a barra para 100%
       if (progressBarRef.current) {
         progressBarRef.current.style.width = '100%'
       }
     }
 
-    // Função que busca o player pelo ID específico
+    // FunÃ§Ã£o que busca o player pelo ID especÃ­fico
     const findPlayerById = () => {
       if (!window.smartplayer || !window.smartplayer.instances) {
         return null
       }
 
-      // Busca pelo ID específico (não usa instances[0] genérico!)
+      // Busca pelo ID especÃ­fico (nÃ£o usa instances[0] genÃ©rico!)
       return window.smartplayer.instances.find(inst => {
         const id1 = String(inst.id || '')
         const id2 = String(inst.options?.id || '')
@@ -86,13 +86,13 @@ export default function Step7() {
       })
     }
 
-    // Função que monitora o progresso do vídeo (CÓPIA EXATA DO SCRIPT)
+    // FunÃ§Ã£o que monitora o progresso do vÃ­deo (CÃ“PIA EXATA DO SCRIPT)
     const startWatchVideoProgress = () => {
       const player = findPlayerById()
       
       if (!player) {
         if (attempts >= 10) {
-          console.error('❌ [Step7] Timeout: Player não encontrado após 10 tentativas')
+          console.error('âŒ [Step7] Timeout: Player nÃ£o encontrado apÃ³s 10 tentativas')
           return
         }
         attempts++
@@ -100,18 +100,18 @@ export default function Step7() {
       }
 
       // ENCONTROU O PLAYER!
-      console.log(`🎯 [Step7] Player encontrado: ${TARGET_VIDEO_ID}`)
+      console.log(`ðŸŽ¯ [Step7] Player encontrado: ${TARGET_VIDEO_ID}`)
       isConnected = true
 
-      // Listener de timeupdate (LÓGICA EXATA DO SCRIPT ORIGINAL)
+      // Listener de timeupdate (LÃ“GICA EXATA DO SCRIPT ORIGINAL)
       player.on('timeupdate', () => {
-        // Se já mostrou, ignora
+        // Se jÃ¡ mostrou, ignora
         if (isUnlockedRef.current) return
         
-        // Se for autoplay, ignora (lógica do script original)
+        // Se for autoplay, ignora (lÃ³gica do script original)
         if (player.smartAutoPlay) return
         
-        // AQUI ESTÁ A DIFERENÇA: Usa player.video.currentTime (como no script original)
+        // AQUI ESTÃ A DIFERENÃ‡A: Usa player.video.currentTime (como no script original)
         const currentTime = player.video?.currentTime || 0
         
         // Atualiza a barra de progresso em tempo real
@@ -122,7 +122,7 @@ export default function Step7() {
               // Primeiros 20 segundos: preenche de 0% a 80%
               width = (currentTime / 20) * 80
             } else {
-              // Depois de 20 segundos: baby steps de 80% até 100%
+              // Depois de 20 segundos: baby steps de 80% atÃ© 100%
               const remainingTime = currentTime - 20
               const remainingSeconds = SECONDS_TO_DISPLAY - 20
               const progressFrom80 = (remainingTime / remainingSeconds) * 20
@@ -133,22 +133,22 @@ export default function Step7() {
           progressBarRef.current.style.width = `${width}%`
         }
         
-        // LÓGICA EXATA DO SCRIPT: Se currentTime < SECONDS_TO_DISPLAY, retorna
+        // LÃ“GICA EXATA DO SCRIPT: Se currentTime < SECONDS_TO_DISPLAY, retorna
         if (currentTime < SECONDS_TO_DISPLAY) return
         
-        // Se chegou aqui, atingiu 126s! Mostra elementos e libera botão
+        // Se chegou aqui, atingiu 126s! Mostra elementos e libera botÃ£o
         showHiddenElements()
       })
 
-      console.log('✅ [Step7] Listeners configurados!')
+      console.log('âœ… [Step7] Listeners configurados!')
     }
 
-    // Sempre inicia o monitoramento do vídeo (sem verificação de cookies)
+    // Sempre inicia o monitoramento do vÃ­deo (sem verificaÃ§Ã£o de cookies)
     startWatchVideoProgress()
 
     // Cleanup
     return () => {
-      // Cleanup se necessário
+      // Cleanup se necessÃ¡rio
     }
   }, [])
 
@@ -160,7 +160,7 @@ export default function Step7() {
       transition={{ duration: 0.5 }}
       className="flex flex-col gap-3"
     >
-      {/* Badge de conclusão */}
+      {/* Badge de conclusÃ£o */}
       <motion.div
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
@@ -168,7 +168,7 @@ export default function Step7() {
         className="flex items-center justify-center gap-2 mx-auto bg-neon/10 border border-neon/30 rounded-full px-6 py-2"
       >
         <Sparkles size={20} className="text-neon" />
-        <span className="text-neon font-bold text-sm">ÚLTIMO PASO</span>
+        <span className="text-neon font-bold text-sm">ÃšLTIMO PASO</span>
         <Sparkles size={20} className="text-neon" />
       </motion.div>
 
@@ -179,7 +179,7 @@ export default function Step7() {
         transition={{ delay: 0.5 }}
         className="text-2xl md:text-3xl font-bold text-center leading-tight"
       >
-        El acceso a la I.A será liberado al final del video
+        El acceso a la I.A serÃ¡ liberado al final del video
       </motion.h2>
 
       {/* Video Vturb */}
@@ -198,10 +198,10 @@ export default function Step7() {
       {/* ================================================================
            PROGRESS BAR BUTTON
            ================================================================
-           Botão que funciona como barra de progresso:
-           - Visível desde o início, mas não clicável (disabled)
-           - Barra verde preenche conforme o vídeo avança
-           - Aos 126s: barra completa (100%), botão clicável, texto muda
+           BotÃ£o que funciona como barra de progresso:
+           - VisÃ­vel desde o inÃ­cio, mas nÃ£o clicÃ¡vel (disabled)
+           - Barra verde preenche conforme o vÃ­deo avanÃ§a
+           - Aos 126s: barra completa (100%), botÃ£o clicÃ¡vel, texto muda
            ================================================================ */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -219,7 +219,7 @@ export default function Step7() {
           ref={buttonRef}
           onClick={handleCTA}
           disabled={!isButtonReady}
-          // ANIMAÇÃO PULSE quando estiver pronto
+          // ANIMAÃ‡ÃƒO PULSE quando estiver pronto
           animate={isButtonReady ? {
             scale: [1, 1.02, 1],
             boxShadow: [
@@ -234,8 +234,8 @@ export default function Step7() {
             ease: "easeInOut"
           } : {}}
           style={{
-            // Container do botão - SEM classe .esconder, controlado apenas por React
-            display: 'block', // Força visibilidade (sobrescreve scripts externos)
+            // Container do botÃ£o - SEM classe .esconder, controlado apenas por React
+            display: 'block', // ForÃ§a visibilidade (sobrescreve scripts externos)
             position: 'relative',
             width: '100%',
             padding: '20px 12px',
@@ -247,8 +247,8 @@ export default function Step7() {
             fontSize: '16px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
-            opacity: 1, // Força opacidade total
-            visibility: 'visible', // Força visibilidade
+            opacity: 1, // ForÃ§a opacidade total
+            visibility: 'visible', // ForÃ§a visibilidade
             boxShadow: isButtonReady 
               ? '0 0 40px rgba(0, 255, 136, 0.8), 0 0 80px rgba(0, 255, 136, 0.4)'
               : '0 0 20px rgba(0, 255, 136, 0.3)'
@@ -275,15 +275,15 @@ export default function Step7() {
               top: 0,
               left: 0,
               height: '100%',
-              width: '0%', // COMEÇA EM 0% - Manipulado via ref.current.style.width
+              width: '0%', // COMEÃ‡A EM 0% - Manipulado via ref.current.style.width
               background: 'linear-gradient(90deg, #00FF88, #00FFD4)', // Verde da marca
-              // Transição 0.1s linear - Rápida para acompanhar, para instantâneo ao pausar
+              // TransiÃ§Ã£o 0.1s linear - RÃ¡pida para acompanhar, para instantÃ¢neo ao pausar
               transition: 'width 0.1s linear',
               zIndex: 1
             }}
           />
           
-          {/* Layer 3: Efeito de brilho quando está pronto (opcional) */}
+          {/* Layer 3: Efeito de brilho quando estÃ¡ pronto (opcional) */}
           {isButtonReady && (
             <motion.div
               initial={{ x: '-100%' }}
@@ -305,7 +305,7 @@ export default function Step7() {
             />
           )}
           
-          {/* Layer 4: TEXTO do botão (controlado via REF para performance) */}
+          {/* Layer 4: TEXTO do botÃ£o (controlado via REF para performance) */}
           <span 
             ref={textRef}
             style={{ 
@@ -322,24 +322,28 @@ export default function Step7() {
             {!isButtonReady ? (
               // ESTADO DE LOADING (0-99%)
               <>
-                <motion.span
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  style={{ display: 'inline-block' }}
-                >
-                  ⏳
-                </motion.span>
+                <span
+                  style={{ 
+                    display: 'inline-block',
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    borderTopColor: '#ffffff',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }}
+                />
                 Cargando...
               </>
             ) : (
               // ESTADO PRONTO (100%) - Texto atualizado via JS
-              '¡APP LIBERADO!'
+              'Â¡APP LIBERADO!'
             )}
           </span>
         </motion.button>
       </motion.div>
 
-      {/* Lista de benefícios rápidos - Abaixo do botão */}
+      {/* Lista de benefÃ­cios rÃ¡pidos - Abaixo do botÃ£o */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -349,8 +353,8 @@ export default function Step7() {
         {[
           'Acceso inmediato a la IA',
           'Sin cobros ocultos',
-          'Soporte 24/7 en español',
-          'Resultados desde el día 1'
+          'Soporte 24/7 en espaÃ±ol',
+          'Resultados desde el dÃ­a 1'
         ].map((benefit, index) => (
           <motion.div
             key={benefit}
@@ -367,14 +371,14 @@ export default function Step7() {
         ))}
       </motion.div>
 
-      {/* Urgência */}
+      {/* UrgÃªncia */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.9 }}
         className="esconder text-center space-y-1"
       >
-        <p className="text-yellow-400 font-bold text-sm">⚠️ CUPOS LIMITADOS</p>
+        <p className="text-yellow-400 font-bold text-sm">âš ï¸ CUPOS LIMITADOS</p>
         <p className="text-gray-400 text-xs">Solo quedan 7 cupos disponibles hoy</p>
       </motion.div>
 
@@ -385,11 +389,11 @@ export default function Step7() {
         transition={{ delay: 2.1 }}
         className="esconder flex items-center justify-center gap-4 text-xs text-gray-500"
       >
-        <span>🔒 Pago Seguro</span>
-        <span>•</span>
-        <span>✓ 100% Confiable</span>
-        <span>•</span>
-        <span>⚡ Acceso Inmediato</span>
+        <span>ðŸ”’ Pago Seguro</span>
+        <span>â€¢</span>
+        <span>âœ“ 100% Confiable</span>
+        <span>â€¢</span>
+        <span>âš¡ Acceso Inmediato</span>
       </motion.div>
     </motion.div>
   )

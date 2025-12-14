@@ -1,6 +1,13 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Spinner animation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 
 * {
   margin: 0;
@@ -22,7 +29,7 @@ body {
   position: relative;
 }
 
-/* Background com partículas e brilhos */
+/* Background com partÃ­culas e brilhos */
 .particles-bg {
   position: fixed;
   top: 0;
@@ -100,7 +107,7 @@ body {
   box-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
 }
 
-/* Texto com degradê shimmer */
+/* Texto com degradÃª shimmer */
 .shimmer-text {
   background: linear-gradient(
     90deg,
@@ -135,7 +142,7 @@ body {
   z-index: -1;
 }
 
-/* Botões com efeitos */
+/* BotÃµes com efeitos */
 .neon-button {
   background: #00FF88;
   color: #050505;
@@ -193,7 +200,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Borda com degradê para imagens de depoimentos */
+/* Borda com degradÃª para imagens de depoimentos */
 .testimonial-image-wrapper {
   position: relative;
   border-radius: 1.5rem;
@@ -208,17 +215,17 @@ body {
   height: 100%;
 }
 
-/* Classe para esconder elementos até o vídeo chegar no tempo certo */
+/* Classe para esconder elementos atÃ© o vÃ­deo chegar no tempo certo */
 .esconder {
   display: none !important;
 }
 
-/* Animação quando o botão aparece (Vturb remove a classe .esconder) */
+/* AnimaÃ§Ã£o quando o botÃ£o aparece (Vturb remove a classe .esconder) */
 .neon-button {
   transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Quando a classe .esconder é removida pelo Vturb, anima o botão */
+/* Quando a classe .esconder Ã© removida pelo Vturb, anima o botÃ£o */
 .neon-button:not(.esconder) {
   animation: buttonAppear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
@@ -237,7 +244,7 @@ body {
   }
 }
 
-/* Borda com degradê para vídeos Vturb */
+/* Borda com degradÃª para vÃ­deos Vturb */
 .vturb-video-wrapper {
   position: relative;
   border-radius: 1.5rem;
@@ -264,7 +271,7 @@ body {
   margin: 0 !important;
 }
 
-/* Força border-radius em elementos internos do Vturb */
+/* ForÃ§a border-radius em elementos internos do Vturb */
 .vturb-video-wrapper vturb-smartplayer video,
 .vturb-video-wrapper vturb-smartplayer iframe,
 .vturb-video-wrapper vturb-smartplayer > * {

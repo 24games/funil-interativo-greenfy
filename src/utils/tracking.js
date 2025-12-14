@@ -1,16 +1,16 @@
-/**
+﻿/**
  * Script de Tracking Cliente-Side (ETAPA 1 - PageView)
  * 
- * Captura todos os dados do usuário e envia para API server-side
+ * Captura todos os dados do usuÃ¡rio e envia para API server-side
  * 
  * USO:
  * 1. Importe este arquivo no seu componente principal (App.jsx ou main.jsx)
- * 2. Chame initTracking() quando a página carregar
+ * 2. Chame initTracking() quando a pÃ¡gina carregar
  * 3. Configure META_PIXEL_ID e API_ENDPOINT abaixo
  */
 
 // ============================================
-// CONFIGURAÇÃO - SUBSTITUIR COM SUAS CREDENCIAIS
+// CONFIGURAÃ‡ÃƒO - SUBSTITUIR COM SUAS CREDENCIAIS
 // ============================================
 
 // ID do Pixel do Facebook (substituir)
@@ -20,11 +20,11 @@ const META_PIXEL_ID = '1170692121796734';
 const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || '/api/tracking-pageview';
 
 // ============================================
-// FUNÇÕES DE CAPTURA DE DADOS
+// FUNÃ‡Ã•ES DE CAPTURA DE DADOS
 // ============================================
 
 /**
- * Obtém cookie do navegador
+ * ObtÃ©m cookie do navegador
  */
 function getCookie(name) {
   const value = `; ${document.cookie}`;
@@ -34,7 +34,7 @@ function getCookie(name) {
 }
 
 /**
- * Obtém parâmetros da URL (UTMs, fbclid, gclid, etc)
+ * ObtÃ©m parÃ¢metros da URL (UTMs, fbclid, gclid, etc)
  */
 function getUrlParams() {
   const params = new URLSearchParams(window.location.search);
@@ -50,7 +50,7 @@ function getUrlParams() {
 }
 
 /**
- * Obtém UTMs dos cookies (UTMify salva aqui)
+ * ObtÃ©m UTMs dos cookies (UTMify salva aqui)
  */
 function getUtmsFromCookies() {
   return {
@@ -65,7 +65,7 @@ function getUtmsFromCookies() {
 }
 
 /**
- * Obtém UTMs do localStorage (fallback caso UTMify use)
+ * ObtÃ©m UTMs do localStorage (fallback caso UTMify use)
  */
 function getUtmsFromLocalStorage() {
   try {
@@ -85,7 +85,7 @@ function getUtmsFromLocalStorage() {
 }
 
 /**
- * Obtém UTMs do objeto window.utmify (se disponível)
+ * ObtÃ©m UTMs do objeto window.utmify (se disponÃ­vel)
  */
 function getUtmsFromUtmify() {
   try {
@@ -107,12 +107,12 @@ function getUtmsFromUtmify() {
 }
 
 /**
- * Obtém todos os parâmetros de tracking (UTMs, fbclid, gclid)
+ * ObtÃ©m todos os parÃ¢metros de tracking (UTMs, fbclid, gclid)
  * Prioridade: URL > Cookies > localStorage > window.utmify
  * Garante que os UTMs sejam capturados mesmo quando a URL muda
  */
 function getAllTrackingParams() {
-  // 1. Primeiro tenta da URL (mais confiável se presente)
+  // 1. Primeiro tenta da URL (mais confiÃ¡vel se presente)
   const urlParams = getUrlParams();
   
   // 2. Busca dos cookies (UTMify geralmente salva aqui)
@@ -121,7 +121,7 @@ function getAllTrackingParams() {
   // 3. Busca do localStorage (fallback)
   const storageParams = getUtmsFromLocalStorage();
   
-  // 4. Busca do window.utmify (se disponível)
+  // 4. Busca do window.utmify (se disponÃ­vel)
   const utmifyParams = getUtmsFromUtmify();
   
   // Combina com prioridade: URL > Cookies > localStorage > utmify
@@ -137,37 +137,37 @@ function getAllTrackingParams() {
 }
 
 /**
- * Obtém dados do usuário do navegador
+ * ObtÃ©m dados do usuÃ¡rio do navegador
  */
 function getUserData() {
   return {
-    // Cookies do Facebook (CRÍTICOS para matching)
+    // Cookies do Facebook (CRÃTICOS para matching)
     fbp: getCookie('_fbp'),
     fbc: getCookie('_fbc'),
     
-    // Dados da página
+    // Dados da pÃ¡gina
     page_url: window.location.href,
     referrer: document.referrer || null,
     language: navigator.language || navigator.userLanguage,
     
-    // Parâmetros de tracking (UTMs, fbclid, gclid)
-    // Usa getAllTrackingParams() que busca de múltiplas fontes
+    // ParÃ¢metros de tracking (UTMs, fbclid, gclid)
+    // Usa getAllTrackingParams() que busca de mÃºltiplas fontes
     ...getAllTrackingParams(),
   };
 }
 
 /**
- * Obtém IP do usuário (via serviço externo)
- * NOTA: Em produção, o IP será capturado no server-side
+ * ObtÃ©m IP do usuÃ¡rio (via serviÃ§o externo)
+ * NOTA: Em produÃ§Ã£o, o IP serÃ¡ capturado no server-side
  */
 async function getUserIP() {
   try {
-    // Tentar obter IP via serviço externo (fallback)
+    // Tentar obter IP via serviÃ§o externo (fallback)
     const response = await fetch('https://api.ipify.org?format=json');
     const data = await response.json();
     return data.ip;
   } catch (error) {
-    console.warn('Não foi possível obter IP:', error);
+    console.warn('NÃ£o foi possÃ­vel obter IP:', error);
     return null;
   }
 }
@@ -180,13 +180,13 @@ async function captureTrackingData() {
   const ip = await getUserIP();
   
   return {
-    // Dados obrigatórios
+    // Dados obrigatÃ³rios
     ip: ip,
     user_agent: navigator.userAgent,
     fbp: userData.fbp,
     fbc: userData.fbc,
     
-    // Dados da página
+    // Dados da pÃ¡gina
     page_url: userData.page_url,
     referrer: userData.referrer,
     language: userData.language,
@@ -203,7 +203,7 @@ async function captureTrackingData() {
     // Timestamp
     timestamp: new Date().toISOString(),
     
-    // Dados pessoais (serão preenchidos quando disponíveis)
+    // Dados pessoais (serÃ£o preenchidos quando disponÃ­veis)
     // email, phone, first_name, last_name, date_of_birth, city, state, country, zip_code
     // Estes campos podem ser enviados posteriormente via updateTracking()
   };
@@ -236,8 +236,8 @@ async function sendTrackingData(data) {
 }
 
 /**
- * Atualiza dados de tracking com informações adicionais
- * Útil quando você coleta email, telefone, etc. durante o funil
+ * Atualiza dados de tracking com informaÃ§Ãµes adicionais
+ * Ãštil quando vocÃª coleta email, telefone, etc. durante o funil
  */
 async function updateTrackingData(additionalData) {
   // Gera um event_id baseado nos dados adicionais para relacionar com o PageView original
@@ -247,38 +247,38 @@ async function updateTrackingData(additionalData) {
     ...additionalData,
     event_id: eventId,
     timestamp: new Date().toISOString(),
-    is_update: true, // Flag para identificar como atualização
+    is_update: true, // Flag para identificar como atualizaÃ§Ã£o
   };
   
   return sendTrackingData(data);
 }
 
 // ============================================
-// META PIXEL (CÓDIGO PADRÃO)
+// META PIXEL (CÃ“DIGO PADRÃƒO)
 // ============================================
 
 /**
- * Inicializa o Meta Pixel (código padrão do Facebook)
+ * Inicializa o Meta Pixel (cÃ³digo padrÃ£o do Facebook)
  * 
- * NOTA: O pixel já é carregado na <head> do index.html.
- * Esta função apenas garante que está funcionando e pode enviar eventos adicionais.
+ * NOTA: O pixel jÃ¡ Ã© carregado na <head> do index.html.
+ * Esta funÃ§Ã£o apenas garante que estÃ¡ funcionando e pode enviar eventos adicionais.
  */
 function initMetaPixel() {
   if (!META_PIXEL_ID) {
-    console.warn('META_PIXEL_ID não configurado. Meta Pixel não será inicializado.');
+    console.warn('META_PIXEL_ID nÃ£o configurado. Meta Pixel nÃ£o serÃ¡ inicializado.');
     return;
   }
 
-  // Verifica se o pixel já foi inicializado (carregado na head)
+  // Verifica se o pixel jÃ¡ foi inicializado (carregado na head)
   if (window.fbq && window.fbq.loaded) {
-    console.log('✅ Meta Pixel já carregado na head. Usando instância existente.');
+    console.log('âœ… Meta Pixel jÃ¡ carregado na head. Usando instÃ¢ncia existente.');
     return;
   }
 
-  // Se não foi carregado na head, carrega via JavaScript (fallback)
-  console.warn('⚠️ Meta Pixel não encontrado na head. Carregando via JavaScript...');
+  // Se nÃ£o foi carregado na head, carrega via JavaScript (fallback)
+  console.warn('âš ï¸ Meta Pixel nÃ£o encontrado na head. Carregando via JavaScript...');
   
-  // Código padrão do Meta Pixel
+  // CÃ³digo padrÃ£o do Meta Pixel
   !function(f,b,e,v,n,t,s)
   {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
   n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -288,27 +288,27 @@ function initMetaPixel() {
   s.parentNode.insertBefore(t,s)}(window, document,'script',
   'https://connect.facebook.net/en_US/fbevents.js');
   
-  // Inicializa o pixel (se ainda não foi inicializado)
+  // Inicializa o pixel (se ainda nÃ£o foi inicializado)
   if (!window.fbq.loaded) {
     fbq('init', META_PIXEL_ID);
     fbq('track', 'PageView');
-    console.log('✅ Meta Pixel inicializado via JavaScript:', META_PIXEL_ID);
+    console.log('âœ… Meta Pixel inicializado via JavaScript:', META_PIXEL_ID);
   }
 }
 
 // ============================================
-// FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO
+// FUNÃ‡ÃƒO PRINCIPAL DE INICIALIZAÃ‡ÃƒO
 // ============================================
 
 /**
  * Inicializa o sistema de tracking completo
  * 
- * Esta função deve ser chamada quando a página carregar
+ * Esta funÃ§Ã£o deve ser chamada quando a pÃ¡gina carregar
  * Exemplo: useEffect(() => { initTracking(); }, []);
  */
 export async function initTracking() {
   try {
-    // 1. Inicializa Meta Pixel (código padrão)
+    // 1. Inicializa Meta Pixel (cÃ³digo padrÃ£o)
     initMetaPixel();
     
     // 2. Captura dados de tracking
@@ -320,19 +320,19 @@ export async function initTracking() {
     console.log('Tracking inicializado com sucesso');
   } catch (error) {
     console.error('Erro ao inicializar tracking:', error);
-    // Não bloqueia a aplicação se houver erro no tracking
+    // NÃ£o bloqueia a aplicaÃ§Ã£o se houver erro no tracking
   }
 }
 
 /**
- * Função para atualizar tracking com dados adicionais
+ * FunÃ§Ã£o para atualizar tracking com dados adicionais
  * Use quando coletar email, telefone, etc.
  * 
  * Exemplo:
  * updateTracking({
  *   email: 'usuario@example.com',
  *   phone: '+5511999999999',
- *   first_name: 'João',
+ *   first_name: 'JoÃ£o',
  *   last_name: 'Silva'
  * });
  */
@@ -346,8 +346,8 @@ export async function updateTracking(additionalData) {
 }
 
 /**
- * Função auxiliar para obter dados de tracking atuais
- * Útil para debug
+ * FunÃ§Ã£o auxiliar para obter dados de tracking atuais
+ * Ãštil para debug
  */
 export function getTrackingData() {
   return getUserData();
@@ -355,7 +355,7 @@ export function getTrackingData() {
 
 /**
  * Envia evento InitiateCheckout para API server-side
- * Use quando o usuário clicar no botão de checkout
+ * Use quando o usuÃ¡rio clicar no botÃ£o de checkout
  */
 export async function sendInitiateCheckout() {
   try {
@@ -401,7 +401,7 @@ export async function sendInitiateCheckout() {
   }
 }
 
-// Exportar funções úteis
+// Exportar funÃ§Ãµes Ãºteis
 export default {
   initTracking,
   updateTracking,
