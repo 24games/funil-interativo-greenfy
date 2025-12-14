@@ -337,7 +337,7 @@ export default function Step7() {
               </>
             ) : (
               // ESTADO PRONTO (100%) - Texto atualizado via JS
-              'Â¡APP LIBERADO!'
+              '¡APP LIBERADO!'
             )}
           </span>
         </motion.button>
@@ -353,8 +353,8 @@ export default function Step7() {
         {[
           'Acceso inmediato a la IA',
           'Sin cobros ocultos',
-          'Soporte 24/7 en espaÃ±ol',
-          'Resultados desde el dÃ­a 1'
+          'Soporte 24/7 en español',
+          'Resultados desde el día 1'
         ].map((benefit, index) => (
           <motion.div
             key={benefit}
@@ -378,7 +378,7 @@ export default function Step7() {
         transition={{ delay: 1.9 }}
         className="esconder text-center space-y-1"
       >
-        <p className="text-yellow-400 font-bold text-sm">âš ï¸ CUPOS LIMITADOS</p>
+        <p className="text-yellow-400 font-bold text-sm">âš ï¸ ⚠️ CUPOS LIMITADOS</p>
         <p className="text-gray-400 text-xs">Solo quedan 7 cupos disponibles hoy</p>
       </motion.div>
 
@@ -390,10 +390,10 @@ export default function Step7() {
         className="esconder flex items-center justify-center gap-4 text-xs text-gray-500"
       >
         <span>ðŸ”’ Pago Seguro</span>
-        <span>â€¢</span>
+        <span>•</span>
         <span>âœ“ 100% Confiable</span>
-        <span>â€¢</span>
-        <span>âš¡ Acceso Inmediato</span>
+        <span>•</span>
+        <span>⚡ Acceso Inmediato</span>
       </motion.div>
     </motion.div>
   )
