@@ -1,4 +1,4 @@
-﻿import { motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useRef, useState, useEffect } from 'react'
 import { Sparkles } from 'lucide-react'
 import VturbVideo from './VturbVideo'
@@ -168,7 +168,7 @@ export default function Step7() {
         className="flex items-center justify-center gap-2 mx-auto bg-neon/10 border border-neon/30 rounded-full px-6 py-2"
       >
         <Sparkles size={20} className="text-neon" />
-        <span className="text-neon font-bold text-sm">ÃšLTIMO PASO</span>
+        <span className="text-neon font-bold text-sm">ÚLTIMO PASO</span>
         <Sparkles size={20} className="text-neon" />
       </motion.div>
 
@@ -179,7 +179,7 @@ export default function Step7() {
         transition={{ delay: 0.5 }}
         className="text-2xl md:text-3xl font-bold text-center leading-tight"
       >
-        El acceso a la I.A serÃ¡ liberado al final del video
+        El acceso a la I.A será liberado al final del video
       </motion.h2>
 
       {/* Video Vturb */}
