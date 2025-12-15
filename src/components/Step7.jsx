@@ -3,6 +3,7 @@ import { useRef, useState, useEffect } from 'react'
 import { Sparkles } from 'lucide-react'
 import VturbVideo from './VturbVideo'
 import { sendInitiateCheckout } from '../utils/tracking.js'
+import { createFlowPayment } from '../utils/checkout.js'
 
 export default function Step7() {
   // ============================================================================
@@ -19,23 +20,32 @@ export default function Step7() {
   
   // Estado ÃšNICO para controlar o clique (sÃ³ muda UMA VEZ)
   const [isButtonReady, setIsButtonReady] = useState(false)
+  // Estado de loading para checkout
+  const [isProcessing, setIsProcessing] = useState(false)
 
   // ============================================================================
   // HANDLER DO BOTÃƒO CTA
   // ============================================================================
   const handleCTA = async () => {
-    if (!isButtonReady) return // NÃ£o faz nada se nÃ£o estiver pronto
+    if (!isButtonReady || isProcessing) return // NÃ£o faz nada se nÃ£o estiver pronto ou jÃ¡ estiver processando
+    
+    setIsProcessing(true)
     
     try {
       // Envia evento InitiateCheckout para Meta Conversions API
       await sendInitiateCheckout()
       console.log('âœ… InitiateCheckout enviado com sucesso')
+      
+      // Cria pagamento no Flow.cl e redireciona
+      // A função createFlowPayment busca automaticamente email e tracking_id
+      await createFlowPayment()
+      // Se chegou aqui, o redirecionamento foi feito (window.location.href)
+      // Não precisa resetar isProcessing pois a página será redirecionada
     } catch (error) {
-      console.error('âŒ Erro ao enviar InitiateCheckout:', error)
+      console.error('âŒ Erro no checkout:', error)
+      alert(`Erro ao processar pagamento: ${error.message || 'Erro desconhecido'}`)
+      setIsProcessing(false) // Reseta apenas em caso de erro
     }
-    
-    // Redireciona para checkout
-    window.location.href = 'https://go.centerpag.com/PPU38CQ4BNQ'
   }
 
   // ============================================================================
@@ -218,7 +228,7 @@ export default function Step7() {
         <motion.button
           ref={buttonRef}
           onClick={handleCTA}
-          disabled={!isButtonReady}
+          disabled={!isButtonReady || isProcessing}
           // ANIMAÃ‡ÃƒO PULSE quando estiver pronto
           animate={isButtonReady ? {
             scale: [1, 1.02, 1],
@@ -311,7 +321,7 @@ export default function Step7() {
             style={{ 
               position: 'relative',
               zIndex: 10,
-              color: isButtonReady ? '#050505' : '#ffffff', // Preto quando pronto, branco quando carregando
+              color: (isButtonReady && !isProcessing) ? '#050505' : '#ffffff', // Preto quando pronto, branco quando carregando/processando
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -334,6 +344,22 @@ export default function Step7() {
                   }}
                 />
                 Cargando...
+              </>
+            ) : isProcessing ? (
+              // ESTADO DE PROCESSANDO CHECKOUT
+              <>
+                <span
+                  style={{ 
+                    display: 'inline-block',
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    borderTopColor: '#ffffff',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }}
+                />
+                Processando...
               </>
             ) : (
               // ESTADO PRONTO (100%) - Texto atualizado via JS

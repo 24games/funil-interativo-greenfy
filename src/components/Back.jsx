@@ -1,10 +1,12 @@
-﻿import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { initTracking, sendInitiateCheckout } from '../utils/tracking.js'
+import { createFlowPayment } from '../utils/checkout.js'
 import { CheckCircle } from 'lucide-react'
 
 export default function Back() {
   const [isButtonReady, setIsButtonReady] = useState(true) // Botao ja comeca pronto
+  const [isProcessing, setIsProcessing] = useState(false) // Estado de loading para checkout
   const buttonRef = useRef(null)
 
   // Inicializa tracking quando a pagina /back carrega
@@ -16,15 +18,25 @@ export default function Back() {
 
   // Handler do botao CTA (mesmo do Step 7)
   const handleCTA = async () => {
-    try {
-      await sendInitiateCheckout()
-      console.log('InitiateCheckout enviado com sucesso')
-    } catch (error) {
-      console.error('Erro ao enviar InitiateCheckout:', error)
-    }
+    if (isProcessing) return // Não processa se já estiver processando
     
-    // Redireciona para checkout
-    window.location.href = 'https://go.centerpag.com/PPU38CQ4BNQ'
+    setIsProcessing(true)
+    
+    try {
+      // Envia evento InitiateCheckout para Meta Conversions API
+      await sendInitiateCheckout()
+      console.log('✅ InitiateCheckout enviado com sucesso')
+      
+      // Cria pagamento no Flow.cl e redireciona
+      // A função createFlowPayment busca automaticamente email e tracking_id
+      await createFlowPayment()
+      // Se chegou aqui, o redirecionamento foi feito (window.location.href)
+      // Não precisa resetar isProcessing pois a página será redirecionada
+    } catch (error) {
+      console.error('❌ Erro no checkout:', error)
+      alert(`Erro ao processar pagamento: ${error.message || 'Erro desconhecido'}`)
+      setIsProcessing(false) // Reseta apenas em caso de erro
+    }
   }
 
   // Componente do botao reutilizavel
@@ -32,6 +44,7 @@ export default function Back() {
     <motion.button
       ref={buttonRef}
       onClick={handleCTA}
+      disabled={isProcessing}
       animate={{
         scale: [1, 1.02, 1],
         boxShadow: [
@@ -53,7 +66,8 @@ export default function Back() {
         padding: '20px 24px',
         borderRadius: '12px',
         border: 'none',
-        cursor: 'pointer',
+        cursor: isProcessing ? 'not-allowed' : 'pointer',
+        opacity: isProcessing ? 0.7 : 1,
         overflow: 'hidden',
         background: 'linear-gradient(90deg, #00FF88, #00FFD4)',
         fontSize: '18px',
@@ -83,7 +97,25 @@ export default function Back() {
         }}
       />
       <span style={{ position: 'relative', zIndex: 2 }}>
-        APP LIBERADO!
+        {isProcessing ? (
+          <>
+            <span
+              style={{ 
+                display: 'inline-block',
+                width: '16px',
+                height: '16px',
+                border: '2px solid rgba(5,5,5,0.3)',
+                borderTopColor: '#050505',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                marginRight: '8px'
+              }}
+            />
+            Processando...
+          </>
+        ) : (
+          'APP LIBERADO!'
+        )}
       </span>
     </motion.button>
   )
