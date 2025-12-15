@@ -31,16 +31,24 @@ const DEFAULT_AMOUNT = 5000;
 /**
  * Gera assinatura HMAC SHA256 para requisições Flow.cl
  * 
- * Formato: HMAC-SHA256(METHOD + "\n" + PATH + "\n" + TIMESTAMP + "\n" + NONCE + "\n" + BODY)
+ * Para form-urlencoded, a assinatura é calculada sobre os parâmetros ordenados
+ * Formato: Concatenação dos valores dos parâmetros ordenados alfabeticamente
  */
-function generateFlowSignature(method, path, timestamp, nonce, body) {
+function generateFlowSignature(params) {
   if (!FLOW_SECRET_KEY) {
     throw new Error('FLOW_SECRET_KEY não configurada');
   }
 
-  // Monta string para assinar
-  const stringToSign = `${method}\n${path}\n${timestamp}\n${nonce}\n${body}`;
-  
+  // Ordena as chaves alfabeticamente (exceto 's' que é a assinatura)
+  const sortedKeys = Object.keys(params)
+    .filter(key => key !== 's') // Remove a assinatura se existir
+    .sort();
+
+  // Concatena os valores na ordem das chaves
+  const stringToSign = sortedKeys
+    .map(key => String(params[key] || ''))
+    .join('');
+
   // Gera HMAC SHA256
   const signature = crypto
     .createHmac('sha256', FLOW_SECRET_KEY)
@@ -80,64 +88,121 @@ async function createFlowPayment(paymentData) {
     throw new Error('Email é obrigatório');
   }
 
-  // Prepara payload para Flow
-  const flowPayload = {
+  // Prepara parâmetros do form com TODOS os campos obrigatórios
+  const formParams = {
     apiKey: FLOW_API_KEY,
     commerceOrder: commerceOrder || generateCommerceOrder(),
-    subject: 'Compra - App Liberado',
-    amount: parseInt(amount, 10),
-    currency: 'CLP',
-    email: email,
-    urlConfirmation: URL_CONFIRMATION,
-    urlReturn: URL_RETURN,
+    subject: 'Pago de Servicio', // Título fixo conforme solicitado
+    currency: 'CLP', // Moeda fixa
+    amount: parseInt(amount, 10).toString(), // Converter para string
+    email: email, // Campo obrigatório: email (não payer)
+    urlConfirmation: URL_CONFIRMATION, // URL completa do webhook
+    urlReturn: URL_RETURN, // URL completa da página de obrigado
     optional: JSON.stringify(optional), // JSON stringified conforme solicitado
   };
 
-  // Prepara requisição
-  const method = 'POST';
-  const path = '/payment/create';
-  const timestamp = Math.floor(Date.now() / 1000).toString();
-  const nonce = crypto.randomBytes(16).toString('hex');
-  const body = JSON.stringify(flowPayload);
+  // Gera assinatura sobre os parâmetros (sem o campo 's')
+  const signature = generateFlowSignature(formParams);
 
-  // Gera assinatura
-  const signature = generateFlowSignature(method, path, timestamp, nonce, body);
+  // Log de debug da assinatura (apenas em desenvolvimento)
+  if (process.env.NODE_ENV !== 'production') {
+    const sortedKeys = Object.keys(formParams).filter(key => key !== 's').sort();
+    const stringToSign = sortedKeys.map(key => String(formParams[key] || '')).join('');
+    console.log('🔐 Debug assinatura:', {
+      keys: sortedKeys,
+      stringToSignLength: stringToSign.length,
+      signaturePreview: signature.substring(0, 16) + '...',
+    });
+  }
 
-  // Headers
+  // Adiciona a assinatura como campo 's' no form
+  formParams.s = signature;
+
+  // Converte para form-urlencoded usando URLSearchParams
+  const formBody = new URLSearchParams(formParams).toString();
+
+  // Headers - IMPORTANTE: application/x-www-form-urlencoded
   const headers = {
-    'Content-Type': 'application/json',
-    'X-Flow-API-Key': FLOW_API_KEY,
-    'X-Flow-Timestamp': timestamp,
-    'X-Flow-Nonce': nonce,
-    'X-Flow-Signature': signature,
+    'Content-Type': 'application/x-www-form-urlencoded',
   };
 
   console.log('📤 Criando pagamento no Flow.cl:', {
-    commerceOrder: flowPayload.commerceOrder,
-    amount: flowPayload.amount,
-    email: email,
-    optional: flowPayload.optional,
+    commerceOrder: formParams.commerceOrder,
+    amount: formParams.amount,
+    currency: formParams.currency,
+    subject: formParams.subject,
+    email: formParams.email,
+    urlConfirmation: formParams.urlConfirmation,
+    urlReturn: formParams.urlReturn,
+    optional: formParams.optional,
+    signature: signature.substring(0, 10) + '...', // Mostra apenas início da assinatura
   });
 
   // Faz requisição para Flow
-  const response = await axios.post(
-    `${FLOW_API_URL}${path}`,
-    flowPayload,
-    { headers }
-  );
+  const path = '/payment/create';
+  let response;
+  try {
+    response = await axios.post(
+      `${FLOW_API_URL}${path}`,
+      formBody, // Envia como string form-urlencoded
+      { headers }
+    );
+  } catch (axiosError) {
+    // Trata erros específicos do Flow.cl
+    if (axiosError.response) {
+      const flowError = axiosError.response.data;
+      console.error('❌ Erro do Flow.cl:', {
+        status: axiosError.response.status,
+        code: flowError?.code,
+        message: flowError?.message,
+        formParams: {
+          ...formParams,
+          s: '***assinatura***', // Não loga a assinatura completa
+        },
+      });
+      
+      // Erro 101 = Missing Params
+      if (flowError?.code === 101) {
+        throw new Error(`Flow.cl: Parâmetros obrigatórios faltando. Detalhes: ${flowError.message || 'Verifique os logs'}`);
+      }
+      
+      throw new Error(`Flow.cl Error ${flowError?.code || axiosError.response.status}: ${flowError?.message || axiosError.message}`);
+    }
+    throw axiosError;
+  }
 
-  if (!response.data || !response.data.url || !response.data.token) {
+  // Flow.cl pode retornar JSON ou form-urlencoded
+  // Axios geralmente faz o parse automaticamente
+  const responseData = response.data;
+  
+  // Se vier como string (form-urlencoded), faz parse
+  let parsedData = responseData;
+  if (typeof responseData === 'string') {
+    const params = new URLSearchParams(responseData);
+    parsedData = {
+      url: params.get('url'),
+      token: params.get('token'),
+    };
+  }
+
+  if (!parsedData || !parsedData.url || !parsedData.token) {
+    console.error('❌ Resposta inválida do Flow.cl:', {
+      responseData: responseData,
+      parsedData: parsedData,
+      status: response.status,
+      headers: response.headers,
+    });
     throw new Error('Resposta inválida do Flow.cl');
   }
 
   // Retorna URL completa de redirecionamento
-  const redirectUrl = `${response.data.url}?token=${response.data.token}`;
+  const redirectUrl = `${parsedData.url}?token=${parsedData.token}`;
 
   return {
     url: redirectUrl,
-    token: response.data.token,
-    commerceOrder: flowPayload.commerceOrder,
-    flowResponse: response.data,
+    token: parsedData.token,
+    commerceOrder: formParams.commerceOrder,
+    flowResponse: parsedData,
   };
 }
 

@@ -35,80 +35,54 @@ function getTrackingId() {
 }
 
 /**
- * Busca email do localStorage, cookies ou URL
+ * Gera email temporário para checkout
+ * 
+ * Como o funil não captura email antes do checkout, geramos um email temporário
+ * que será usado apenas para criar o pagamento no Flow.cl
+ * 
+ * @param {string} trackingId - ID de tracking (opcional)
+ * @returns {string} Email temporário no formato guest-{tracking_id}@checkout.temp
  */
-function getEmail() {
-  // Tenta buscar do localStorage
-  try {
-    const email = localStorage.getItem('email') || localStorage.getItem('user_email');
-    if (email) {
-      return email;
-    }
-  } catch (error) {
-    console.warn('Erro ao ler email do localStorage:', error);
+function generateTempEmail(trackingId = null) {
+  if (trackingId) {
+    // Remove caracteres especiais do tracking_id para usar no email
+    const cleanTrackingId = trackingId.replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
+    return `guest-${cleanTrackingId}@checkout.temp`;
   }
-
-  // Tenta buscar dos cookies
-  try {
-    const cookies = document.cookie.split(';');
-    for (let cookie of cookies) {
-      const [name, value] = cookie.trim().split('=');
-      if (name === 'email' || name === 'user_email') {
-        return decodeURIComponent(value);
-      }
-    }
-  } catch (error) {
-    console.warn('Erro ao ler email dos cookies:', error);
-  }
-
-  // Tenta buscar da URL (query params)
-  try {
-    const urlParams = new URLSearchParams(window.location.search);
-    const email = urlParams.get('email');
-    if (email) {
-      return email;
-    }
-  } catch (error) {
-    console.warn('Erro ao ler email da URL:', error);
-  }
-
-  return null;
+  
+  // Se não tiver tracking_id, usa timestamp
+  const timestamp = Date.now();
+  return `guest-${timestamp}@checkout.temp`;
 }
 
 /**
  * Cria pagamento no Flow.cl e redireciona
  * 
+ * IMPORTANTE: Como o funil não captura email antes do checkout,
+ * sempre geramos um email temporário automaticamente.
+ * O tracking_id é enviado no campo optional para fazer o match posterior.
+ * 
  * @param {Object} options - Opções de checkout
- * @param {string} options.email - Email do cliente (opcional, tenta buscar automaticamente)
  * @param {string} options.trackingId - ID de tracking (opcional, tenta buscar automaticamente)
  * @param {number} options.amount - Valor em CLP (opcional, padrão: 5000)
  * @returns {Promise<void>}
  */
 export async function createFlowPayment({ 
-  email = null, 
   trackingId = null, 
   amount = 5000 
 } = {}) {
-  // Busca email se não foi fornecido
-  const userEmail = email || getEmail();
-  
-  // Se não tiver email, solicita ao usuário
-  if (!userEmail) {
-    const inputEmail = prompt('Por favor, informe seu email para continuar:');
-    if (!inputEmail || !inputEmail.includes('@')) {
-      throw new Error('Email é obrigatório para continuar');
-    }
-    // Salva no localStorage para próximas vezes
-    try {
-      localStorage.setItem('email', inputEmail);
-    } catch (error) {
-      console.warn('Erro ao salvar email no localStorage:', error);
-    }
-    return createFlowPayment({ email: inputEmail, trackingId, amount });
-  }
-
   // Busca tracking_id se não foi fornecido
   const userTrackingId = trackingId || getTrackingId();
+  
+  // Gera email temporário automaticamente (sempre, sem fricção)
+  // O email será guest-{tracking_id}@checkout.temp ou guest-{timestamp}@checkout.temp
+  const tempEmail = generateTempEmail(userTrackingId);
+  
+  console.log('🛒 Iniciando checkout:', {
+    tempEmail: tempEmail,
+    trackingId: userTrackingId,
+    amount: amount,
+  });
 
   // Chama API para criar pagamento
   const response = await fetch('/api/create-flow-payment', {
@@ -117,8 +91,8 @@ export async function createFlowPayment({
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      email: userEmail,
-      tracking_id: userTrackingId,
+      email: tempEmail, // Email temporário gerado automaticamente
+      tracking_id: userTrackingId, // Enviado no optional para match futuro
       amount: amount,
     }),
   });
