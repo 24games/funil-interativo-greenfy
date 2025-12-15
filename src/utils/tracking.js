@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Script de Tracking Cliente-Side (ETAPA 1 - PageView)
  * 
  * Captura todos os dados do usuÃ¡rio e envia para API server-side
@@ -228,6 +228,17 @@ async function sendTrackingData(data) {
 
     const result = await response.json();
     console.log('Tracking enviado com sucesso:', result);
+    
+    // Salva tracking_id no localStorage se disponível
+    if (result.data?.supabase?.id) {
+      try {
+        localStorage.setItem('tracking_id', result.data.supabase.id);
+        console.log('✅ tracking_id salvo no localStorage:', result.data.supabase.id);
+      } catch (error) {
+        console.warn('⚠️ Erro ao salvar tracking_id no localStorage:', error);
+      }
+    }
+    
     return result;
   } catch (error) {
     console.error('Erro ao enviar tracking:', error);
