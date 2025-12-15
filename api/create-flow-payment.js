@@ -31,8 +31,13 @@ const DEFAULT_AMOUNT = 5000;
 /**
  * Gera assinatura HMAC SHA256 para requisições Flow.cl
  * 
- * Para form-urlencoded, a assinatura é calculada sobre os parâmetros ordenados
- * Formato: Concatenação dos valores dos parâmetros ordenados alfabeticamente
+ * Algoritmo rigoroso:
+ * 1. Ordena chaves alfabeticamente (exceto 's')
+ * 2. Concatena key + value para cada parâmetro
+ * 3. Gera HMAC SHA256 sobre a string resultante
+ * 
+ * @param {Object} params - Parâmetros do form (sem o campo 's')
+ * @returns {string} Assinatura HMAC SHA256 em hexadecimal
  */
 function generateFlowSignature(params) {
   if (!FLOW_SECRET_KEY) {
@@ -44,10 +49,18 @@ function generateFlowSignature(params) {
     .filter(key => key !== 's') // Remove a assinatura se existir
     .sort();
 
-  // Concatena os valores na ordem das chaves
+  // Concatena key + value para cada parâmetro ordenado
   const stringToSign = sortedKeys
-    .map(key => String(params[key] || ''))
+    .map(key => {
+      const value = String(params[key] || '');
+      return key + value; // IMPORTANTE: key + value, não apenas value
+    })
     .join('');
+
+  // LOG CRÍTICO: Mostra a string exata que será assinada
+  console.log('STRING TO SIGN:', stringToSign);
+  console.log('STRING TO SIGN LENGTH:', stringToSign.length);
+  console.log('SORTED KEYS:', sortedKeys);
 
   // Gera HMAC SHA256
   const signature = crypto
@@ -88,34 +101,43 @@ async function createFlowPayment(paymentData) {
     throw new Error('Email é obrigatório');
   }
 
-  // Prepara parâmetros do form com TODOS os campos obrigatórios
+  // ============================================
+  // PREPARAÇÃO RIGOROSA DOS PARÂMETROS
+  // ============================================
+  
+  // 1. Gera optionalValue UMA VEZ e usa a mesma variável
+  const optionalValue = JSON.stringify(optional);
+  
+  // 2. Define todos os parâmetros como STRINGS (valores já convertidos)
   const formParams = {
-    apiKey: FLOW_API_KEY,
-    commerceOrder: commerceOrder || generateCommerceOrder(),
-    subject: 'Pago de Servicio', // Título fixo conforme solicitado
+    apiKey: String(FLOW_API_KEY),
+    commerceOrder: String(commerceOrder || generateCommerceOrder()),
+    subject: 'Pago de Servicio', // Título fixo
     currency: 'CLP', // Moeda fixa
-    amount: parseInt(amount, 10).toString(), // Converter para string
-    email: email, // Campo obrigatório: email (não payer)
-    urlConfirmation: URL_CONFIRMATION, // URL completa do webhook
-    urlReturn: URL_RETURN, // URL completa da página de obrigado
-    optional: JSON.stringify(optional), // JSON stringified conforme solicitado
+    amount: String(parseInt(amount, 10)), // Converter para string explicitamente
+    email: String(email), // Email como string
+    urlConfirmation: String(URL_CONFIRMATION), // URL completa do webhook
+    urlReturn: String(URL_RETURN), // URL completa da página de obrigado
+    optional: optionalValue, // Usa a variável gerada UMA VEZ
   };
 
-  // Gera assinatura sobre os parâmetros (sem o campo 's')
+  // 3. Log dos parâmetros antes de assinar (para debug)
+  console.log('📋 Parâmetros antes da assinatura:', {
+    apiKey: formParams.apiKey.substring(0, 10) + '...',
+    commerceOrder: formParams.commerceOrder,
+    subject: formParams.subject,
+    currency: formParams.currency,
+    amount: formParams.amount,
+    email: formParams.email,
+    urlConfirmation: formParams.urlConfirmation,
+    urlReturn: formParams.urlReturn,
+    optional: formParams.optional,
+  });
+
+  // 4. Gera assinatura sobre os parâmetros (SEM o campo 's')
   const signature = generateFlowSignature(formParams);
 
-  // Log de debug da assinatura (apenas em desenvolvimento)
-  if (process.env.NODE_ENV !== 'production') {
-    const sortedKeys = Object.keys(formParams).filter(key => key !== 's').sort();
-    const stringToSign = sortedKeys.map(key => String(formParams[key] || '')).join('');
-    console.log('🔐 Debug assinatura:', {
-      keys: sortedKeys,
-      stringToSignLength: stringToSign.length,
-      signaturePreview: signature.substring(0, 16) + '...',
-    });
-  }
-
-  // Adiciona a assinatura como campo 's' no form
+  // 5. Adiciona a assinatura como campo 's' no form
   formParams.s = signature;
 
   // Converte para form-urlencoded usando URLSearchParams
@@ -135,7 +157,8 @@ async function createFlowPayment(paymentData) {
     urlConfirmation: formParams.urlConfirmation,
     urlReturn: formParams.urlReturn,
     optional: formParams.optional,
-    signature: signature.substring(0, 10) + '...', // Mostra apenas início da assinatura
+    signature: signature.substring(0, 16) + '...', // Mostra apenas início da assinatura
+    allParams: Object.keys(formParams).sort(), // Mostra todas as chaves
   });
 
   // Faz requisição para Flow
