@@ -40,19 +40,21 @@ function getTrackingId() {
  * Como o funil não captura email antes do checkout, geramos um email temporário
  * que será usado apenas para criar o pagamento no Flow.cl
  * 
+ * IMPORTANTE: Usa domínio real (@hmagencyia.online) para passar na validação do Flow.cl
+ * 
  * @param {string} trackingId - ID de tracking (opcional)
- * @returns {string} Email temporário no formato guest-{tracking_id}@checkout.temp
+ * @returns {string} Email temporário no formato guest-{tracking_id}@hmagencyia.online
  */
 function generateTempEmail(trackingId = null) {
   if (trackingId) {
     // Remove caracteres especiais do tracking_id para usar no email
     const cleanTrackingId = trackingId.replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
-    return `guest-${cleanTrackingId}@checkout.temp`;
+    return `guest-${cleanTrackingId}@hmagencyia.online`;
   }
   
   // Se não tiver tracking_id, usa timestamp
   const timestamp = Date.now();
-  return `guest-${timestamp}@checkout.temp`;
+  return `guest-${timestamp}@hmagencyia.online`;
 }
 
 /**
@@ -75,7 +77,8 @@ export async function createFlowPayment({
   const userTrackingId = trackingId || getTrackingId();
   
   // Gera email temporário automaticamente (sempre, sem fricção)
-  // O email será guest-{tracking_id}@checkout.temp ou guest-{timestamp}@checkout.temp
+  // O email será guest-{tracking_id}@hmagencyia.online ou guest-{timestamp}@hmagencyia.online
+  // Usa domínio real para passar na validação do Flow.cl
   const tempEmail = generateTempEmail(userTrackingId);
   
   console.log('🛒 Iniciando checkout:', {
