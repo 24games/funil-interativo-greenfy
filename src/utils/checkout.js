@@ -35,28 +35,24 @@ function getTrackingId() {
 }
 
 /**
- * Gera email temporário para checkout
- * 
- * Como o funil não captura email antes do checkout, geramos um email temporário
- * que será usado apenas para criar o pagamento no Flow.cl
+ * Gera email para checkout (fixo e real)
  * 
  * IMPORTANTE: 
- * - Usa domínio Gmail (@gmail.com) pois o Flow.cl valida registros MX
- * - Domínios sem servidor de email configurado são rejeitados (erro 1620)
- * - Gmail.com possui registros MX válidos e passa na validação
- * - Formato curto e simples: c.{timestamp}@gmail.com
- * - Timestamp garante unicidade sem depender do tracking_id
- * - O tracking_id continua sendo enviado no campo optional para match futuro
- * - O email é apenas um placeholder técnico, não será usado para comunicação
+ * - Flow.cl valida se a conta de email realmente existe (SMTP Check)
+ * - Emails dinâmicos ou temporários são rejeitados (erro 1620)
+ * - Usamos um email fixo e real para passar na validação
+ * - O vínculo real do cliente é feito pelo tracking_id no campo optional
+ * - Este email é apenas um requisito técnico da API, não será usado para comunicação
  * 
- * @returns {string} Email temporário no formato c.{timestamp}@gmail.com
+ * Nota: Se preferir, pode configurar via variável de ambiente ou usar outro email real
+ * 
+ * @returns {string} Email fixo e real: carlos.almeida.alencar@gmail.com
  */
 function generateTempEmail() {
-  // Gera email curto e único usando apenas timestamp
-  // Formato: c.1765845379@gmail.com
-  // Usa Gmail pois possui registros MX válidos e passa na validação do Flow.cl
-  const timestamp = Date.now();
-  return `c.${timestamp}@gmail.com`;
+  // Retorna email fixo e real para passar na validação SMTP do Flow.cl
+  // Flow.cl valida se a conta de email realmente existe (erro 1620 se não existir)
+  // O tracking_id no campo optional faz o vínculo real com o cliente
+  return 'carlos.almeida.alencar@gmail.com';
 }
 
 /**
@@ -78,10 +74,9 @@ export async function createFlowPayment({
   // Busca tracking_id se não foi fornecido
   const userTrackingId = trackingId || getTrackingId();
   
-  // Gera email temporário automaticamente (sempre, sem fricção)
-  // Formato: c.{timestamp}@gmail.com
-  // Usa Gmail pois possui registros MX válidos e passa na validação do Flow.cl
-  // O tracking_id continua sendo enviado no campo optional para match futuro
+  // Gera email fixo e real para passar na validação SMTP do Flow.cl
+  // Flow.cl valida se a conta de email realmente existe (erro 1620 se não existir)
+  // O tracking_id continua sendo enviado no campo optional para match futuro (vínculo real)
   const tempEmail = generateTempEmail();
   
   console.log('🛒 Iniciando checkout:', {
@@ -97,7 +92,7 @@ export async function createFlowPayment({
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      email: tempEmail, // Email temporário gerado automaticamente
+      email: tempEmail, // Email fixo e real para validação SMTP do Flow.cl
       tracking_id: userTrackingId, // Enviado no optional para match futuro
       amount: amount,
     }),
