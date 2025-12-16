@@ -18,8 +18,10 @@ const FLOW_SECRET_KEY = process.env.FLOW_SECRET_KEY;
 const FLOW_API_URL = 'https://www.flow.cl/api';
 
 // URLs de retorno
-const URL_RETURN = process.env.FLOW_URL_RETURN || 'https://www.hmagencyia.online/gracias';
-const URL_CONFIRMATION = process.env.FLOW_URL_CONFIRMATION || 'https://www.hmagencyia.online/api/webhook-flow';
+// urlReturn: Aponta para o middleware que recebe POST e redireciona para /gracias
+const BASE_URL = process.env.FLOW_BASE_URL || 'https://hackermillon.online';
+const URL_RETURN = process.env.FLOW_URL_RETURN || `${BASE_URL}/api/flow-return`;
+const URL_CONFIRMATION = process.env.FLOW_URL_CONFIRMATION || `${BASE_URL}/api/webhook-flow`;
 
 // Valor padrão (pode ser dinâmico via body)
 const DEFAULT_AMOUNT = 5000;

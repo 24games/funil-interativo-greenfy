@@ -9,6 +9,7 @@ import Step6 from './components/Step6'
 import Step7 from './components/Step7'
 import ProgressBar from './components/ProgressBar'
 import Back from './components/Back'
+import Gracias from './components/Gracias'
 
 function App() {
   const [currentPath, setCurrentPath] = useState(() => {
@@ -38,6 +39,11 @@ function App() {
   // Se a rota for /back, renderiza a página Back
   if (currentPath === '/back' || currentPath === '/back/') {
     return <Back />
+  }
+
+  // Se a rota for /gracias, renderiza a página de obrigado
+  if (currentPath === '/gracias' || currentPath === '/gracias/') {
+    return <Gracias />
   }
   // Inicializa o step a partir da URL (se presente)
   const getInitialStep = () => {
