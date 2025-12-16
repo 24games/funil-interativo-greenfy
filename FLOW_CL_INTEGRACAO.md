@@ -324,3 +324,6 @@ Campos principais:
 **Desenvolvido para:** Integração Flow.cl  
 **Data:** Dezembro 2025  
 **Versão:** 1.0.0
+
+
+

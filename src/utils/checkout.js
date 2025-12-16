@@ -35,52 +35,38 @@ function getTrackingId() {
 }
 
 /**
- * Gera email para checkout (fixo e real)
- * 
- * IMPORTANTE: 
- * - Flow.cl valida se a conta de email realmente existe (SMTP Check)
- * - Emails dinâmicos ou temporários são rejeitados (erro 1620)
- * - Usamos um email fixo e real para passar na validação
- * - O vínculo real do cliente é feito pelo tracking_id no campo optional
- * - Este email é apenas um requisito técnico da API, não será usado para comunicação
- * 
- * Nota: Se preferir, pode configurar via variável de ambiente ou usar outro email real
- * 
- * @returns {string} Email fixo e real: carlos.almeida.alencar@gmail.com
- */
-function generateTempEmail() {
-  // Retorna email fixo e real para passar na validação SMTP do Flow.cl
-  // Flow.cl valida se a conta de email realmente existe (erro 1620 se não existir)
-  // O tracking_id no campo optional faz o vínculo real com o cliente
-  return 'carlos.almeida.alencar@gmail.com';
-}
-
-/**
  * Cria pagamento no Flow.cl e redireciona
  * 
- * IMPORTANTE: Como o funil não captura email antes do checkout,
- * sempre geramos um email temporário automaticamente.
+ * IMPORTANTE: Email é obrigatório e deve ser fornecido pelo usuário.
  * O tracking_id é enviado no campo optional para fazer o match posterior.
  * 
  * @param {Object} options - Opções de checkout
+ * @param {string} options.email - Email do cliente (OBRIGATÓRIO)
  * @param {string} options.trackingId - ID de tracking (opcional, tenta buscar automaticamente)
  * @param {number} options.amount - Valor em CLP (opcional, padrão: 5000)
  * @returns {Promise<void>}
  */
 export async function createFlowPayment({ 
+  email,
   trackingId = null, 
   amount = 5000 
 } = {}) {
+  // Validação: email é obrigatório
+  if (!email || !email.trim()) {
+    throw new Error('Email é obrigatório para continuar');
+  }
+
+  // Validação básica de formato
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw new Error('Email inválido');
+  }
+
   // Busca tracking_id se não foi fornecido
   const userTrackingId = trackingId || getTrackingId();
   
-  // Gera email fixo e real para passar na validação SMTP do Flow.cl
-  // Flow.cl valida se a conta de email realmente existe (erro 1620 se não existir)
-  // O tracking_id continua sendo enviado no campo optional para match futuro (vínculo real)
-  const tempEmail = generateTempEmail();
-  
   console.log('🛒 Iniciando checkout:', {
-    tempEmail: tempEmail,
+    email: email,
     trackingId: userTrackingId,
     amount: amount,
   });
@@ -92,7 +78,7 @@ export async function createFlowPayment({
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      email: tempEmail, // Email fixo e real para validação SMTP do Flow.cl
+      email: email, // Email fornecido pelo usuário
       tracking_id: userTrackingId, // Enviado no optional para match futuro
       amount: amount,
     }),

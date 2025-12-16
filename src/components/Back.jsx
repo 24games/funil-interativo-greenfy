@@ -2,11 +2,13 @@ import { useEffect, useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { initTracking, sendInitiateCheckout } from '../utils/tracking.js'
 import { createFlowPayment } from '../utils/checkout.js'
+import EmailModal from './EmailModal'
 import { CheckCircle } from 'lucide-react'
 
 export default function Back() {
   const [isButtonReady, setIsButtonReady] = useState(true) // Botao ja comeca pronto
   const [isProcessing, setIsProcessing] = useState(false) // Estado de loading para checkout
+  const [showEmailModal, setShowEmailModal] = useState(false) // Estado do modal de email
   const buttonRef = useRef(null)
 
   // Inicializa tracking quando a pagina /back carrega
@@ -16,10 +18,8 @@ export default function Back() {
     })
   }, [])
 
-  // Handler do botao CTA (mesmo do Step 7)
-  const handleCTA = async () => {
-    if (isProcessing) return // Não processa se já estiver processando
-    
+  // Função para processar checkout (reutilizável)
+  const processCheckout = async (email) => {
     setIsProcessing(true)
     
     try {
@@ -28,15 +28,36 @@ export default function Back() {
       console.log('✅ InitiateCheckout enviado com sucesso')
       
       // Cria pagamento no Flow.cl e redireciona
-      // A função createFlowPayment busca automaticamente email e tracking_id
-      await createFlowPayment()
+      await createFlowPayment({ email })
       // Se chegou aqui, o redirecionamento foi feito (window.location.href)
       // Não precisa resetar isProcessing pois a página será redirecionada
     } catch (error) {
       console.error('❌ Erro no checkout:', error)
-      alert(`Erro ao processar pagamento: ${error.message || 'Erro desconhecido'}`)
+      alert(`Error al procesar el pago: ${error.message || 'Error desconocido'}`)
       setIsProcessing(false) // Reseta apenas em caso de erro
     }
+  }
+
+  // Handler do modal (quando usuário confirma email)
+  const handleEmailConfirm = async (email) => {
+    await processCheckout(email)
+  }
+
+  // Handler do botao CTA (mesmo do Step 7)
+  const handleCTA = async () => {
+    if (isProcessing) return // Não processa se já estiver processando
+    
+    // Verifica se já tem email salvo
+    const savedEmail = localStorage.getItem('user_email')
+    
+    if (!savedEmail) {
+      // Cenário B: Não tem email - abre modal
+      setShowEmailModal(true)
+      return
+    }
+    
+    // Cenário A: Já tem email - fluxo rápido
+    await processCheckout(savedEmail)
   }
 
   // Componente do botao reutilizavel
@@ -263,6 +284,13 @@ export default function Back() {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Modal de Email */}
+      <EmailModal
+        isOpen={showEmailModal}
+        onConfirm={handleEmailConfirm}
+        onClose={() => {}} // Modal não fecha (sem botão X)
+      />
     </div>
   )
 }

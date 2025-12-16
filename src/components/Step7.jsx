@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { useRef, useState, useEffect } from 'react'
 import { Sparkles } from 'lucide-react'
 import VturbVideo from './VturbVideo'
+import EmailModal from './EmailModal'
 import { sendInitiateCheckout } from '../utils/tracking.js'
 import { createFlowPayment } from '../utils/checkout.js'
 
@@ -22,6 +23,37 @@ export default function Step7() {
   const [isButtonReady, setIsButtonReady] = useState(false)
   // Estado de loading para checkout
   const [isProcessing, setIsProcessing] = useState(false)
+  // Estado do modal de email
+  const [showEmailModal, setShowEmailModal] = useState(false)
+
+  // ============================================================================
+  // FUNÇÕES AUXILIARES DE CHECKOUT
+  // ============================================================================
+  
+  // Função para processar checkout (reutilizável)
+  const processCheckout = async (email) => {
+    setIsProcessing(true)
+    
+    try {
+      // Envia evento InitiateCheckout para Meta Conversions API
+      await sendInitiateCheckout()
+      console.log('✅ InitiateCheckout enviado com sucesso')
+      
+      // Cria pagamento no Flow.cl e redireciona
+      await createFlowPayment({ email })
+      // Se chegou aqui, o redirecionamento foi feito (window.location.href)
+      // Não precisa resetar isProcessing pois a página será redirecionada
+    } catch (error) {
+      console.error('❌ Erro no checkout:', error)
+      alert(`Error al procesar el pago: ${error.message || 'Error desconocido'}`)
+      setIsProcessing(false) // Reseta apenas em caso de erro
+    }
+  }
+
+  // Handler do modal (quando usuário confirma email)
+  const handleEmailConfirm = async (email) => {
+    await processCheckout(email)
+  }
 
   // ============================================================================
   // HANDLER DO BOTÃƒO CTA
@@ -29,23 +61,18 @@ export default function Step7() {
   const handleCTA = async () => {
     if (!isButtonReady || isProcessing) return // NÃ£o faz nada se nÃ£o estiver pronto ou jÃ¡ estiver processando
     
-    setIsProcessing(true)
+    // Verifica se já tem email salvo
+    const savedEmail = localStorage.getItem('user_email')
     
-    try {
-      // Envia evento InitiateCheckout para Meta Conversions API
-      await sendInitiateCheckout()
-      console.log('âœ… InitiateCheckout enviado com sucesso')
-      
-      // Cria pagamento no Flow.cl e redireciona
-      // A função createFlowPayment busca automaticamente email e tracking_id
-      await createFlowPayment()
-      // Se chegou aqui, o redirecionamento foi feito (window.location.href)
-      // Não precisa resetar isProcessing pois a página será redirecionada
-    } catch (error) {
-      console.error('âŒ Erro no checkout:', error)
-      alert(`Erro ao processar pagamento: ${error.message || 'Erro desconhecido'}`)
-      setIsProcessing(false) // Reseta apenas em caso de erro
+    if (!savedEmail) {
+      // Cenário B: Não tem email - abre modal
+      setShowEmailModal(true)
+      return
     }
+    
+    // Cenário A: Já tem email - fluxo rápido
+    await processCheckout(savedEmail)
+      console.error('âŒ Erro no checkout:', error)
   }
 
   // ============================================================================
@@ -421,6 +448,13 @@ export default function Step7() {
         <span>•</span>
         <span>⚡ Acceso Inmediato</span>
       </motion.div>
+
+      {/* Modal de Email */}
+      <EmailModal
+        isOpen={showEmailModal}
+        onConfirm={handleEmailConfirm}
+        onClose={() => {}} // Modal não fecha (sem botão X)
+      />
     </motion.div>
   )
 }
