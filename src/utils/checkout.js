@@ -40,21 +40,19 @@ function getTrackingId() {
  * Como o funil não captura email antes do checkout, geramos um email temporário
  * que será usado apenas para criar o pagamento no Flow.cl
  * 
- * IMPORTANTE: Usa domínio real (@hmagencyia.online) para passar na validação do Flow.cl
+ * IMPORTANTE: 
+ * - Usa domínio real (@hmagencyia.online) para passar na validação do Flow.cl
+ * - Formato curto e simples: u{timestamp}@hmagencyia.online
+ * - Timestamp garante unicidade sem depender do tracking_id
+ * - O tracking_id continua sendo enviado no campo optional para match futuro
  * 
- * @param {string} trackingId - ID de tracking (opcional)
- * @returns {string} Email temporário no formato guest-{tracking_id}@hmagencyia.online
+ * @returns {string} Email temporário no formato u{timestamp}@hmagencyia.online
  */
-function generateTempEmail(trackingId = null) {
-  if (trackingId) {
-    // Remove caracteres especiais do tracking_id para usar no email
-    const cleanTrackingId = trackingId.replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
-    return `guest-${cleanTrackingId}@hmagencyia.online`;
-  }
-  
-  // Se não tiver tracking_id, usa timestamp
+function generateTempEmail() {
+  // Gera email curto e único usando apenas timestamp
+  // Formato: u1709999999@hmagencyia.online
   const timestamp = Date.now();
-  return `guest-${timestamp}@hmagencyia.online`;
+  return `u${timestamp}@hmagencyia.online`;
 }
 
 /**
@@ -77,9 +75,9 @@ export async function createFlowPayment({
   const userTrackingId = trackingId || getTrackingId();
   
   // Gera email temporário automaticamente (sempre, sem fricção)
-  // O email será guest-{tracking_id}@hmagencyia.online ou guest-{timestamp}@hmagencyia.online
-  // Usa domínio real para passar na validação do Flow.cl
-  const tempEmail = generateTempEmail(userTrackingId);
+  // Formato curto e simples: u{timestamp}@hmagencyia.online
+  // O tracking_id continua sendo enviado no campo optional para match futuro
+  const tempEmail = generateTempEmail();
   
   console.log('🛒 Iniciando checkout:', {
     tempEmail: tempEmail,
