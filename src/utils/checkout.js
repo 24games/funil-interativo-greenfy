@@ -85,22 +85,31 @@ export async function createFlowPayment({
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Erro desconhecido' }));
+    let error;
+    try {
+      error = await response.json();
+    } catch (e) {
+      error = { message: 'Erro desconhecido' };
+    }
     
     // Verifica se é erro 1620 (email inválido) do Flow
     const errorMessage = error.message || '';
     const errorDetails = error.details || '';
+    const errorCode = error.code || error.error?.code || '';
     const errorString = JSON.stringify(error).toLowerCase();
     
-    // Detecta erro 1620 ou qualquer menção a email inválido
+    // Detecta erro 1620 ou qualquer menção a email inválido ou "not valid"
     if (
+      errorCode === 1620 ||
       errorString.includes('1620') || 
-      errorString.includes('email') && (errorString.includes('inválido') || errorString.includes('invalido') || errorString.includes('invalid'))
+      errorString.includes('not valid') ||
+      (errorString.includes('email') && (errorString.includes('inválido') || errorString.includes('invalido') || errorString.includes('invalid')))
     ) {
+      console.log('🔍 Erro 1620 detectado - Email inválido');
       throw new Error('INVALID_EMAIL');
     }
     
-    throw new Error(error.message || `Erro HTTP: ${response.status}`);
+    throw new Error(error.message || error.error?.message || `Erro HTTP: ${response.status}`);
   }
 
   const data = await response.json();

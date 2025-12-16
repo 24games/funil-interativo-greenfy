@@ -2,11 +2,19 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, ArrowRight } from 'lucide-react'
 
-export default function EmailModal({ isOpen, onConfirm, onClose, externalError = '', onExternalErrorClear }) {
+export default function EmailModal({ isOpen, onConfirm, onClose, errorMessage = '', onClearError }) {
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [loadingTextIndex, setLoadingTextIndex] = useState(0)
+  
+  // Efeito para resetar isProcessing quando há erro externo (do componente pai)
+  useEffect(() => {
+    if (errorMessage) {
+      // Se há mensagem de erro externo, para o loading do modal
+      setIsProcessing(false)
+    }
+  }, [errorMessage])
 
   // Sequência de textos de loading (Espanhol Chileno)
   const loadingTexts = [
@@ -44,7 +52,9 @@ export default function EmailModal({ isOpen, onConfirm, onClose, externalError =
   const handleConfirm = async () => {
     // Limpa erro anterior (tanto interno quanto externo)
     setError('')
-    // Nota: externalError é controlado pelo componente pai
+    if (onClearError) {
+      onClearError() // Limpa erro externo também
+    }
 
     // Validação
     if (!email.trim()) {
@@ -63,18 +73,21 @@ export default function EmailModal({ isOpen, onConfirm, onClose, externalError =
       // Salva email no localStorage
       localStorage.setItem('user_email', email)
 
-      // Chama callback com o email
+      // Chama callback com o email - PROPAGA o erro para o componente pai tratar
       await onConfirm(email)
       
       // Se chegou aqui, o redirecionamento foi feito
       // Não precisa resetar isProcessing
     } catch (error) {
-      // Se for erro de email inválido, não mostra aqui (será tratado pelo pai)
+      // Se for erro de email inválido, deixa o componente pai tratar
+      // O componente pai vai resetar isProcessing e mostrar a mensagem
       if (error.message === 'INVALID_EMAIL') {
-        // O componente pai vai tratar e passar via externalError
-        setIsProcessing(false)
-        return
+        // Não reseta isProcessing aqui - deixa o componente pai fazer
+        // Apenas re-lança o erro para o componente pai tratar
+        throw error
       }
+      
+      // Para outros erros, reseta o loading e mostra erro interno
       setError(error.message || 'Error al procesar. Intenta nuevamente.')
       setIsProcessing(false)
     }
@@ -183,8 +196,8 @@ export default function EmailModal({ isOpen, onConfirm, onClose, externalError =
                       setEmail(e.target.value)
                       setError('') // Limpa erro interno ao digitar
                       // Limpa erro externo quando usuário começa a digitar
-                      if (externalError && onExternalErrorClear) {
-                        onExternalErrorClear()
+                      if (errorMessage && onClearError) {
+                        onClearError()
                       }
                     }}
                     onKeyPress={handleKeyPress}
@@ -192,8 +205,8 @@ export default function EmailModal({ isOpen, onConfirm, onClose, externalError =
                     disabled={isProcessing}
                     className="w-full px-4 py-4 bg-black/50 border-2 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 transition-all duration-300"
                     style={{
-                      borderColor: (error || externalError) ? '#ef4444' : '#374151',
-                      boxShadow: (error || externalError) ? '0 0 10px rgba(239, 68, 68, 0.5)' : 'none',
+                      borderColor: (error || errorMessage) ? '#ef4444' : '#374151',
+                      boxShadow: (error || errorMessage) ? '0 0 10px rgba(239, 68, 68, 0.5)' : 'none',
                     }}
                   />
                   
@@ -209,7 +222,7 @@ export default function EmailModal({ isOpen, onConfirm, onClose, externalError =
                   )}
                   
                   {/* Mensagem de erro externo (do Flow/API) - Mais visível */}
-                  {externalError && (
+                  {errorMessage && (
                     <motion.p
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -219,7 +232,7 @@ export default function EmailModal({ isOpen, onConfirm, onClose, externalError =
                         textShadow: '0 0 10px rgba(239, 68, 68, 0.5)',
                       }}
                     >
-                      {externalError}
+                      {errorMessage}
                     </motion.p>
                   )}
                 </motion.div>

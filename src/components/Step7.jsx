@@ -52,14 +52,17 @@ export default function Step7() {
       // Verifica se é erro de email inválido (1620 do Flow)
       if (error.message === 'INVALID_EMAIL' || error.message?.includes('1620')) {
         // NÃO fecha o modal, mostra erro e permite correção
-        setEmailError('¡El correo está mal escrito! Escribe un correo válido para poder acceder ahora a la app.')
+        setEmailError('¡El correo está mal escrito! Por favor, revisa que sea válido.')
         setIsProcessing(false) // Para o loading para o botão voltar a ficar clicável
+        // Garante que o modal permanece aberto
+        setShowEmailModal(true)
         return
       }
       
-      // Para outros erros, mostra alert padrão
+      // Para outros erros, mostra alert padrão e fecha o modal
       alert(`Error al procesar el pago: ${error.message || 'Error desconocido'}`)
       setIsProcessing(false) // Reseta apenas em caso de erro
+      setShowEmailModal(false) // Fecha o modal para outros erros
     }
   }
 
@@ -67,14 +70,8 @@ export default function Step7() {
   const handleEmailConfirm = async (email) => {
     // Limpa erro quando usuário tenta novamente
     setEmailError('')
+    // Chama processCheckout - o erro será tratado dentro dele
     await processCheckout(email)
-  }
-  
-  // Handler para limpar erro quando usuário começa a digitar
-  const handleEmailChange = () => {
-    if (emailError) {
-      setEmailError('')
-    }
   }
 
   // ============================================================================
@@ -494,8 +491,8 @@ export default function Step7() {
         isOpen={showEmailModal}
         onConfirm={handleEmailConfirm}
         onClose={() => {}} // Modal não fecha (sem botão X)
-        externalError={emailError}
-        onExternalErrorClear={() => setEmailError('')}
+        errorMessage={emailError}
+        onClearError={() => setEmailError('')}
       />
     </motion.div>
   )
