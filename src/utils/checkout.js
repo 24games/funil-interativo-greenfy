@@ -41,18 +41,22 @@ function getTrackingId() {
  * que será usado apenas para criar o pagamento no Flow.cl
  * 
  * IMPORTANTE: 
- * - Usa domínio real (@hmagencyia.online) para passar na validação do Flow.cl
- * - Formato curto e simples: u{timestamp}@hmagencyia.online
+ * - Usa domínio Gmail (@gmail.com) pois o Flow.cl valida registros MX
+ * - Domínios sem servidor de email configurado são rejeitados (erro 1620)
+ * - Gmail.com possui registros MX válidos e passa na validação
+ * - Formato curto e simples: c.{timestamp}@gmail.com
  * - Timestamp garante unicidade sem depender do tracking_id
  * - O tracking_id continua sendo enviado no campo optional para match futuro
+ * - O email é apenas um placeholder técnico, não será usado para comunicação
  * 
- * @returns {string} Email temporário no formato u{timestamp}@hmagencyia.online
+ * @returns {string} Email temporário no formato c.{timestamp}@gmail.com
  */
 function generateTempEmail() {
   // Gera email curto e único usando apenas timestamp
-  // Formato: u1709999999@hmagencyia.online
+  // Formato: c.1765845379@gmail.com
+  // Usa Gmail pois possui registros MX válidos e passa na validação do Flow.cl
   const timestamp = Date.now();
-  return `u${timestamp}@hmagencyia.online`;
+  return `c.${timestamp}@gmail.com`;
 }
 
 /**
@@ -75,7 +79,8 @@ export async function createFlowPayment({
   const userTrackingId = trackingId || getTrackingId();
   
   // Gera email temporário automaticamente (sempre, sem fricção)
-  // Formato curto e simples: u{timestamp}@hmagencyia.online
+  // Formato: c.{timestamp}@gmail.com
+  // Usa Gmail pois possui registros MX válidos e passa na validação do Flow.cl
   // O tracking_id continua sendo enviado no campo optional para match futuro
   const tempEmail = generateTempEmail();
   
