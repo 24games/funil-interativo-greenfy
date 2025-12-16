@@ -25,6 +25,8 @@ export default function Step7() {
   const [isProcessing, setIsProcessing] = useState(false)
   // Estado do modal de email
   const [showEmailModal, setShowEmailModal] = useState(false)
+  // Estado de erro de email (do Flow/API)
+  const [emailError, setEmailError] = useState('')
 
   // ============================================================================
   // FUNÇÕES AUXILIARES DE CHECKOUT
@@ -33,6 +35,7 @@ export default function Step7() {
   // Função para processar checkout (reutilizável)
   const processCheckout = async (email) => {
     setIsProcessing(true)
+    setEmailError('') // Limpa erro anterior
     
     try {
       // Envia evento InitiateCheckout para Meta Conversions API
@@ -45,6 +48,16 @@ export default function Step7() {
       // Não precisa resetar isProcessing pois a página será redirecionada
     } catch (error) {
       console.error('❌ Erro no checkout:', error)
+      
+      // Verifica se é erro de email inválido (1620 do Flow)
+      if (error.message === 'INVALID_EMAIL' || error.message?.includes('1620')) {
+        // NÃO fecha o modal, mostra erro e permite correção
+        setEmailError('¡El correo está mal escrito! Escribe un correo válido para poder acceder ahora a la app.')
+        setIsProcessing(false) // Para o loading para o botão voltar a ficar clicável
+        return
+      }
+      
+      // Para outros erros, mostra alert padrão
       alert(`Error al procesar el pago: ${error.message || 'Error desconocido'}`)
       setIsProcessing(false) // Reseta apenas em caso de erro
     }
@@ -52,7 +65,16 @@ export default function Step7() {
 
   // Handler do modal (quando usuário confirma email)
   const handleEmailConfirm = async (email) => {
+    // Limpa erro quando usuário tenta novamente
+    setEmailError('')
     await processCheckout(email)
+  }
+  
+  // Handler para limpar erro quando usuário começa a digitar
+  const handleEmailChange = () => {
+    if (emailError) {
+      setEmailError('')
+    }
   }
 
   // ============================================================================
@@ -472,6 +494,8 @@ export default function Step7() {
         isOpen={showEmailModal}
         onConfirm={handleEmailConfirm}
         onClose={() => {}} // Modal não fecha (sem botão X)
+        externalError={emailError}
+        onExternalErrorClear={() => setEmailError('')}
       />
     </motion.div>
   )

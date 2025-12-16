@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, ArrowRight } from 'lucide-react'
 
-export default function EmailModal({ isOpen, onConfirm, onClose }) {
+export default function EmailModal({ isOpen, onConfirm, onClose, externalError = '', onExternalErrorClear }) {
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
@@ -42,8 +42,9 @@ export default function EmailModal({ isOpen, onConfirm, onClose }) {
 
   // Handler do botão continuar
   const handleConfirm = async () => {
-    // Limpa erro anterior
+    // Limpa erro anterior (tanto interno quanto externo)
     setError('')
+    // Nota: externalError é controlado pelo componente pai
 
     // Validação
     if (!email.trim()) {
@@ -68,6 +69,12 @@ export default function EmailModal({ isOpen, onConfirm, onClose }) {
       // Se chegou aqui, o redirecionamento foi feito
       // Não precisa resetar isProcessing
     } catch (error) {
+      // Se for erro de email inválido, não mostra aqui (será tratado pelo pai)
+      if (error.message === 'INVALID_EMAIL') {
+        // O componente pai vai tratar e passar via externalError
+        setIsProcessing(false)
+        return
+      }
       setError(error.message || 'Error al procesar. Intenta nuevamente.')
       setIsProcessing(false)
     }
@@ -174,18 +181,23 @@ export default function EmailModal({ isOpen, onConfirm, onClose }) {
                     value={email}
                     onChange={(e) => {
                       setEmail(e.target.value)
-                      setError('') // Limpa erro ao digitar
+                      setError('') // Limpa erro interno ao digitar
+                      // Limpa erro externo quando usuário começa a digitar
+                      if (externalError && onExternalErrorClear) {
+                        onExternalErrorClear()
+                      }
                     }}
                     onKeyPress={handleKeyPress}
                     placeholder="tu@correo.com"
                     disabled={isProcessing}
-                    className="w-full px-4 py-4 bg-black/50 border-2 border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-neon focus:ring-2 focus:ring-neon/20 transition-all duration-300"
+                    className="w-full px-4 py-4 bg-black/50 border-2 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 transition-all duration-300"
                     style={{
-                      boxShadow: error ? '0 0 10px rgba(239, 68, 68, 0.3)' : 'none',
+                      borderColor: (error || externalError) ? '#ef4444' : '#374151',
+                      boxShadow: (error || externalError) ? '0 0 10px rgba(239, 68, 68, 0.5)' : 'none',
                     }}
                   />
                   
-                  {/* Mensagem de erro */}
+                  {/* Mensagem de erro interno */}
                   {error && (
                     <motion.p
                       initial={{ opacity: 0, y: -10 }}
@@ -193,6 +205,21 @@ export default function EmailModal({ isOpen, onConfirm, onClose }) {
                       className="mt-2 text-red-400 text-sm"
                     >
                       {error}
+                    </motion.p>
+                  )}
+                  
+                  {/* Mensagem de erro externo (do Flow/API) - Mais visível */}
+                  {externalError && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="mt-2 text-red-400 font-semibold text-base text-center"
+                      style={{
+                        textShadow: '0 0 10px rgba(239, 68, 68, 0.5)',
+                      }}
+                    >
+                      {externalError}
                     </motion.p>
                   )}
                 </motion.div>
