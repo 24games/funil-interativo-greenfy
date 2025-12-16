@@ -120,19 +120,37 @@ export default function Back() {
       <span style={{ position: 'relative', zIndex: 2 }}>
         {isProcessing ? (
           <>
-            <span
+            <motion.span
+              animate={{
+                rotate: 360,
+              }}
+              transition={{
+                duration: 1,
+                repeat: Infinity,
+                ease: "linear"
+              }}
               style={{ 
                 display: 'inline-block',
-                width: '16px',
-                height: '16px',
-                border: '2px solid rgba(5,5,5,0.3)',
-                borderTopColor: '#050505',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
+                width: '18px',
+                height: '18px',
+                fontSize: '18px',
                 marginRight: '8px'
               }}
-            />
-            Processando...
+            >
+              🔄
+            </motion.span>
+            <motion.span
+              animate={{
+                opacity: [0.7, 1, 0.7],
+              }}
+              transition={{
+                duration: 1.5,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              Conectando...
+            </motion.span>
           </>
         ) : (
           'APP LIBERADO!'

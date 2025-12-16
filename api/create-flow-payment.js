@@ -71,6 +71,11 @@ console.log('🔍 DEBUG URLS (carregamento do módulo):', {
 // Valor padrão (pode ser dinâmico via body)
 const DEFAULT_AMOUNT = 5000;
 
+// Timeout do link de pagamento (em segundos)
+// 3600 segundos = 1 hora - CRÍTICO para retenção do usuário
+// Evita que o link expire muito rápido durante o cold start da Vercel
+const PAYMENT_TIMEOUT = 3600;
+
 // ============================================
 // FUNÇÕES AUXILIARES
 // ============================================
@@ -108,6 +113,7 @@ function generateFlowSignature(params) {
   console.log('STRING TO SIGN:', stringToSign);
   console.log('STRING TO SIGN LENGTH:', stringToSign.length);
   console.log('SORTED KEYS:', sortedKeys);
+  console.log('✅ Timeout incluído na assinatura:', sortedKeys.includes('timeout') ? 'SIM' : 'NÃO');
 
   // Gera HMAC SHA256
   const signature = crypto
@@ -179,29 +185,33 @@ async function createFlowPayment(paymentData) {
   const optionalValue = JSON.stringify(optional);
   
   // 2. Define todos os parâmetros como STRINGS (valores já convertidos)
+  // IMPORTANTE: A ordem aqui não importa, pois a função generateFlowSignature
+  // ordena alfabeticamente automaticamente para a assinatura HMAC
   const formParams = {
     apiKey: String(FLOW_API_KEY),
-    commerceOrder: String(commerceOrder || generateCommerceOrder()),
-    subject: 'Pago de Servicio', // Título fixo
-    currency: 'CLP', // Moeda fixa
     amount: String(parseInt(amount, 10)), // Converter para string explicitamente
+    commerceOrder: String(commerceOrder || generateCommerceOrder()),
+    currency: 'CLP', // Moeda fixa
     email: String(email), // Email como string
+    optional: optionalValue, // Usa a variável gerada UMA VEZ
+    subject: 'Pago de Servicio', // Título fixo
+    timeout: String(PAYMENT_TIMEOUT), // Timeout de 1 hora (3600 segundos) - CRÍTICO para retenção
     urlConfirmation: String(URL_CONFIRMATION), // URL completa do webhook
     urlReturn: String(URL_RETURN), // URL completa da página de obrigado
-    optional: optionalValue, // Usa a variável gerada UMA VEZ
   };
 
   // 3. Log dos parâmetros antes de assinar (para debug)
   console.log('📋 Parâmetros antes da assinatura:', {
     apiKey: formParams.apiKey.substring(0, 10) + '...',
-    commerceOrder: formParams.commerceOrder,
-    subject: formParams.subject,
-    currency: formParams.currency,
     amount: formParams.amount,
+    commerceOrder: formParams.commerceOrder,
+    currency: formParams.currency,
     email: formParams.email,
+    optional: formParams.optional,
+    subject: formParams.subject,
+    timeout: formParams.timeout, // Timeout de 1 hora
     urlConfirmation: formParams.urlConfirmation,
     urlReturn: formParams.urlReturn,
-    optional: formParams.optional,
   });
 
   // 4. Gera assinatura sobre os parâmetros (SEM o campo 's')
@@ -220,16 +230,17 @@ async function createFlowPayment(paymentData) {
 
   // LOG CRÍTICO: Verifica URLs antes de enviar ao Flow
   console.log('📤 Criando pagamento no Flow.cl:', {
-    commerceOrder: formParams.commerceOrder,
     amount: formParams.amount,
+    commerceOrder: formParams.commerceOrder,
     currency: formParams.currency,
-    subject: formParams.subject,
     email: formParams.email,
+    optional: formParams.optional,
+    subject: formParams.subject,
+    timeout: formParams.timeout, // Timeout de 1 hora para retenção
     urlConfirmation: formParams.urlConfirmation,
     urlReturn: formParams.urlReturn,
-    optional: formParams.optional,
     signature: signature.substring(0, 16) + '...', // Mostra apenas início da assinatura
-    allParams: Object.keys(formParams).sort(), // Mostra todas as chaves
+    allParams: Object.keys(formParams).sort(), // Mostra todas as chaves (ordem alfabética)
   });
   
   // VALIDAÇÃO FINAL ANTES DE ENVIAR AO FLOW

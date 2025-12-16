@@ -373,20 +373,38 @@ export default function Step7() {
                 Cargando...
               </>
             ) : isProcessing ? (
-              // ESTADO DE PROCESSANDO CHECKOUT
+              // ESTADO DE PROCESSANDO CHECKOUT - Feedback dinâmico
               <>
-                <span
+                <motion.span
+                  animate={{
+                    rotate: 360,
+                  }}
+                  transition={{
+                    duration: 1,
+                    repeat: Infinity,
+                    ease: "linear"
+                  }}
                   style={{ 
                     display: 'inline-block',
-                    width: '16px',
-                    height: '16px',
-                    border: '2px solid rgba(255,255,255,0.3)',
-                    borderTopColor: '#ffffff',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
+                    width: '18px',
+                    height: '18px',
+                    fontSize: '18px'
                   }}
-                />
-                Processando...
+                >
+                  🔄
+                </motion.span>
+                <motion.span
+                  animate={{
+                    opacity: [0.7, 1, 0.7],
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                >
+                  Conectando...
+                </motion.span>
               </>
             ) : (
               // ESTADO PRONTO (100%) - Texto atualizado via JS
