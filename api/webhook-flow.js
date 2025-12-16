@@ -443,6 +443,24 @@ async function sendPurchaseToMeta(purchaseData, leadData) {
  * Handler da Serverless Function (Vercel)
  */
 export default async function handler(req, res) {
+  // ============================================
+  // LOGS AGRESSIVOS NO INÍCIO (conforme solicitado)
+  // ============================================
+  console.log('🚨 WEBHOOK-FLOW CHAMADO - LOG INICIAL:', {
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    url: req.url,
+    headers: {
+      'content-type': req.headers['content-type'],
+      'user-agent': req.headers['user-agent'],
+      'x-forwarded-for': req.headers['x-forwarded-for'],
+      'host': req.headers['host'],
+    },
+    hasBody: !!req.body,
+    bodyType: typeof req.body,
+    bodyKeys: req.body ? Object.keys(req.body) : [],
+  });
+
   // Configurar CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -450,11 +468,13 @@ export default async function handler(req, res) {
 
   // Tratar OPTIONS (preflight)
   if (req.method === 'OPTIONS') {
+    console.log('📋 OPTIONS request recebido (preflight)');
     return res.status(200).end();
   }
 
   // Apenas aceita POST
   if (req.method !== 'POST') {
+    console.error('❌ Método não permitido:', req.method);
     return res.status(405).json({
       error: 'Method not allowed',
       message: 'Apenas requisições POST são aceitas',
@@ -462,25 +482,40 @@ export default async function handler(req, res) {
     });
   }
 
+  console.log('✅ Método POST confirmado - iniciando processamento...');
+
   try {
     // Parse do body
     let body = req.body;
+    console.log('📦 Body recebido (antes do parse):', {
+      type: typeof body,
+      isString: typeof body === 'string',
+      length: typeof body === 'string' ? body.length : 'N/A',
+      preview: typeof body === 'string' ? body.substring(0, 200) : JSON.stringify(body).substring(0, 200),
+    });
     if (typeof body === 'string') {
       try {
         body = JSON.parse(body);
+        console.log('✅ Body parseado com sucesso (era string)');
       } catch (e) {
+        console.error('❌ Erro ao fazer parse do JSON:', e.message);
         return res.status(400).json({
           error: 'Invalid JSON',
           message: 'Body deve ser um JSON válido',
         });
       }
+    } else {
+      console.log('✅ Body já é objeto (não precisa parse)');
     }
 
-    // Log do payload recebido
-    console.log('📥 Webhook Flow.cl recebido:', {
+    // Log do payload recebido (AGRESSIVO)
+    console.log('📥 Webhook Flow.cl recebido - PAYLOAD COMPLETO:', {
       timestamp: new Date().toISOString(),
       token: body.token,
       hasToken: !!body.token,
+      tokenLength: body.token ? body.token.length : 0,
+      bodyKeys: Object.keys(body),
+      bodyFull: JSON.stringify(body).substring(0, 500), // Primeiros 500 chars
     });
 
     // Validação: token é obrigatório
@@ -680,6 +715,8 @@ export default async function handler(req, res) {
     });
   }
 }
+
+
 
 
 

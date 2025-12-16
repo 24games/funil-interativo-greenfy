@@ -19,9 +19,54 @@ const FLOW_API_URL = 'https://www.flow.cl/api';
 
 // URLs de retorno
 // urlReturn: Aponta para o middleware que recebe POST e redireciona para /gracias
-const BASE_URL = process.env.FLOW_BASE_URL || 'https://hackermillon.online';
-const URL_RETURN = process.env.FLOW_URL_RETURN || `${BASE_URL}/api/flow-return`;
-const URL_CONFIRMATION = process.env.FLOW_URL_CONFIRMATION || `${BASE_URL}/api/webhook-flow`;
+// VALIDAÇÃO: Garante que BASE_URL sempre tenha https:// e seja completa
+function validateAndNormalizeUrl(url, defaultPath) {
+  if (!url || url.trim() === '') {
+    return null; // Retorna null se vazia para usar fallback
+  }
+  
+  // Remove espaços
+  url = url.trim();
+  
+  // Se não começar com http:// ou https://, adiciona https://
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = `https://${url}`;
+  }
+  
+  // Garante que termine com / se tiver path
+  if (defaultPath && !url.endsWith('/') && !url.includes(defaultPath)) {
+    url = url.endsWith('/') ? url : `${url}/`;
+  }
+  
+  return url;
+}
+
+const BASE_URL_RAW = process.env.FLOW_BASE_URL || 'https://hackermillon.online';
+const BASE_URL = validateAndNormalizeUrl(BASE_URL_RAW, null) || 'https://hackermillon.online';
+
+// Valida e normaliza URL_RETURN
+const URL_RETURN_RAW = process.env.FLOW_URL_RETURN;
+const URL_RETURN = URL_RETURN_RAW 
+  ? validateAndNormalizeUrl(URL_RETURN_RAW, '/api/flow-return') || `${BASE_URL}/api/flow-return`
+  : `${BASE_URL}/api/flow-return`;
+
+// Valida e normaliza URL_CONFIRMATION (CRÍTICA - webhook)
+const URL_CONFIRMATION_RAW = process.env.FLOW_URL_CONFIRMATION;
+const URL_CONFIRMATION = URL_CONFIRMATION_RAW
+  ? validateAndNormalizeUrl(URL_CONFIRMATION_RAW, '/api/webhook-flow') || `${BASE_URL}/api/webhook-flow`
+  : `${BASE_URL}/api/webhook-flow`;
+
+// LOG CRÍTICO: Debug das URLs no carregamento do módulo
+console.log('🔍 DEBUG URLS (carregamento do módulo):', {
+  FLOW_BASE_URL: process.env.FLOW_BASE_URL || '(não definida)',
+  FLOW_URL_RETURN: process.env.FLOW_URL_RETURN || '(não definida)',
+  FLOW_URL_CONFIRMATION: process.env.FLOW_URL_CONFIRMATION || '(não definida)',
+  BASE_URL_FINAL: BASE_URL,
+  URL_RETURN_FINAL: URL_RETURN,
+  URL_CONFIRMATION_FINAL: URL_CONFIRMATION,
+  urlConfirmation_startsWith_https: URL_CONFIRMATION.startsWith('https://'),
+  urlReturn_startsWith_https: URL_RETURN.startsWith('https://'),
+});
 
 // Valor padrão (pode ser dinâmico via body)
 const DEFAULT_AMOUNT = 5000;
@@ -87,8 +132,31 @@ function generateCommerceOrder() {
  * Cria pagamento no Flow.cl
  */
 async function createFlowPayment(paymentData) {
+  // LOG EXPLICITO NO INÍCIO DA FUNÇÃO (conforme solicitado)
+  console.log('🔍 DEBUG URLS (início createFlowPayment):', {
+    urlConfirmation: URL_CONFIRMATION,
+    urlReturn: URL_RETURN,
+    urlConfirmation_length: URL_CONFIRMATION.length,
+    urlReturn_length: URL_RETURN.length,
+    urlConfirmation_startsWith_https: URL_CONFIRMATION.startsWith('https://'),
+    urlReturn_startsWith_https: URL_RETURN.startsWith('https://'),
+    urlConfirmation_isValid: URL_CONFIRMATION.includes('http') && URL_CONFIRMATION.includes('/api/webhook-flow'),
+    urlReturn_isValid: URL_RETURN.includes('http') && URL_RETURN.includes('/api/flow-return'),
+  });
+
   if (!FLOW_API_KEY || !FLOW_SECRET_KEY) {
     throw new Error('FLOW_API_KEY e FLOW_SECRET_KEY são obrigatórias');
+  }
+
+  // VALIDAÇÃO CRÍTICA: Garante que URLs não estão vazias ou inválidas
+  if (!URL_CONFIRMATION || !URL_CONFIRMATION.startsWith('https://')) {
+    console.error('❌ ERRO CRÍTICO: URL_CONFIRMATION inválida:', URL_CONFIRMATION);
+    throw new Error(`URL_CONFIRMATION inválida: ${URL_CONFIRMATION}. Deve começar com https://`);
+  }
+  
+  if (!URL_RETURN || !URL_RETURN.startsWith('https://')) {
+    console.error('❌ ERRO CRÍTICO: URL_RETURN inválida:', URL_RETURN);
+    throw new Error(`URL_RETURN inválida: ${URL_RETURN}. Deve começar com https://`);
   }
 
   const {
@@ -150,6 +218,7 @@ async function createFlowPayment(paymentData) {
     'Content-Type': 'application/x-www-form-urlencoded',
   };
 
+  // LOG CRÍTICO: Verifica URLs antes de enviar ao Flow
   console.log('📤 Criando pagamento no Flow.cl:', {
     commerceOrder: formParams.commerceOrder,
     amount: formParams.amount,
@@ -162,6 +231,23 @@ async function createFlowPayment(paymentData) {
     signature: signature.substring(0, 16) + '...', // Mostra apenas início da assinatura
     allParams: Object.keys(formParams).sort(), // Mostra todas as chaves
   });
+  
+  // VALIDAÇÃO FINAL ANTES DE ENVIAR AO FLOW
+  console.log('🔍 VALIDAÇÃO FINAL DAS URLs (antes de enviar ao Flow):', {
+    urlConfirmation_value: formParams.urlConfirmation,
+    urlConfirmation_isValid: formParams.urlConfirmation && formParams.urlConfirmation.startsWith('https://') && formParams.urlConfirmation.includes('/api/webhook-flow'),
+    urlReturn_value: formParams.urlReturn,
+    urlReturn_isValid: formParams.urlReturn && formParams.urlReturn.startsWith('https://') && formParams.urlReturn.includes('/api/flow-return'),
+    urlConfirmation_length: formParams.urlConfirmation ? formParams.urlConfirmation.length : 0,
+    urlReturn_length: formParams.urlReturn ? formParams.urlReturn.length : 0,
+  });
+  
+  // Se URL_CONFIRMATION estiver inválida, lança erro antes de enviar
+  if (!formParams.urlConfirmation || !formParams.urlConfirmation.startsWith('https://')) {
+    const errorMsg = `❌ ERRO CRÍTICO: urlConfirmation inválida antes de enviar ao Flow: "${formParams.urlConfirmation}"`;
+    console.error(errorMsg);
+    throw new Error(errorMsg);
+  }
 
   // Faz requisição para Flow
   const path = '/payment/create';
@@ -325,6 +411,8 @@ export default async function handler(req, res) {
     });
   }
 }
+
+
 
 
 
