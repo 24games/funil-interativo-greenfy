@@ -11,6 +11,7 @@ import express from 'express';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { readFileSync } from 'fs';
 import { createServer as createViteServer } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -101,14 +102,55 @@ async function startServer() {
 
     // Cria servidor Vite
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      configFile: join(__dirname, 'vite.config.js'),
+      server: { 
+        middlewareMode: true,
+        hmr: {
+          overlay: false // Desabilita overlay de erros para evitar conflitos
+        }
+      },
       appType: 'spa',
-      plugins: [react()],
       root: __dirname,
+      clearScreen: false,
     });
 
     // Usa o middleware do Vite para servir o frontend
     app.use(vite.middlewares);
+
+    // Fallback para SPA: todas as rotas não-API retornam index.html processado pelo Vite
+    app.use('*', async (req, res, next) => {
+      // Ignora rotas de API
+      if (req.originalUrl.startsWith('/api')) {
+        return next();
+      }
+      
+      try {
+        // Lê o index.html real
+        const indexHtmlPath = join(__dirname, 'index.html');
+        let template = readFileSync(indexHtmlPath, 'utf-8');
+        
+        // Processa o HTML com o Vite (injeta scripts, etc)
+        const html = await vite.transformIndexHtml(req.originalUrl, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
+      } catch (e) {
+        console.error('❌ Erro ao servir HTML:', e);
+        // Se der erro, tenta servir o HTML básico
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(`
+          <!DOCTYPE html>
+          <html lang="es-CL">
+            <head>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <title>24Games - Genera Ingresos Evaluando Patrones</title>
+            </head>
+            <body>
+              <div id="root"></div>
+              <script type="module" src="/src/main.jsx"></script>
+            </body>
+          </html>
+        `);
+      }
+    });
 
     app.listen(PORT, () => {
       console.log('');
@@ -127,8 +169,7 @@ async function startServer() {
       console.log('');
       
       // Tenta abrir o navegador automaticamente
-      try {
-        const { exec } = await import('child_process');
+      import('child_process').then(({ exec }) => {
         const url = `http://localhost:${PORT}`;
         const command = process.platform === 'win32' 
           ? `start ${url}` 
@@ -136,9 +177,10 @@ async function startServer() {
           ? `open ${url}` 
           : `xdg-open ${url}`;
         setTimeout(() => exec(command), 1000);
-      } catch (e) {
+      }).catch((e) => {
         // Ignora se não conseguir abrir
-      }
+        console.log('⚠️ Não foi possível abrir o navegador automaticamente');
+      });
     });
   } catch (error) {
     console.error('❌ Erro ao iniciar servidor:', error);
@@ -147,3 +189,6 @@ async function startServer() {
 }
 
 startServer();
+
+
+

@@ -72,3 +72,6 @@ server: {
 - `server-local.js` - Servidor Express que adapta as APIs do Vercel
 - `vite.config.js` - Configuração do Vite com proxy para APIs
 - `INICIAR-LOCALHOST.bat` - Script para Windows
+
+
+

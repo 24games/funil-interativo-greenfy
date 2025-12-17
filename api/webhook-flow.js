@@ -39,6 +39,8 @@ const FLOW_STATUS_PAID = 2;
 
 /**
  * Gera assinatura HMAC SHA256 para requisições Flow.cl
+ * 
+ * Formato: method\npath\ntimestamp\nnonce\nbody
  */
 function generateFlowSignature(method, path, timestamp, nonce, body) {
   if (!FLOW_SECRET_KEY) {
@@ -46,16 +48,36 @@ function generateFlowSignature(method, path, timestamp, nonce, body) {
   }
 
   const stringToSign = `${method}\n${path}\n${timestamp}\n${nonce}\n${body}`;
+  
+  // LOG para debug da assinatura
+  console.log('🔐 Gerando assinatura Flow:', {
+    method,
+    path,
+    timestamp,
+    nonce: nonce.substring(0, 8) + '...',
+    bodyLength: body ? body.length : 0,
+    stringToSignLength: stringToSign.length,
+    stringToSignPreview: stringToSign.substring(0, 100) + '...',
+  });
+  
   const signature = crypto
     .createHmac('sha256', FLOW_SECRET_KEY)
     .update(stringToSign)
     .digest('hex');
+
+  console.log('✅ Assinatura gerada:', {
+    signatureLength: signature.length,
+    signaturePreview: signature.substring(0, 16) + '...',
+  });
 
   return signature;
 }
 
 /**
  * Busca status do pagamento no Flow.cl
+ * 
+ * IMPORTANTE: O endpoint payment/getStatus requer assinatura HMAC
+ * A assinatura é gerada com: method\npath\ntimestamp\nnonce\nbody
  */
 async function getFlowPaymentStatus(token) {
   if (!FLOW_API_KEY || !FLOW_SECRET_KEY) {
@@ -68,6 +90,7 @@ async function getFlowPaymentStatus(token) {
   const nonce = crypto.randomBytes(16).toString('hex');
   const body = JSON.stringify({ token });
 
+  // Gera assinatura HMAC SHA256
   const signature = generateFlowSignature(method, path, timestamp, nonce, body);
 
   const headers = {
@@ -78,12 +101,42 @@ async function getFlowPaymentStatus(token) {
     'X-Flow-Signature': signature,
   };
 
-  const response = await axios.get(
-    `${FLOW_API_URL}${path}?token=${encodeURIComponent(token)}`,
-    { headers }
-  );
+  try {
+    const response = await axios.get(
+      `${FLOW_API_URL}${path}?token=${encodeURIComponent(token)}`,
+      { headers }
+    );
 
-  return response.data;
+    console.log('✅ getFlowPaymentStatus sucesso:', {
+      status: response.status,
+      hasData: !!response.data,
+      paymentStatus: response.data?.status,
+    });
+
+    return response.data;
+  } catch (error) {
+    // LOG DETALHADO DO ERRO (conforme solicitado)
+    console.error('❌ Erro ao buscar status do pagamento no Flow.cl:', {
+      token: token ? token.substring(0, 20) + '...' : 'não fornecido',
+      errorMessage: error.message,
+      errorCode: error.code,
+      responseStatus: error.response?.status,
+      responseData: error.response?.data, // LOG EXATO DO ERRO
+      responseHeaders: error.response?.headers,
+      requestConfig: {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: {
+          'X-Flow-API-Key': error.config?.headers?.['X-Flow-API-Key'] ? 'presente' : 'ausente',
+          'X-Flow-Timestamp': error.config?.headers?.['X-Flow-Timestamp'],
+          'X-Flow-Nonce': error.config?.headers?.['X-Flow-Nonce'] ? 'presente' : 'ausente',
+          'X-Flow-Signature': error.config?.headers?.['X-Flow-Signature'] ? 'presente' : 'ausente',
+        },
+      },
+    });
+    
+    throw error;
+  }
 }
 
 /**
@@ -444,6 +497,20 @@ async function sendPurchaseToMeta(purchaseData, leadData) {
  */
 export default async function handler(req, res) {
   // ============================================
+  // LOG CRÍTICO: PRIMEIRA LINHA (WEBHOOK RECEIVED)
+  // ============================================
+  console.log('🚨 WEBHOOK RECEIVED:', {
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    url: req.url,
+    contentType: req.headers['content-type'],
+    bodyRaw: typeof req.body === 'string' ? req.body.substring(0, 200) : JSON.stringify(req.body).substring(0, 200),
+    bodyType: typeof req.body,
+    bodyIsString: typeof req.body === 'string',
+    bodyLength: typeof req.body === 'string' ? req.body.length : 'N/A',
+  });
+
+  // ============================================
   // LOGS AGRESSIVOS NO INÍCIO (conforme solicitado)
   // ============================================
   console.log('🚨 WEBHOOK-FLOW CHAMADO - LOG INICIAL:', {
@@ -485,27 +552,83 @@ export default async function handler(req, res) {
   console.log('✅ Método POST confirmado - iniciando processamento...');
 
   try {
-    // Parse do body
+    // ============================================
+    // PARSE DO BODY - SUPORTA form-urlencoded E JSON
+    // ============================================
     let body = req.body;
+    const contentType = req.headers['content-type'] || '';
+    
     console.log('📦 Body recebido (antes do parse):', {
       type: typeof body,
+      contentType: contentType,
       isString: typeof body === 'string',
       length: typeof body === 'string' ? body.length : 'N/A',
       preview: typeof body === 'string' ? body.substring(0, 200) : JSON.stringify(body).substring(0, 200),
     });
+    
+    // Se o body é string, pode ser JSON ou form-urlencoded
     if (typeof body === 'string') {
-      try {
-        body = JSON.parse(body);
-        console.log('✅ Body parseado com sucesso (era string)');
-      } catch (e) {
-        console.error('❌ Erro ao fazer parse do JSON:', e.message);
-        return res.status(400).json({
-          error: 'Invalid JSON',
-          message: 'Body deve ser um JSON válido',
-        });
+      // Verifica se é form-urlencoded
+      if (contentType.includes('application/x-www-form-urlencoded') || (body.includes('=') && !body.trim().startsWith('{') && !body.trim().startsWith('['))) {
+        try {
+          // Parse como form-urlencoded
+          const params = new URLSearchParams(body);
+          body = {};
+          for (const [key, value] of params.entries()) {
+            body[key] = value;
+          }
+          console.log('✅ Body parseado como form-urlencoded:', {
+            keys: Object.keys(body),
+            token: body.token ? body.token.substring(0, 20) + '...' : 'não encontrado',
+            allKeys: Object.keys(body),
+          });
+        } catch (e) {
+          console.error('❌ Erro ao fazer parse do form-urlencoded:', e.message);
+          // Tenta como JSON como fallback
+          try {
+            body = JSON.parse(body);
+            console.log('✅ Body parseado como JSON (fallback)');
+          } catch (e2) {
+            console.error('❌ Erro ao fazer parse do JSON (fallback):', e2.message);
+            return res.status(400).json({
+              error: 'Invalid Body Format',
+              message: 'Body não pôde ser parseado como form-urlencoded ou JSON',
+              details: e.message,
+              bodyPreview: body.substring(0, 200),
+            });
+          }
+        }
+      } else {
+        // Tenta como JSON
+        try {
+          body = JSON.parse(body);
+          console.log('✅ Body parseado como JSON');
+        } catch (e) {
+          console.error('❌ Erro ao fazer parse do JSON:', e.message);
+          return res.status(400).json({
+            error: 'Invalid JSON',
+            message: 'Body deve ser um JSON válido',
+            details: e.message,
+            bodyPreview: body.substring(0, 200),
+          });
+        }
       }
+    } else if (body && typeof body === 'object') {
+      // Vercel pode já ter parseado o body automaticamente
+      console.log('✅ Body já é objeto (Vercel pode ter parseado automaticamente):', {
+        keys: Object.keys(body),
+        token: body.token ? body.token.substring(0, 20) + '...' : 'não encontrado',
+      });
     } else {
-      console.log('✅ Body já é objeto (não precisa parse)');
+      console.error('❌ Body inválido ou vazio:', {
+        bodyType: typeof body,
+        bodyValue: body,
+      });
+      return res.status(400).json({
+        error: 'Invalid Body',
+        message: 'Body é obrigatório',
+        bodyType: typeof body,
+      });
     }
 
     // Log do payload recebido (AGRESSIVO)
@@ -514,22 +637,56 @@ export default async function handler(req, res) {
       token: body.token,
       hasToken: !!body.token,
       tokenLength: body.token ? body.token.length : 0,
+      tokenValue: body.token ? body.token.substring(0, 30) + '...' : 'NÃO ENCONTRADO',
       bodyKeys: Object.keys(body),
       bodyFull: JSON.stringify(body).substring(0, 500), // Primeiros 500 chars
+      allBodyValues: Object.entries(body).map(([k, v]) => [k, typeof v === 'string' ? v.substring(0, 50) : v]),
     });
 
     // Validação: token é obrigatório
-    const { token } = body;
+    const token = body.token || body.TOKEN || body['token']; // Tenta múltiplas variações
     if (!token) {
+      console.error('❌ Token não encontrado no body:', {
+        bodyKeys: Object.keys(body),
+        bodyValues: Object.values(body).map(v => typeof v === 'string' ? v.substring(0, 50) : String(v)),
+      });
       return res.status(400).json({
         error: 'Bad Request',
         message: 'Token é obrigatório',
+        receivedKeys: Object.keys(body),
       });
     }
+    
+    console.log('✅ Token extraído com sucesso:', {
+      tokenLength: token.length,
+      tokenPreview: token.substring(0, 30) + '...',
+    });
 
     // Valida pagamento no Flow (busca status)
-    console.log('🔍 Validando pagamento no Flow.cl...');
-    const flowStatus = await getFlowPaymentStatus(token);
+    console.log('🔍 Validando pagamento no Flow.cl com token:', token ? token.substring(0, 20) + '...' : 'NÃO FORNECIDO');
+    let flowStatus;
+    try {
+      flowStatus = await getFlowPaymentStatus(token);
+    } catch (error) {
+      // LOG DETALHADO DO ERRO (conforme solicitado)
+      console.error('❌ ERRO CRÍTICO ao validar pagamento no Flow.cl:', {
+        token: token ? token.substring(0, 20) + '...' : 'NÃO FORNECIDO',
+        errorMessage: error.message,
+        errorStack: error.stack,
+        responseData: error.response?.data, // LOG EXATO DO ERRO
+        responseStatus: error.response?.status,
+        responseHeaders: error.response?.headers,
+      });
+      
+      // Retorna erro mas não quebra o webhook completamente
+      return res.status(500).json({
+        success: false,
+        error: 'Erro ao validar pagamento no Flow.cl',
+        message: error.message || 'Erro desconhecido',
+        details: error.response?.data || null,
+        token_provided: !!token,
+      });
+    }
 
     console.log('📊 Status do pagamento Flow:', {
       status: flowStatus.status,
@@ -698,12 +855,21 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    // Log de erro
-    console.error('❌ Erro ao processar webhook Flow.cl:', {
+    // ============================================
+    // LOG DE ERRO DETALHADO (conforme solicitado)
+    // ============================================
+    console.error('❌ ERRO CRÍTICO ao processar webhook Flow.cl:', {
       timestamp: new Date().toISOString(),
-      error: error.message,
-      stack: error.stack,
-      response: error.response?.data,
+      errorMessage: error.message,
+      errorName: error.name,
+      errorStack: error.stack,
+      // LOG EXATO DO ERRO (conforme solicitado)
+      responseData: error.response?.data,
+      responseStatus: error.response?.status,
+      responseHeaders: error.response?.headers,
+      requestUrl: error.config?.url,
+      requestMethod: error.config?.method,
+      requestHeaders: error.config?.headers ? Object.keys(error.config.headers) : [],
     });
 
     // Resposta de erro
@@ -712,9 +878,13 @@ export default async function handler(req, res) {
       error: 'Internal Server Error',
       message: error.message || 'Erro ao processar webhook',
       details: error.response?.data || null,
+      timestamp: new Date().toISOString(),
     });
   }
 }
+
+
+
 
 
 
