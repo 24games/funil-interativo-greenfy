@@ -1,10 +1,8 @@
 import { useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { initTracking, sendInitiateCheckout } from '../utils/tracking.js'
+import { initTracking } from '../utils/tracking.js'
+import { handlePerfectRedirect } from '../utils/perfectCheckout.js'
 import { CheckCircle } from 'lucide-react'
-
-// Link do Perfect Pay
-const PERFECT_PAY_URL = 'https://go.centerpag.com/PPU38CQ4S8A'
 
 export default function BackPerfect() {
   // Inicializa tracking quando a pagina /back-perfect carrega
@@ -14,20 +12,10 @@ export default function BackPerfect() {
     })
   }, [])
 
-  // Handler do botão CTA - Redirecionamento direto para Perfect Pay
+  // Handler do botão CTA - Redirecionamento dinâmico para Perfect Pay
   const handleCTA = async () => {
-    try {
-      // Envia evento InitiateCheckout para Meta Conversions API (tracking)
-      await sendInitiateCheckout()
-      console.log('✅ InitiateCheckout enviado com sucesso')
-      
-      // Redireciona diretamente para Perfect Pay
-      window.location.href = PERFECT_PAY_URL
-    } catch (error) {
-      console.error('❌ Erro ao enviar tracking:', error)
-      // Mesmo com erro no tracking, redireciona para Perfect Pay
-      window.location.href = PERFECT_PAY_URL
-    }
+    // Usa função de checkout dinâmico que monta URL com tracking_id e UTMs
+    await handlePerfectRedirect()
   }
 
   // Componente do botao reutilizavel

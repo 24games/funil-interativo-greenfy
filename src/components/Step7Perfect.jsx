@@ -2,10 +2,7 @@ import { motion } from 'framer-motion'
 import { useRef, useState, useEffect } from 'react'
 import { Sparkles } from 'lucide-react'
 import VturbVideo from './VturbVideo'
-import { sendInitiateCheckout } from '../utils/tracking.js'
-
-// Link do Perfect Pay
-const PERFECT_PAY_URL = 'https://go.centerpag.com/PPU38CQ4S8A'
+import { handlePerfectRedirect } from '../utils/perfectCheckout.js'
 
 export default function Step7Perfect() {
   // ============================================================================
@@ -24,23 +21,13 @@ export default function Step7Perfect() {
   const [isButtonReady, setIsButtonReady] = useState(false)
 
   // ============================================================================
-  // HANDLER DO BOTÃO CTA - REDIRECIONAMENTO DIRETO PARA PERFECT PAY
+  // HANDLER DO BOTÃO CTA - REDIRECIONAMENTO DINÂMICO PARA PERFECT PAY
   // ============================================================================
   const handleCTA = async () => {
     if (!isButtonReady) return // Não faz nada se não estiver pronto
     
-    try {
-      // Envia evento InitiateCheckout para Meta Conversions API (tracking)
-      await sendInitiateCheckout()
-      console.log('✅ InitiateCheckout enviado com sucesso')
-      
-      // Redireciona diretamente para Perfect Pay
-      window.location.href = PERFECT_PAY_URL
-    } catch (error) {
-      console.error('❌ Erro ao enviar tracking:', error)
-      // Mesmo com erro no tracking, redireciona para Perfect Pay
-      window.location.href = PERFECT_PAY_URL
-    }
+    // Usa função de checkout dinâmico que monta URL com tracking_id e UTMs
+    await handlePerfectRedirect()
   }
 
   // ============================================================================
