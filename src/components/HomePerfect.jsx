@@ -1,62 +1,15 @@
 import { useState, useEffect } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import Step1 from './components/Step1'
-import Step2 from './components/Step2'
-import Step3 from './components/Step3'
-import Step4 from './components/Step4'
-import Step5 from './components/Step5'
-import Step6 from './components/Step6'
-import Step7 from './components/Step7'
-import ProgressBar from './components/ProgressBar'
-import Back from './components/Back'
-import BackPerfect from './components/BackPerfect'
-import HomePerfect from './components/HomePerfect'
-import Gracias from './components/Gracias'
+import Step1 from './Step1'
+import Step2 from './Step2'
+import Step3 from './Step3'
+import Step4 from './Step4'
+import Step5 from './Step5'
+import Step6 from './Step6'
+import Step7Perfect from './Step7Perfect'
+import ProgressBar from './ProgressBar'
 
-function App() {
-  const [currentPath, setCurrentPath] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.location.pathname
-    }
-    return '/'
-  })
-
-  useEffect(() => {
-    // Atualiza quando a rota muda
-    const handleRouteChange = () => {
-      setCurrentPath(window.location.pathname)
-    }
-
-    // Escuta mudanças de rota
-    window.addEventListener('popstate', handleRouteChange)
-    
-    // Verifica a rota inicial
-    handleRouteChange()
-
-    return () => {
-      window.removeEventListener('popstate', handleRouteChange)
-    }
-  }, [])
-
-  // Se a rota for /back, renderiza a página Back
-  if (currentPath === '/back' || currentPath === '/back/') {
-    return <Back />
-  }
-
-  // Se a rota for /back-perfect, renderiza a página BackPerfect
-  if (currentPath === '/back-perfect' || currentPath === '/back-perfect/') {
-    return <BackPerfect />
-  }
-
-  // Se a rota for /perfect, renderiza a página HomePerfect
-  if (currentPath === '/perfect' || currentPath === '/perfect/') {
-    return <HomePerfect />
-  }
-
-  // Se a rota for /gracias, renderiza a página de obrigado
-  if (currentPath === '/gracias' || currentPath === '/gracias/') {
-    return <Gracias />
-  }
+export default function HomePerfect() {
   // Inicializa o step a partir da URL (se presente)
   const getInitialStep = () => {
     const params = new URLSearchParams(window.location.search)
@@ -156,7 +109,7 @@ function App() {
     
     // Preserva UTMs na URL ao navegar
     const preservedParams = getPreservedParams()
-    const newUrl = preservedParams ? `?${preservedParams}` : `?step=${newStep}`
+    const newUrl = preservedParams ? `/perfect?${preservedParams}` : `/perfect?step=${newStep}`
     
     // Adiciona uma entrada no histórico do navegador
     window.history.pushState({ step: newStep }, '', newUrl)
@@ -219,13 +172,13 @@ function App() {
     }
     
     const queryString = params.toString()
-    return queryString ? `?${queryString}` : (step === 1 ? '/' : `?step=${step}`)
+    return queryString ? `?${queryString}` : (step === 1 ? '/perfect' : `/perfect?step=${step}`)
   }
 
   // Gerencia o botão voltar do navegador
   useEffect(() => {
     const handlePopState = (event) => {
-      // Se está no Step 7 e tenta voltar, redireciona para /back (preservando UTMs)
+      // Se está no Step 7 e tenta voltar, redireciona para /back-perfect (preservando UTMs)
       if (currentStep === 7) {
         const params = new URLSearchParams()
         
@@ -275,9 +228,9 @@ function App() {
           }
         }
         
-        // Monta URL do /back preservando UTMs
+        // Monta URL do /back-perfect preservando UTMs
         const queryString = params.toString()
-        const backUrl = queryString ? `/back?${queryString}` : '/back'
+        const backUrl = queryString ? `/back-perfect?${queryString}` : '/back-perfect'
         window.location.href = backUrl
         return
       }
@@ -307,7 +260,6 @@ function App() {
       window.removeEventListener('popstate', handlePopState)
     }
   }, [currentStep])
-
 
   const saveAnswer = (key, value) => {
     setAnswers(prev => ({ ...prev, [key]: value }))
@@ -368,7 +320,7 @@ function App() {
               <Step6 key="step6" onNext={nextStep} />
             )}
             {currentStep === 7 && (
-              <Step7 key="step7" />
+              <Step7Perfect key="step7" />
             )}
           </AnimatePresence>
         </div>
@@ -376,8 +328,3 @@ function App() {
     </div>
   )
 }
-
-export default App
-
-
-
