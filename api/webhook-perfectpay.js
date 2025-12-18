@@ -20,6 +20,7 @@ const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN || 'EAADG88pNjVUBQJRLLaR
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://jhyekbtcywewzrviqlos.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpoeWVrYnRjeXdld3pydmlxbG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzODI5NzAsImV4cCI6MjA4MDk1ODk3MH0.yTAW7soCiU-skkjAsuG1a-r0oKdzUJlbjyLYeC7w8lM';
 const TRACKING_TABLE = 'tracking_sqd_cas_lp1_vsl_hackermillon';
+const PURCHASE_TABLE = 'tracking_sqd_cas_lp1_vsl_hackermillon_purchase';
 
 // ============================================
 // FUNÇÕES AUXILIARES
@@ -58,7 +59,54 @@ function splitName(fullName) {
 }
 
 /**
- * Busca dados do lead no Supabase usando email ou telefone
+ * Valida se uma string é um UUID válido
+ */
+function isValidUUID(str) {
+  if (!str || typeof str !== 'string') return false;
+  // Regex para UUID v4
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
+/**
+ * Busca dados do lead no Supabase usando tracking_id (UUID) - PRIORIDADE MÁXIMA
+ */
+async function findLeadByTrackingId(trackingId) {
+  if (!trackingId || !isValidUUID(trackingId)) {
+    return null;
+  }
+
+  try {
+    const supabaseUrl = SUPABASE_URL;
+    const supabaseKey = SUPABASE_ANON_KEY;
+    
+    // Busca por ID (UUID) - match direto
+    const query = `${supabaseUrl}/rest/v1/${TRACKING_TABLE}?id=eq.${encodeURIComponent(trackingId)}&limit=1`;
+    
+    const response = await fetch(query, {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.length > 0) {
+        console.log('✅ Match encontrado por tracking_id (sale_tracking_source):', trackingId);
+        return data[0];
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Erro ao buscar lead por tracking_id:', error);
+    return null;
+  }
+}
+
+/**
+ * Busca dados do lead no Supabase usando email ou telefone (FALLBACK)
  */
 async function findLeadData(email, phone) {
   if (!email && !phone) {
@@ -118,6 +166,61 @@ async function findLeadData(email, phone) {
     console.error('Erro ao buscar dados do lead no Supabase:', error);
     return null;
   }
+}
+
+/**
+ * Salva venda na tabela de purchases usando SERVICE_ROLE_KEY
+ * 
+ * IMPORTANTE: SUPABASE_SERVICE_ROLE_KEY deve ser passada como parâmetro
+ * para evitar problemas de inicialização no cold start
+ */
+async function savePurchaseToSupabase(purchaseData, serviceRoleKey, supabaseUrl) {
+  if (!serviceRoleKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY não configurada');
+  }
+
+  if (!supabaseUrl) {
+    throw new Error('SUPABASE_URL não configurada');
+  }
+
+  const apiUrl = `${supabaseUrl}/rest/v1/${PURCHASE_TABLE}`;
+
+  console.log('💾 Salvando venda Perfect Pay no Supabase:', {
+    flow_order_id: purchaseData.flow_order_id,
+    tracking_id: purchaseData.tracking_id,
+    amount: purchaseData.amount,
+    payer_email: purchaseData.payer_email,
+  });
+
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': serviceRoleKey,
+      'Authorization': `Bearer ${serviceRoleKey}`,
+      'Prefer': 'return=representation',
+    },
+    body: JSON.stringify(purchaseData),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('❌ Erro ao salvar venda Perfect Pay no Supabase:', {
+      status: response.status,
+      error: errorText,
+    });
+    throw new Error(`Supabase API Error: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  const inserted = Array.isArray(result) ? result[0] : result;
+
+  console.log('✅ Venda Perfect Pay salva no Supabase:', {
+    id: inserted.id,
+    flow_order_id: inserted.flow_order_id,
+  });
+
+  return inserted;
 }
 
 /**
@@ -437,6 +540,7 @@ export default async function handler(req, res) {
       email: body.customer?.email,
       phone: body.customer?.phone_number,
       amount: body.sale_amount,
+      sale_tracking_source: body.sale_tracking_source || body.sck || body.tracking_source || 'não fornecido',
     });
 
     // Validação: verifica se a venda foi aprovada
@@ -449,23 +553,46 @@ export default async function handler(req, res) {
       });
     }
 
-    // Validação: verifica se tem email ou telefone
-    const email = body.customer?.email;
-    const phone = body.customer?.phone_number || body.customer?.phone_formated;
+    // ============================================
+    // BUSCA DO LEAD - PRIORIDADE: sale_tracking_source > email/telefone
+    // ============================================
     
-    if (!email && !phone) {
-      return res.status(400).json({
-        error: 'Bad Request',
-        message: 'Email ou telefone do cliente é obrigatório',
-      });
+    // 1. PRIORIDADE MÁXIMA: Verifica se o webhook traz sale_tracking_source (sck)
+    const saleTrackingSource = body.sale_tracking_source || body.sck || body.tracking_source;
+    let leadData = null;
+    let matchMethod = null;
+    
+    if (saleTrackingSource && isValidUUID(saleTrackingSource)) {
+      console.log('🔍 Buscando lead por sale_tracking_source (tracking_id):', saleTrackingSource);
+      leadData = await findLeadByTrackingId(saleTrackingSource);
+      
+      if (leadData) {
+        matchMethod = 'sale_tracking_source';
+        console.log('✅ Lead encontrado via sale_tracking_source - Match 100% garantido!');
+      } else {
+        console.log('⚠️ sale_tracking_source fornecido mas lead não encontrado - tentando fallback');
+      }
     }
-
-    // Busca dados do lead no Supabase para enriquecer
-    console.log('🔍 Buscando dados do lead no Supabase...');
-    const leadData = await findLeadData(email, phone);
+    
+    // 2. FALLBACK: Se não encontrou por tracking_id, tenta por email/telefone
+    if (!leadData) {
+      const email = body.customer?.email;
+      const phone = body.customer?.phone_number || body.customer?.phone_formated;
+      
+      if (!email && !phone) {
+        console.warn('⚠️ Nenhum método de match disponível (sem sale_tracking_source, email ou telefone)');
+      } else {
+        console.log('🔍 Buscando lead por email/telefone (fallback)...');
+        leadData = await findLeadData(email, phone);
+        if (leadData) {
+          matchMethod = email ? 'email' : 'phone';
+        }
+      }
+    }
     
     if (leadData) {
       console.log('✅ Dados do lead encontrados:', {
+        matchMethod: matchMethod || 'desconhecido',
         hasFbp: !!leadData.fbp,
         hasFbc: !!leadData.fbc,
         hasUtms: !!(leadData.utm_source || leadData.utm_campaign),
@@ -474,7 +601,52 @@ export default async function handler(req, res) {
       console.log('⚠️ Dados do lead não encontrados - enviando apenas dados do webhook');
     }
 
-    // Envia evento Purchase para Facebook CAPI
+    // ============================================
+    // SALVA VENDA NO SUPABASE
+    // ============================================
+    
+    let savedPurchase = null;
+    let saveError = null;
+    
+    // Busca SUPABASE_SERVICE_ROLE_KEY dentro do handler (evita cold start crash)
+    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        // Mapeia dados do webhook Perfect Pay para o formato da tabela
+        const purchaseData = {
+          amount: parseFloat(body.sale_amount) || 0,
+          currency: body.currency_enum_key || body.currency || 'BRL',
+          payer_email: body.customer?.email || body.email || null,
+          status_id: 2, // 2 = Aprovado (mesmo padrão do Flow)
+          flow_order_id: body.code || body.sale_code || body.order_id || `perfect_${Date.now()}`,
+          tracking_id: leadData?.id || null, // ID do lead encontrado (ou null)
+          raw_data: JSON.stringify(body), // JSON completo do webhook
+        };
+
+        savedPurchase = await savePurchaseToSupabase(
+          purchaseData,
+          SUPABASE_SERVICE_ROLE_KEY,
+          SUPABASE_URL
+        );
+        
+        console.log('✅ Venda Perfect Pay salva no Supabase: ID', savedPurchase?.id);
+      } catch (error) {
+        saveError = error.message;
+        console.error('❌ Erro ao salvar venda Perfect Pay no Supabase:', {
+          errorMessage: error.message,
+          errorStack: error.stack,
+        });
+        // Continua mesmo se houver erro (não bloqueia envio para Meta)
+      }
+    } else {
+      console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY não configurada - pulando salvamento no Supabase');
+      saveError = 'SUPABASE_SERVICE_ROLE_KEY não configurada';
+    }
+
+    // ============================================
+    // ENVIA EVENTO PURCHASE PARA FACEBOOK CAPI
+    // ============================================
     let metaResponse = null;
     let metaError = null;
     
@@ -499,11 +671,20 @@ export default async function handler(req, res) {
         sale_status: body.sale_status_enum_key,
         lead_match: leadData ? {
           found: true,
+          match_method: matchMethod || 'desconhecido',
+          sale_tracking_source_used: !!saleTrackingSource && isValidUUID(saleTrackingSource),
           has_fbp: !!leadData.fbp,
           has_fbc: !!leadData.fbc,
           has_utms: !!(leadData.utm_source || leadData.utm_campaign),
         } : {
           found: false,
+          sale_tracking_source_provided: !!saleTrackingSource,
+          sale_tracking_source_valid: saleTrackingSource ? isValidUUID(saleTrackingSource) : false,
+        },
+        supabase: {
+          saved: !!savedPurchase,
+          purchase_id: savedPurchase?.id || null,
+          error: saveError,
         },
         meta: {
           sent: !!metaResponse,
