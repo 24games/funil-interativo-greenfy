@@ -22,8 +22,9 @@ const META_PIXEL_ID = process.env.META_PIXEL_ID || '1170692121796734';
 const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN || 'EAADG88pNjVUBQJRLLaRpUZCdiUtZBXbxLGZB93LxdMnbV3ejomv3qbWuXu5OGBaH3zbhdqMOz722eZA7zyryFAczJtBBWKuVT9ZBYYUDcEoOF3adcK7CIHcL7yft3MZBU636aURzB16MrSnZByGBNvEmza0Kpzeka71Or87CAPFqL6CZCRw3w7QxST5BVFZANwgZDZD';
 
 // Supabase
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://jhyekbtcywewzrviqlos.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// NOTA: Variáveis movidas para dentro do handler para evitar crashes no cold start
+// const SUPABASE_URL será definida dentro do handler
+// const SUPABASE_SERVICE_ROLE_KEY será validada dentro do handler
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpoeWVrYnRjeXdld3pydmlxbG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzODI5NzAsImV4cCI6MjA4MDk1ODk3MH0.yTAW7soCiU-skkjAsuG1a-r0oKdzUJlbjyLYeC7w8lM';
 
 // Tabelas
@@ -172,12 +173,13 @@ function splitName(fullName) {
 
 /**
  * Busca dados do lead no Supabase usando tracking_id (UUID)
+ * 
+ * IMPORTANTE: supabaseUrl deve ser passado como parâmetro
  */
-async function findLeadByTrackingId(trackingId) {
+async function findLeadByTrackingId(trackingId, supabaseUrl) {
   if (!trackingId) return null;
 
   try {
-    const supabaseUrl = SUPABASE_URL;
     const supabaseKey = SUPABASE_ANON_KEY;
 
     // Busca por ID (UUID)
@@ -207,14 +209,15 @@ async function findLeadByTrackingId(trackingId) {
 
 /**
  * Busca dados do lead no Supabase usando email ou telefone (fallback)
+ * 
+ * IMPORTANTE: supabaseUrl deve ser passado como parâmetro
  */
-async function findLeadData(email, phone) {
+async function findLeadData(email, phone, supabaseUrl) {
   if (!email && !phone) {
     return null;
   }
 
   try {
-    const supabaseUrl = SUPABASE_URL;
     const supabaseKey = SUPABASE_ANON_KEY;
 
     // Tenta match por email primeiro
@@ -270,13 +273,19 @@ async function findLeadData(email, phone) {
 
 /**
  * Salva venda na tabela de purchases usando SERVICE_ROLE_KEY
+ * 
+ * IMPORTANTE: SUPABASE_SERVICE_ROLE_KEY deve ser passada como parâmetro
+ * para evitar problemas de inicialização no cold start
  */
-async function savePurchaseToSupabase(purchaseData) {
-  if (!SUPABASE_SERVICE_ROLE_KEY) {
+async function savePurchaseToSupabase(purchaseData, serviceRoleKey, supabaseUrl) {
+  if (!serviceRoleKey) {
     throw new Error('SUPABASE_SERVICE_ROLE_KEY não configurada');
   }
 
-  const supabaseUrl = SUPABASE_URL;
+  if (!supabaseUrl) {
+    throw new Error('SUPABASE_URL não configurada');
+  }
+
   const apiUrl = `${supabaseUrl}/rest/v1/${PURCHASE_TABLE}`;
 
   console.log('💾 Salvando venda no Supabase:', {
@@ -289,8 +298,8 @@ async function savePurchaseToSupabase(purchaseData) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'apikey': SUPABASE_SERVICE_ROLE_KEY,
-      'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      'apikey': serviceRoleKey,
+      'Authorization': `Bearer ${serviceRoleKey}`,
       'Prefer': 'return=representation',
     },
     body: JSON.stringify(purchaseData),
@@ -494,64 +503,110 @@ async function sendPurchaseToMeta(purchaseData, leadData) {
 
 /**
  * Handler da Serverless Function (Vercel)
+ * 
+ * PROTEÇÃO CONTRA CRASH: Todo o código está dentro de try/catch
  */
 export default async function handler(req, res) {
   // ============================================
-  // LOG CRÍTICO: PRIMEIRA LINHA (WEBHOOK RECEIVED)
+  // TRY/CATCH GIGANTE - NADA PODE FICAR DE FORA
   // ============================================
-  console.log('🚨 WEBHOOK RECEIVED:', {
-    timestamp: new Date().toISOString(),
-    method: req.method,
-    url: req.url,
-    contentType: req.headers['content-type'],
-    bodyRaw: typeof req.body === 'string' ? req.body.substring(0, 200) : JSON.stringify(req.body).substring(0, 200),
-    bodyType: typeof req.body,
-    bodyIsString: typeof req.body === 'string',
-    bodyLength: typeof req.body === 'string' ? req.body.length : 'N/A',
-  });
-
-  // ============================================
-  // LOGS AGRESSIVOS NO INÍCIO (conforme solicitado)
-  // ============================================
-  console.log('🚨 WEBHOOK-FLOW CHAMADO - LOG INICIAL:', {
-    timestamp: new Date().toISOString(),
-    method: req.method,
-    url: req.url,
-    headers: {
-      'content-type': req.headers['content-type'],
-      'user-agent': req.headers['user-agent'],
-      'x-forwarded-for': req.headers['x-forwarded-for'],
-      'host': req.headers['host'],
-    },
-    hasBody: !!req.body,
-    bodyType: typeof req.body,
-    bodyKeys: req.body ? Object.keys(req.body) : [],
-  });
-
-  // Configurar CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  // Tratar OPTIONS (preflight)
-  if (req.method === 'OPTIONS') {
-    console.log('📋 OPTIONS request recebido (preflight)');
-    return res.status(200).end();
-  }
-
-  // Apenas aceita POST
-  if (req.method !== 'POST') {
-    console.error('❌ Método não permitido:', req.method);
-    return res.status(405).json({
-      error: 'Method not allowed',
-      message: 'Apenas requisições POST são aceitas',
-      received_method: req.method,
-    });
-  }
-
-  console.log('✅ Método POST confirmado - iniciando processamento...');
-
   try {
+    // ============================================
+    // LOG CRÍTICO: PRIMEIRA LINHA (WEBHOOK RECEIVED)
+    // ============================================
+    console.log('🚨 WEBHOOK RECEIVED:', {
+      timestamp: new Date().toISOString(),
+      method: req.method,
+      url: req.url,
+      contentType: req.headers?.['content-type'],
+      bodyRaw: typeof req.body === 'string' ? req.body?.substring(0, 200) : JSON.stringify(req.body || {}).substring(0, 200),
+      bodyType: typeof req.body,
+      bodyIsString: typeof req.body === 'string',
+      bodyLength: typeof req.body === 'string' ? req.body.length : 'N/A',
+    });
+
+    // ============================================
+    // CONFIGURAÇÃO DE CORS (ANTES DE QUALQUER COISA)
+    // ============================================
+    try {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    } catch (corsError) {
+      console.error('⚠️ Erro ao configurar CORS (não crítico):', corsError.message);
+    }
+
+    // ============================================
+    // VERIFICAÇÃO DE MÉTODO GET (TESTE NO NAVEGADOR)
+    // ============================================
+    if (req.method === 'GET') {
+      console.log('✅ GET request recebido - retornando mensagem de teste');
+      return res.status(200).json({
+        success: true,
+        message: 'Webhook is working! Send POST to test.',
+        endpoint: '/api/webhook-flow',
+        method: 'POST',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // ============================================
+    // TRATAR OPTIONS (PREFLIGHT)
+    // ============================================
+    if (req.method === 'OPTIONS') {
+      console.log('📋 OPTIONS request recebido (preflight)');
+      return res.status(200).end();
+    }
+
+    // ============================================
+    // VALIDAÇÃO DE VARIÁVEIS DE AMBIENTE
+    // ============================================
+    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('❌ ERRO CRÍTICO: SUPABASE_SERVICE_ROLE_KEY não configurada!');
+      console.error('Variáveis de ambiente disponíveis:', {
+        hasFlowApiKey: !!process.env.FLOW_API_KEY,
+        hasFlowSecretKey: !!process.env.FLOW_SECRET_KEY,
+        hasSupabaseUrl: !!process.env.SUPABASE_URL,
+        hasSupabaseServiceRoleKey: false, // Já sabemos que não tem
+        hasSupabaseAnonKey: !!process.env.SUPABASE_ANON_KEY,
+      });
+      // Não crashe, apenas logue e continue (pode salvar depois se tiver)
+      console.warn('⚠️ Continuando sem SUPABASE_SERVICE_ROLE_KEY - salvamento no Supabase será pulado');
+    }
+
+    // ============================================
+    // LOGS AGRESSIVOS NO INÍCIO
+    // ============================================
+    console.log('🚨 WEBHOOK-FLOW CHAMADO - LOG INICIAL:', {
+      timestamp: new Date().toISOString(),
+      method: req.method,
+      url: req.url,
+      headers: {
+        'content-type': req.headers?.['content-type'],
+        'user-agent': req.headers?.['user-agent'],
+        'x-forwarded-for': req.headers?.['x-forwarded-for'],
+        'host': req.headers?.['host'],
+      },
+      hasBody: !!req.body,
+      bodyType: typeof req.body,
+      bodyKeys: req.body ? Object.keys(req.body) : [],
+    });
+
+    // ============================================
+    // VALIDAÇÃO DE MÉTODO POST
+    // ============================================
+    if (req.method !== 'POST') {
+      console.error('❌ Método não permitido:', req.method);
+      return res.status(405).json({
+        error: 'Method not allowed',
+        message: 'Apenas requisições POST são aceitas',
+        received_method: req.method,
+      });
+    }
+
+    console.log('✅ Método POST confirmado - iniciando processamento...');
+
     // ============================================
     // PARSE DO BODY - SUPORTA form-urlencoded E JSON
     // ============================================
@@ -727,7 +782,8 @@ export default async function handler(req, res) {
           console.log('✅ tracking_id encontrado no optional:', trackingId);
 
           // Busca lead por tracking_id (UUID)
-          leadData = await findLeadByTrackingId(trackingId);
+          const SUPABASE_URL = process.env.SUPABASE_URL || 'https://jhyekbtcywewzrviqlos.supabase.co';
+          leadData = await findLeadByTrackingId(trackingId, SUPABASE_URL);
         }
       }
     } catch (error) {
@@ -737,9 +793,11 @@ export default async function handler(req, res) {
     // 2. Fallback: busca por email do payer
     if (!leadData && flowStatus.payer?.email) {
       console.log('🔍 Fallback: buscando lead por email...');
+      const SUPABASE_URL = process.env.SUPABASE_URL || 'https://jhyekbtcywewzrviqlos.supabase.co';
       leadData = await findLeadData(
         flowStatus.payer.email,
-        flowStatus.payer.phone
+        flowStatus.payer.phone,
+        SUPABASE_URL
       );
     }
 
@@ -775,12 +833,22 @@ export default async function handler(req, res) {
     let savedPurchase = null;
     let saveError = null;
 
-    try {
-      savedPurchase = await savePurchaseToSupabase(purchaseData);
-    } catch (error) {
-      saveError = error.message;
-      console.error('❌ Erro ao salvar venda no Supabase:', error);
-      // Continua mesmo se houver erro (não bloqueia envio para Meta)
+    // Só tenta salvar se tiver a chave configurada
+    if (SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const SUPABASE_URL = process.env.SUPABASE_URL || 'https://jhyekbtcywewzrviqlos.supabase.co';
+        savedPurchase = await savePurchaseToSupabase(purchaseData, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL);
+      } catch (error) {
+        saveError = error.message;
+        console.error('❌ Erro ao salvar venda no Supabase:', {
+          errorMessage: error.message,
+          errorStack: error.stack,
+        });
+        // Continua mesmo se houver erro (não bloqueia envio para Meta)
+      }
+    } else {
+      console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY não configurada - pulando salvamento no Supabase');
+      saveError = 'SUPABASE_SERVICE_ROLE_KEY não configurada';
     }
 
     // ============================================
@@ -856,30 +924,46 @@ export default async function handler(req, res) {
 
   } catch (error) {
     // ============================================
-    // LOG DE ERRO DETALHADO (conforme solicitado)
+    // CATCH FINAL - CAPTURA QUALQUER ERRO
     // ============================================
     console.error('❌ ERRO CRÍTICO ao processar webhook Flow.cl:', {
       timestamp: new Date().toISOString(),
-      errorMessage: error.message,
-      errorName: error.name,
-      errorStack: error.stack,
-      // LOG EXATO DO ERRO (conforme solicitado)
-      responseData: error.response?.data,
-      responseStatus: error.response?.status,
-      responseHeaders: error.response?.headers,
-      requestUrl: error.config?.url,
-      requestMethod: error.config?.method,
-      requestHeaders: error.config?.headers ? Object.keys(error.config.headers) : [],
+      errorMessage: error?.message || 'Erro desconhecido',
+      errorName: error?.name || 'Unknown',
+      errorStack: error?.stack || 'No stack trace',
+      // LOG EXATO DO ERRO
+      responseData: error?.response?.data,
+      responseStatus: error?.response?.status,
+      responseHeaders: error?.response?.headers,
+      requestUrl: error?.config?.url,
+      requestMethod: error?.config?.method,
+      requestHeaders: error?.config?.headers ? Object.keys(error.config.headers) : [],
+      // Informações adicionais
+      method: req?.method,
+      url: req?.url,
+      hasBody: !!req?.body,
+      bodyType: typeof req?.body,
     });
 
-    // Resposta de erro
-    return res.status(500).json({
-      success: false,
-      error: 'Internal Server Error',
-      message: error.message || 'Erro ao processar webhook',
-      details: error.response?.data || null,
-      timestamp: new Date().toISOString(),
-    });
+    // Resposta de erro (sempre retorna algo, nunca crashe)
+    try {
+      return res.status(500).json({
+        success: false,
+        error: 'Internal Server Error',
+        message: error?.message || 'Erro ao processar webhook',
+        details: error?.response?.data || null,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (responseError) {
+      // Se até mesmo o res.status falhar, logue e retorne
+      console.error('❌ ERRO AO ENVIAR RESPOSTA DE ERRO:', responseError);
+      // Tenta enviar resposta básica
+      try {
+        res.status(500).end('Internal Server Error');
+      } catch (finalError) {
+        console.error('❌ ERRO CRÍTICO: Não foi possível enviar resposta:', finalError);
+      }
+    }
   }
 }
 
