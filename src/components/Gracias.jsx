@@ -15,8 +15,14 @@ export default function Gracias() {
   }, [])
 
   const handleAccessProduct = () => {
-    // Redireciona para o WhatsApp
-    window.location.href = 'https://w.app/apphm'
+    // Número do WhatsApp (Chile): +56 9 2710 9730
+    // Formato para wa.me: remove espaços e o +, mantém o 9
+    const whatsappNumber = '56927109730'
+    const message = 'Quiero conceder acceso a la aplicación!'
+    const encodedMessage = encodeURIComponent(message)
+    
+    // Redireciona para o WhatsApp usando a API oficial
+    window.location.href = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`
   }
 
   return (
