@@ -1,10 +1,10 @@
 /**
- * API Route para Tracking de InitiateCheckout
+ * API Route para Tracking de Purchase (Frontend)
  * 
- * Recebe dados quando o usuário clica no botão de checkout
+ * Recebe dados quando o usuário chega na página de agradecimento
  * e envia para Meta Conversions API
  * 
- * Endpoint: /api/tracking-initiate-checkout
+ * Endpoint: /api/tracking-purchase
  * Method: POST
  */
 
@@ -41,24 +41,24 @@ function normalizePhone(phone) {
 }
 
 /**
- * Gera um event_id único
+ * Gera um event_id único baseado no token
  */
-function generateEventId(data) {
+function generateEventId(token, data) {
   const timestamp = Date.now();
-  const userIdentifier = data.email || data.phone || data.ip || 'anonymous';
+  const identifier = token || data.tracking_id || data.email || data.ip || 'anonymous';
   const hash = crypto
     .createHash('md5')
-    .update(`${userIdentifier}-${timestamp}-initiate-checkout`)
+    .update(`${identifier}-${timestamp}-purchase`)
     .digest('hex')
     .substring(0, 16);
   
-  return `initiatecheckout_${timestamp}_${hash}`;
+  return `purchase_${timestamp}_${hash}`;
 }
 
 /**
- * Envia evento InitiateCheckout para Facebook Conversions API
+ * Envia evento Purchase para Facebook Conversions API
  */
-async function sendInitiateCheckoutToMeta(data) {
+async function sendPurchaseToMeta(data) {
   if (!META_PIXEL_ID || !META_ACCESS_TOKEN) {
     throw new Error('META_PIXEL_ID e META_ACCESS_TOKEN são obrigatórios');
   }
@@ -103,21 +103,27 @@ async function sendInitiateCheckoutToMeta(data) {
     userData.client_user_agent = data.user_agent;
   }
 
-  // Prepara o evento InitiateCheckout
+  // Prepara o evento Purchase
+  const orderId = data.order_id || data.token || `purchase_${Date.now()}`;
+  const value = parseFloat(data.value) || 5000; // Valor padrão CLP
+  const currency = data.currency || 'CLP';
+
   const eventData = {
     data: [
       {
-        event_name: 'InitiateCheckout',
+        event_name: 'Purchase',
         event_time: Math.floor((data.timestamp ? new Date(data.timestamp).getTime() : Date.now()) / 1000),
-        event_id: data.event_id || generateEventId(data),
-        event_source_url: data.page_url || 'https://www.hackermillon.online/?step=7',
+        event_id: data.event_id || generateEventId(data.token, data),
+        event_source_url: data.page_url || 'https://www.hackermillon.online/gracias',
         action_source: 'website',
         user_data: userData,
         custom_data: {
-          content_name: 'Checkout - App Liberado',
-          content_category: 'checkout',
-          currency: data.currency || 'CLP',
-          value: parseFloat(data.value) || 0,
+          currency: currency,
+          value: value,
+          content_type: 'product',
+          content_name: 'App Liberado',
+          order_id: orderId,
+          num_items: 1,
         },
       },
     ],
@@ -199,21 +205,23 @@ export default async function handler(req, res) {
     }
     
     // Log do payload recebido
-    console.log('InitiateCheckout tracking recebido:', {
+    console.log('Purchase tracking recebido (frontend):', {
       timestamp: new Date().toISOString(),
+      token: body.token ? body.token.substring(0, 20) + '...' : 'não fornecido',
+      hasTrackingId: !!body.tracking_id,
       hasEmail: !!body.email,
       hasPhone: !!body.phone,
       hasFbp: !!body.fbp,
       hasFbc: !!body.fbc,
-      pageUrl: body.page_url,
-      eventId: body.event_id,
+      value: body.value,
+      currency: body.currency,
     });
 
     // Preparar dados para envio
     const trackingData = {
       ...body,
       timestamp: body.timestamp || new Date().toISOString(),
-      event_id: body.event_id || generateEventId(body),
+      event_id: body.event_id || generateEventId(body.token, body),
     };
 
     // Enviar evento para Facebook CAPI
@@ -221,21 +229,22 @@ export default async function handler(req, res) {
     let metaError = null;
     
     try {
-      metaResponse = await sendInitiateCheckoutToMeta(trackingData);
-      console.log('Evento InitiateCheckout enviado com sucesso para Facebook:', {
+      metaResponse = await sendPurchaseToMeta(trackingData);
+      console.log('Evento Purchase enviado com sucesso para Facebook (frontend):', {
         timestamp: new Date().toISOString(),
         events_received: metaResponse.events_received,
         event_id: trackingData.event_id,
+        order_id: trackingData.token || trackingData.order_id,
       });
     } catch (error) {
       metaError = error.message;
-      console.error('Erro ao enviar para Facebook:', error);
+      console.error('Erro ao enviar Purchase para Facebook:', error);
     }
 
     // Resposta de sucesso
     return res.status(200).json({
       success: true,
-      message: 'InitiateCheckout processado',
+      message: 'Purchase processado',
       data: {
         event_id: trackingData.event_id,
         meta: {
@@ -248,7 +257,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     // Log de erro
-    console.error('Erro ao processar InitiateCheckout:', {
+    console.error('Erro ao processar Purchase:', {
       timestamp: new Date().toISOString(),
       error: error.message,
       stack: error.stack,
@@ -258,25 +267,7 @@ export default async function handler(req, res) {
     return res.status(500).json({
       success: false,
       error: 'Internal Server Error',
-      message: error.message || 'Erro ao processar InitiateCheckout',
+      message: error.message || 'Erro ao processar Purchase',
     });
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

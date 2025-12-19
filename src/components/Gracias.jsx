@@ -5,13 +5,118 @@ import { useEffect, useState } from 'react'
 export default function Gracias() {
   const [token, setToken] = useState(null)
 
+  /**
+   * Envia evento Purchase para Meta (Pixel + CAPI)
+   */
+  const sendPurchaseTracking = async (token) => {
+    try {
+      // Proteção contra duplicidade: verifica se já foi trackeado
+      const trackingKey = `purchase_tracked_${token}`;
+      if (localStorage.getItem(trackingKey)) {
+        console.log('⚠️ Purchase já foi trackeado para este token - pulando');
+        return;
+      }
+
+      // 1. DISPARO BROWSER-SIDE: fbq('track', 'Purchase')
+      if (window.fbq && typeof window.fbq === 'function') {
+        try {
+          window.fbq('track', 'Purchase', {
+            currency: 'CLP',
+            value: 5000,
+          });
+          console.log('✅ Pixel Purchase disparado (browser-side)');
+        } catch (error) {
+          console.warn('⚠️ Erro ao disparar Pixel Purchase:', error);
+        }
+      } else {
+        console.warn('⚠️ Meta Pixel (fbq) não disponível');
+      }
+
+      // 2. DISPARO CAPI: Envia para API server-side
+      try {
+        // Recupera tracking_id do localStorage
+        const trackingId = localStorage.getItem('tracking_id');
+        
+        // Recupera UTMs e dados do navegador
+        const getCookie = (name) => {
+          const value = `; ${document.cookie}`;
+          const parts = value.split(`; ${name}=`);
+          if (parts.length === 2) return parts.pop().split(';').shift();
+          return null;
+        };
+
+        const purchaseData = {
+          token: token,
+          tracking_id: trackingId,
+          page_url: window.location.href,
+          referrer: document.referrer || null,
+          user_agent: navigator.userAgent,
+          language: navigator.language,
+          // FBP e FBC (críticos para matching)
+          fbp: getCookie('_fbp'),
+          fbc: getCookie('_fbc'),
+          // UTMs
+          utm_source: new URLSearchParams(window.location.search).get('utm_source') || getCookie('utm_source') || localStorage.getItem('utm_source'),
+          utm_medium: new URLSearchParams(window.location.search).get('utm_medium') || getCookie('utm_medium') || localStorage.getItem('utm_medium'),
+          utm_campaign: new URLSearchParams(window.location.search).get('utm_campaign') || getCookie('utm_campaign') || localStorage.getItem('utm_campaign'),
+          utm_term: new URLSearchParams(window.location.search).get('utm_term') || getCookie('utm_term') || localStorage.getItem('utm_term'),
+          utm_content: new URLSearchParams(window.location.search).get('utm_content') || getCookie('utm_content') || localStorage.getItem('utm_content'),
+          // Valor e moeda
+          value: 5000,
+          currency: 'CLP',
+          timestamp: new Date().toISOString(),
+        };
+
+        // Tenta obter IP (opcional, não crítico)
+        try {
+          const ipResponse = await fetch('https://api.ipify.org?format=json');
+          const ipData = await ipResponse.json();
+          purchaseData.ip = ipData.ip;
+        } catch (error) {
+          console.warn('⚠️ Não foi possível obter IP:', error);
+        }
+
+        // Envia para API
+        const response = await fetch('/api/tracking-purchase', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(purchaseData),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('✅ Purchase CAPI enviado com sucesso:', result);
+
+        // Marca como trackeado no localStorage (proteção contra duplicidade)
+        localStorage.setItem(trackingKey, 'true');
+        console.log('✅ Purchase trackeado e marcado no localStorage');
+      } catch (error) {
+        console.error('❌ Erro ao enviar Purchase CAPI:', error);
+        // Mesmo com erro no CAPI, marca como trackeado para evitar spam
+        localStorage.setItem(trackingKey, 'true');
+      }
+    } catch (error) {
+      console.error('❌ Erro geral no tracking de Purchase:', error);
+    }
+  }
+
   useEffect(() => {
     // Pega o token da URL
     const params = new URLSearchParams(window.location.search)
     const urlToken = params.get('token')
     if (urlToken) {
       setToken(urlToken)
+      // Dispara tracking de Purchase
+      sendPurchaseTracking(urlToken).catch(error => {
+        console.error('Erro ao processar tracking de Purchase:', error)
+      })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleAccessProduct = () => {
