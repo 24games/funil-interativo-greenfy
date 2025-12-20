@@ -109,9 +109,35 @@ export default function Gracias() {
     // Pega o token da URL
     const params = new URLSearchParams(window.location.search)
     const urlToken = params.get('token')
+    
     if (urlToken) {
       setToken(urlToken)
-      // Dispara tracking de Purchase
+      
+      // PRIORIDADE MÁXIMA: Disparo imediato do Pixel Purchase no navegador
+      // Proteção contra duplicidade via sessionStorage (não localStorage)
+      const sessionKey = `purchase_sent_${urlToken}`;
+      if (!sessionStorage.getItem(sessionKey)) {
+        // Dispara Pixel Purchase imediatamente (garante atribuição na campanha)
+        if (window.fbq && typeof window.fbq === 'function') {
+          try {
+            window.fbq('track', 'Purchase', {
+              currency: 'CLP',
+              value: 5000,
+            });
+            console.log('✅ Pixel Purchase disparado imediatamente (navegador)');
+            // Marca como enviado no sessionStorage (evita duplicidade em F5)
+            sessionStorage.setItem(sessionKey, 'true');
+          } catch (error) {
+            console.warn('⚠️ Erro ao disparar Pixel Purchase:', error);
+          }
+        } else {
+          console.warn('⚠️ Meta Pixel (fbq) não disponível');
+        }
+      } else {
+        console.log('⚠️ Pixel Purchase já foi disparado nesta sessão - pulando');
+      }
+      
+      // Dispara tracking completo (CAPI) de forma assíncrona
       sendPurchaseTracking(urlToken).catch(error => {
         console.error('Erro ao processar tracking de Purchase:', error)
       })

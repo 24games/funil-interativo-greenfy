@@ -202,6 +202,22 @@ async function sendPageViewToMeta(data) {
     userData.client_user_agent = data.user_agent;
   }
 
+  // VALIDAÇÃO CRÍTICA: Verifica se há pelo menos UM identificador válido
+  // O Facebook rejeita eventos sem identificadores (Invalid parameter)
+  const hasValidIdentifier = 
+    userData.fbp || 
+    userData.fbc || 
+    userData.em || 
+    userData.ph || 
+    userData.fn || 
+    userData.ln ||
+    userData.client_ip_address ||
+    userData.client_user_agent;
+
+  if (!hasValidIdentifier) {
+    throw new Error('Nenhum identificador válido encontrado (fbp, fbc, email, phone, name, ip ou user_agent). Evento não será enviado para Meta para evitar erro "Invalid parameter".');
+  }
+
   // Prepara o evento PageView
   const eventData = {
     data: [
@@ -344,7 +360,7 @@ export default async function handler(req, res) {
       // Continua mesmo se houver erro no Supabase (não bloqueia envio para Meta)
     }
 
-    // Enviar evento para Facebook CAPI
+    // Enviar evento para Facebook CAPI (apenas se tiver identificadores válidos)
     let metaResponse = null;
     let metaError = null;
     
@@ -357,7 +373,21 @@ export default async function handler(req, res) {
       });
     } catch (error) {
       metaError = error.message;
-      console.error('Erro ao enviar para Facebook:', error);
+      
+      // Se o erro for por falta de identificadores, apenas loga (não é crítico)
+      if (error.message.includes('Nenhum identificador válido')) {
+        console.warn('⚠️ Evento não enviado para Meta (sem identificadores válidos):', {
+          event_id: trackingData.event_id,
+          hasFbp: !!trackingData.fbp,
+          hasFbc: !!trackingData.fbc,
+          hasEmail: !!trackingData.email,
+          hasPhone: !!trackingData.phone,
+          hasIp: !!trackingData.ip,
+          hasUserAgent: !!trackingData.user_agent,
+        });
+      } else {
+        console.error('Erro ao enviar para Facebook:', error);
+      }
     }
 
     // Resposta de sucesso (mesmo se houver erros parciais)
