@@ -106,8 +106,43 @@ export default function Gracias() {
   }
 
   useEffect(() => {
-    // Pega o token da URL
     const params = new URLSearchParams(window.location.search)
+    
+    // LÓGICA PERFECT PAY: Verifica se existe ppayId
+    const ppayId = params.get('ppayId')
+    if (ppayId) {
+      // Captura o valor da URL e converte para número
+      const valueParam = params.get('value')
+      const purchaseValue = valueParam ? parseFloat(valueParam) : 5000 // Fallback para 5000 se não houver value
+      
+      // Proteção contra duplicidade via sessionStorage
+      const sessionKey = `purchase_fired_${ppayId}`;
+      if (!sessionStorage.getItem(sessionKey)) {
+        // Dispara Pixel Purchase imediatamente (garante atribuição na campanha)
+        if (window.fbq && typeof window.fbq === 'function') {
+          try {
+            window.fbq('track', 'Purchase', {
+              value: purchaseValue,
+              currency: 'BRL', // ou 'CLP' se for o caso
+            }, {
+              eventID: ppayId, // Usa ppayId como event_id para deduplicar com Webhook
+            });
+            console.log('✅ Pixel Purchase disparado (Perfect Pay) - ppayId:', ppayId, 'value:', purchaseValue);
+            // Marca como enviado no sessionStorage (evita duplicidade em F5)
+            sessionStorage.setItem(sessionKey, 'true');
+          } catch (error) {
+            console.warn('⚠️ Erro ao disparar Pixel Purchase (Perfect Pay):', error);
+          }
+        } else {
+          console.warn('⚠️ Meta Pixel (fbq) não disponível');
+        }
+      } else {
+        console.log('⚠️ Pixel Purchase (Perfect Pay) já foi disparado nesta sessão - pulando');
+      }
+      return; // Retorna para não processar lógica do Flow
+    }
+    
+    // LÓGICA FLOW: Pega o token da URL (lógica existente)
     const urlToken = params.get('token')
     
     if (urlToken) {
