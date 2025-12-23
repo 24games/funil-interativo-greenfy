@@ -260,13 +260,13 @@ body {
   margin: 0 auto;
 }
 
-/* VSL 1 - Tamanho reduzido e ajustado */
+/* VSL 1 - Tamanho reduzido para mobile */
 .vturb-video-wrapper.vsl1-original {
-  max-width: 300px !important;
+  max-width: 280px !important;
   width: 100% !important;
   padding: 0 !important;
   background: transparent !important;
-  margin-top: -1rem !important;
+  margin-top: 0.5rem !important;
 }
 
 /* Garante que o div interno da VSL 1 também use o tamanho correto */

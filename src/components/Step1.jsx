@@ -155,7 +155,7 @@ export default function Step1({ onNext }) {
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.4, ease: "easeInOut" }}
       className="flex flex-col items-center gap-2"
-      style={{ marginTop: '-0.5rem' }}
+      style={{ marginTop: '0.5rem' }}
     >
       {/* Video Vturb - Key unica forca remontagem completa */}
       <VturbVideo 
