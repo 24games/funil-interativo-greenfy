@@ -99,19 +99,52 @@ export default function PrePerfect() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="text-2xl md:text-3xl font-bold text-white leading-tight px-4"
+            className="text-xl md:text-2xl font-bold text-white leading-tight px-4"
           >
-            Desbloquea el acceso al método para generar entre{' '}
+            Desbloquea el acceso al{' '}
             <span 
-              className="inline-block bg-gradient-to-r from-[#00FF88] via-[#00FFD4] to-[#00FF88] bg-[length:200%_auto] bg-clip-text text-transparent animate-[shimmer_3s_linear_infinite]"
+              className="inline-block text-xl md:text-2xl bg-gradient-to-r from-[#00FF88] via-[#00FFD4] to-[#00FF88] bg-[length:200%_auto] bg-clip-text text-transparent animate-[shimmer_3s_linear_infinite]"
               style={{
                 backgroundPosition: '0% center',
                 animation: 'shimmer 3s linear infinite',
               }}
             >
-              $50.000 y $150.000 pesos
+              método
             </span>
-            {' '}diarios con tu celular
+            {' '}
+            <span className="text-3xl md:text-5xl font-bold">para generar entre</span>
+            <br />
+            <span 
+              className="inline-block text-4xl md:text-6xl bg-gradient-to-r from-[#00FF88] via-[#00FFD4] to-[#00FF88] bg-[length:200%_auto] bg-clip-text text-transparent animate-[shimmer_3s_linear_infinite]"
+              style={{
+                backgroundPosition: '0% center',
+                animation: 'shimmer 3s linear infinite',
+              }}
+            >
+              $50.000
+            </span>
+            {' '}
+            <span 
+              className="inline-block text-4xl md:text-6xl bg-gradient-to-r from-[#00FF88] via-[#00FFD4] to-[#00FF88] bg-[length:200%_auto] bg-clip-text text-transparent animate-[shimmer_3s_linear_infinite]"
+              style={{
+                backgroundPosition: '0% center',
+                animation: 'shimmer 3s linear infinite',
+              }}
+            >
+              y
+            </span>
+            <br />
+            <span 
+              className="inline-block text-4xl md:text-6xl bg-gradient-to-r from-[#00FF88] via-[#00FFD4] to-[#00FF88] bg-[length:200%_auto] bg-clip-text text-transparent animate-[shimmer_3s_linear_infinite]"
+              style={{
+                backgroundPosition: '0% center',
+                animation: 'shimmer 3s linear infinite',
+              }}
+            >
+              $150.000 pesos
+            </span>
+            <br />
+            <span className="text-3xl md:text-5xl text-white font-bold">diarios con tu celular</span>
           </motion.h1>
 
           {/* Botão com efeito Shine */}
@@ -146,7 +179,7 @@ export default function PrePerfect() {
                 ease: 'linear',
               }}
             />
-            <span className="relative z-10">QUIERO VER EL VIDEO Y ACTIVAR EL MÉTODO AHORA</span>
+            <span className="relative z-10">ACTIVAR EL MÉTODO AHORA</span>
           </motion.button>
         </motion.div>
       </div>
