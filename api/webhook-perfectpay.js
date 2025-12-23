@@ -408,7 +408,8 @@ async function sendPurchaseToMeta(purchaseData, leadData) {
   // Prepara o evento Purchase
   const orderId = purchaseData.code || purchaseData.order_id || `order_${Date.now()}`;
   const value = parseFloat(purchaseData.sale_amount) || 0;
-  const currency = purchaseData.currency_enum_key || purchaseData.currency || 'BRL';
+  // FORÇA CLP - Corrige se Perfect Pay enviar BRL incorretamente
+  const currency = 'CLP';
   
   // Timestamp do evento (usa data_approved se disponível)
   let eventTime = Math.floor(Date.now() / 1000);
@@ -616,7 +617,7 @@ export default async function handler(req, res) {
         // Mapeia dados do webhook Perfect Pay para o formato da tabela
         const purchaseData = {
           amount: parseFloat(body.sale_amount) || 0,
-          currency: body.currency_enum_key || body.currency || 'BRL',
+          currency: 'CLP', // FORÇA CLP - Corrige se Perfect Pay enviar BRL incorretamente
           payer_email: body.customer?.email || body.email || null,
           status_id: 2, // 2 = Aprovado (mesmo padrão do Flow)
           flow_order_id: body.code || body.sale_code || body.order_id || `perfect_${Date.now()}`,

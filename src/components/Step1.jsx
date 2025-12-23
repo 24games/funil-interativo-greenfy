@@ -7,7 +7,7 @@ export default function Step1({ onNext }) {
   // CONFIGURACAO DO PROGRESS BAR BUTTON (PERFORMANCE MAXIMA COM useRef)
   // ============================================================================
   const TARGET_TIME = 21 // Tempo alvo em segundos (0:21) - VSL 1
-  const TARGET_VIDEO_ID = '6939f7c83ec7593882510713' // ID do video VSL 1
+  const TARGET_VIDEO_ID = '694aa2b190b70171e37bcfaa' // ID do video VSL 1
   
   // REFS para manipulacao direta do DOM (evita re-renders)
   const progressBarRef = useRef(null) // Referencia para a barra verde
@@ -160,8 +160,8 @@ export default function Step1({ onNext }) {
       {/* Video Vturb - Key unica forca remontagem completa */}
       <VturbVideo 
         key={`step1-video-${videoKey}`}
-        videoId="vid_6939f7c83ec7593882510713"
-        playerId="6939f7c83ec7593882510713"
+        videoId="vid_694aa2b190b70171e37bcfaa"
+        playerId="694aa2b190b70171e37bcfaa"
         delaySeconds={TARGET_TIME}
       />
 

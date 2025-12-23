@@ -390,9 +390,9 @@ export default function VturbVideo({ videoId, playerId, delaySeconds, maxWidth =
   }, [videoId, playerId, delaySeconds])
 
   // Identifica VSL 1 pelo videoId
-  const isVSL1 = videoId === 'vid_6939f7c83ec7593882510713'
+  const isVSL1 = videoId === 'vid_6939f7c83ec7593882510713' || videoId === 'vid_694aa2b190b70171e37bcfaa'
   const finalMaxWidth = isVSL1 ? '100%' : maxWidth
-  
+
   return (
     <div 
       ref={containerRef}

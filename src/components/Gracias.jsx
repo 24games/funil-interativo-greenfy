@@ -123,7 +123,7 @@ export default function Gracias() {
           try {
             window.fbq('track', 'Purchase', {
               value: purchaseValue,
-              currency: 'BRL', // ou 'CLP' se for o caso
+              currency: 'CLP', // FORÇA CLP - Corrige moeda para Pesos Chilenos
             }, {
               eventID: ppayId, // Usa ppayId como event_id para deduplicar com Webhook
             });

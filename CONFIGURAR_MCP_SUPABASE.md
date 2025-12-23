@@ -133,3 +133,11 @@ Após configurar, você pode testar pedindo ao Cursor:
 
 
 
+
+
+
+
+
+
+
+

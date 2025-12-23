@@ -332,19 +332,19 @@ export default function HomePerfect() {
       <div className="relative z-10 min-h-screen flex flex-col items-center px-4 pt-0 pb-8">
         {/* Logo no Topo - Menor e colada no topo (oculta no Step 1) */}
         {currentStep !== 1 && (
-          <div className="w-full max-w-md mb-1 flex justify-center">
-            <img 
-              src="/images/HACKER MILLON PNG.png" 
-              alt="24Games Logo" 
-              style={{ 
-                height: '4rem',
-                width: 'auto',
-                objectFit: 'contain',
-                display: 'block'
-              }}
-              className="md:h-16"
-            />
-          </div>
+        <div className="w-full max-w-md mb-1 flex justify-center">
+          <img 
+            src="/images/HACKER MILLON PNG.png" 
+            alt="24Games Logo" 
+            style={{ 
+              height: '4rem',
+              width: 'auto',
+              objectFit: 'contain',
+              display: 'block'
+            }}
+            className="md:h-16"
+          />
+        </div>
         )}
 
         {/* Barra de Progresso - Aparece após Step 1 */}
