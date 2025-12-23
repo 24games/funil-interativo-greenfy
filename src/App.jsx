@@ -11,6 +11,7 @@ import ProgressBar from './components/ProgressBar'
 import Back from './components/Back'
 import BackPerfect from './components/BackPerfect'
 import HomePerfect from './components/HomePerfect'
+import PrePerfect from './components/PrePerfect'
 import Gracias from './components/Gracias'
 
 function App() {
@@ -46,6 +47,11 @@ function App() {
   // Se a rota for /back-perfect, renderiza a página BackPerfect
   if (currentPath === '/back-perfect' || currentPath === '/back-perfect/') {
     return <BackPerfect />
+  }
+
+  // Se a rota for /pre-perfect, renderiza a página PrePerfect
+  if (currentPath === '/pre-perfect' || currentPath === '/pre-perfect/') {
+    return <PrePerfect />
   }
 
   // Se a rota for /perfect, renderiza a página HomePerfect

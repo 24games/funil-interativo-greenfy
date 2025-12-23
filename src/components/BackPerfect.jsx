@@ -12,10 +12,10 @@ export default function BackPerfect() {
     })
   }, [])
 
-  // Handler do botão CTA - Redirecionamento dinâmico para Perfect Pay
-  const handleCTA = async () => {
-    // Usa função de checkout dinâmico que monta URL com tracking_id e UTMs
-    await handlePerfectRedirect()
+  // Handler do botão CTA - Redirecionamento para Centerpag
+  const handleCTA = () => {
+    // Redireciona diretamente para a página de checkout do Centerpag
+    window.location.href = 'https://checkout.centerpag.com/pay/PPU38CQ54K3'
   }
 
   // Componente do botao reutilizavel
@@ -111,16 +111,46 @@ export default function BackPerfect() {
             className="md:h-16"
           />
 
-          {/* HEADLINE com urgencia */}
+          {/* HEADLINE com destaque de preço */}
           <motion.h1
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="text-2xl md:text-3xl font-bold text-white leading-tight"
           >
-            Esta es tu{' '}
-            <span style={{ color: '#FF4444', textDecoration: 'underline' }}>ULTIMA OPORTUNIDAD</span>
-            {' '}de cambiar tu vida financiera
+            <div className="flex flex-col items-center gap-3">
+              <div className="text-center">
+                <span className="text-xl md:text-2xl">Tu única oportunidad de</span>
+                <br />
+                <span className="text-xl md:text-2xl">cambiar tu vida financiera</span>
+              </div>
+              <div className="flex items-center gap-4 flex-wrap justify-center mt-2">
+                <span 
+                  className="text-4xl md:text-5xl font-extrabold relative"
+                  style={{ 
+                    color: '#FF4444',
+                    textDecoration: 'line-through',
+                    textDecorationThickness: '4px',
+                    textDecorationColor: '#FF4444',
+                    opacity: 0.7
+                  }}
+                >
+                  $10.000
+                </span>
+                <span 
+                  className="text-4xl md:text-5xl font-extrabold"
+                  style={{ 
+                    color: '#00FF88',
+                    textShadow: '0 0 20px rgba(0, 255, 136, 0.5)'
+                  }}
+                >
+                  $7.000
+                </span>
+              </div>
+              <div className="text-lg md:text-xl text-neon font-semibold mt-1">
+                Esta es tu última chance
+              </div>
+            </div>
           </motion.h1>
 
           {/* SUBHEADLINE */}

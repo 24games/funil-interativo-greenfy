@@ -126,7 +126,7 @@ export default function Step1({ onNext }) {
             }
             width = Math.min(width, 100)
           }
-          progressBarRef.current.style.width = width + '%'
+          progressBarRef.current.style.width = `${width}%`
         }
         
         // LOGICA EXATA DO SCRIPT: Se currentTime < SECONDS_TO_DISPLAY, retorna
@@ -154,17 +154,9 @@ export default function Step1({ onNext }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.4, ease: "easeInOut" }}
-      className="flex flex-col items-center gap-3"
+      className="flex flex-col items-center gap-2"
+      style={{ marginTop: '-0.5rem' }}
     >
-      {/* Headline */}
-      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center leading-tight px-2 sm:px-4 break-words -mt-4">
-        Genera de{' '}
-        <span className="money-highlight">
-          $1.000.000 a $4.500.000 pesos
-        </span>{' '}
-        mensuales solo copiando la I.A.
-      </h1>
-
       {/* Video Vturb - Key unica forca remontagem completa */}
       <VturbVideo 
         key={`step1-video-${videoKey}`}
@@ -180,7 +172,6 @@ export default function Step1({ onNext }) {
         transition={{ delay: 0.3 }}
         style={{
           marginTop: '8px',
-          maxWidth: '280px',
           width: '100%',
           marginLeft: 'auto',
           marginRight: 'auto'

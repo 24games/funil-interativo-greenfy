@@ -260,6 +260,21 @@ body {
   margin: 0 auto;
 }
 
+/* VSL 1 - Tamanho reduzido e ajustado */
+.vturb-video-wrapper.vsl1-original {
+  max-width: 300px !important;
+  width: 100% !important;
+  padding: 0 !important;
+  background: transparent !important;
+  margin-top: -1rem !important;
+}
+
+/* Garante que o div interno da VSL 1 também use o tamanho correto */
+.vturb-video-wrapper.vsl1-original > div[id^="vid_"] {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
 .vturb-video-wrapper vturb-smartplayer {
   display: block !important;
   width: 100% !important;

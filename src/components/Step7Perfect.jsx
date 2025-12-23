@@ -9,7 +9,7 @@ export default function Step7Perfect() {
   // CONFIGURAÇÃO DO PROGRESS BAR BUTTON (PERFORMANCE MÁXIMA COM useRef)
   // ============================================================================
   const TARGET_TIME = 126 // Tempo alvo em segundos (2:06)
-  const TARGET_VIDEO_ID = '693b9342f679d6950ed12c36' // ID do vídeo
+  const TARGET_VIDEO_ID = '6949e54790b70171e37b272b' // ID do vídeo
   
   // REFS para manipulação direta do DOM (evita re-renders)
   const progressBarRef = useRef(null) // Referência para a barra verde
@@ -181,8 +181,8 @@ export default function Step7Perfect() {
         transition={{ delay: 0.9 }}
       >
         <VturbVideo 
-          videoId="vid_693b9342f679d6950ed12c36"
-          playerId="693b9342f679d6950ed12c36"
+          videoId="vid_6949e54790b70171e37b272b"
+          playerId="6949e54790b70171e37b272b"
           delaySeconds={TARGET_TIME}
         />
       </motion.div>

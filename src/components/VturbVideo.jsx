@@ -6,8 +6,9 @@ import { useEffect, useRef } from 'react'
  * @param {string} videoId - ID do vídeo Vturb (ex: "vid_6939f7c83ec7593882510713")
  * @param {string} playerId - ID do player Vturb (ex: "6939f7c83ec7593882510713")
  * @param {number} delaySeconds - Segundos para mostrar elementos com classe .esconder
+ * @param {string} maxWidth - Largura máxima do vídeo (ex: "360px", "280px")
  */
-export default function VturbVideo({ videoId, playerId, delaySeconds }) {
+export default function VturbVideo({ videoId, playerId, delaySeconds, maxWidth = '280px' }) {
   const containerRef = useRef(null)
   const videoDivRef = useRef(null)
   const displayConfiguredRef = useRef(false)
@@ -388,12 +389,16 @@ export default function VturbVideo({ videoId, playerId, delaySeconds }) {
     }
   }, [videoId, playerId, delaySeconds])
 
+  // Identifica VSL 1 pelo videoId
+  const isVSL1 = videoId === 'vid_6939f7c83ec7593882510713'
+  const finalMaxWidth = isVSL1 ? '100%' : maxWidth
+  
   return (
     <div 
       ref={containerRef}
-      className="w-full vturb-video-wrapper"
+      className={`w-full vturb-video-wrapper ${isVSL1 ? 'vsl1-original' : ''}`}
       style={{ 
-        maxWidth: '280px',
+        maxWidth: finalMaxWidth,
         width: '100%'
       }}
     />

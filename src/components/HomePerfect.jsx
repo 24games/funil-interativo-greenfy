@@ -104,12 +104,66 @@ export default function HomePerfect() {
 
   // Adiciona entrada no histórico quando muda de step (apenas quando avança)
   const nextStep = () => {
-    const newStep = currentStep + 1
+    let newStep = currentStep + 1
+    
+    // Se estiver no Step 2, pula direto para o Step 4 (pula Step 3)
+    if (currentStep === 2) {
+      newStep = 4
+    }
+    
     setCurrentStep(newStep)
     
     // Preserva UTMs na URL ao navegar
-    const preservedParams = getPreservedParams()
-    const newUrl = preservedParams ? `/perfect?${preservedParams}` : `/perfect?step=${newStep}`
+    const params = new URLSearchParams()
+    params.set('step', newStep)
+    
+    // Busca UTMs da URL atual
+    const currentUrl = new URLSearchParams(window.location.search)
+    const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid', 'gclid']
+    
+    utmParams.forEach(param => {
+      const value = currentUrl.get(param)
+      if (value) {
+        params.set(param, value)
+      }
+    })
+    
+    // Se não encontrou na URL, busca dos cookies (UTMify)
+    if (!params.has('utm_source')) {
+      const getCookie = (name) => {
+        const value = `; ${document.cookie}`
+        const parts = value.split(`; ${name}=`)
+        if (parts.length === 2) return parts.pop().split(';').shift()
+        return null
+      }
+      
+      utmParams.forEach(param => {
+        if (!params.has(param)) {
+          const cookieValue = getCookie(param)
+          if (cookieValue) {
+            params.set(param, cookieValue)
+          }
+        }
+      })
+    }
+    
+    // Se ainda não encontrou, busca do localStorage
+    if (!params.has('utm_source')) {
+      try {
+        utmParams.forEach(param => {
+          if (!params.has(param)) {
+            const storageValue = localStorage.getItem(param)
+            if (storageValue) {
+              params.set(param, storageValue)
+            }
+          }
+        })
+      } catch (error) {
+        console.warn('Erro ao ler localStorage:', error)
+      }
+    }
+    
+    const newUrl = `/perfect?${params.toString()}`
     
     // Adiciona uma entrada no histórico do navegador
     window.history.pushState({ step: newStep }, '', newUrl)
@@ -238,7 +292,11 @@ export default function HomePerfect() {
       // Se não está no Step 7, volta para o step anterior
       if (currentStep > 1) {
         setCurrentStep(prev => {
-          const previousStep = prev - 1
+          let previousStep = prev - 1
+          // Se estiver no Step 4 e voltar, vai para o Step 2 (pula Step 3)
+          if (prev === 4) {
+            previousStep = 2
+          }
           // Preserva UTMs na URL ao voltar
           const newUrl = getPreservedParamsForStep(previousStep)
           // Atualiza a URL sem adicionar nova entrada no histórico
@@ -291,7 +349,7 @@ export default function HomePerfect() {
         <ProgressBar currentStep={currentStep} showPercentage={currentStep === 7} />
         
         {/* Conteúdo */}
-        <div className={`w-full ${currentStep === 3 ? 'max-w-full sm:max-w-md' : 'max-w-md'} flex items-center justify-center`}>
+        <div className={`w-full ${currentStep === 1 ? 'max-w-full' : currentStep === 3 ? 'max-w-full sm:max-w-md' : 'max-w-md'} flex items-center justify-center`}>
           <AnimatePresence mode="wait" initial={false}>
             {currentStep === 1 && (
               <Step1 key={`step1-${currentStep}`} onNext={nextStep} />
