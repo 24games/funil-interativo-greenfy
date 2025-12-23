@@ -103,7 +103,7 @@ export default function PrePerfect() {
           >
             Desbloquea el acceso al{' '}
             <span 
-              className="inline-block text-xl md:text-2xl bg-gradient-to-r from-[#00FF88] via-[#00FFD4] to-[#00FF88] bg-[length:200%_auto] bg-clip-text text-transparent animate-[shimmer_3s_linear_infinite]"
+              className="inline-block text-xl md:text-2xl bg-gradient-to-r from-[#00FF88] via-[#00FFD4] to-[#00FF88] bg-[length:200%_auto] bg-clip-text text-transparent animate-[shimmer_3s_linear_infinite] whitespace-nowrap"
               style={{
                 backgroundPosition: '0% center',
                 animation: 'shimmer 3s linear infinite',
@@ -112,7 +112,7 @@ export default function PrePerfect() {
               método
             </span>
             {' '}
-            <span className="text-3xl md:text-5xl font-bold">para generar entre</span>
+            <span className="text-3xl md:text-5xl font-bold whitespace-nowrap">para generar entre</span>
             <br />
             <span 
               className="inline-block text-4xl md:text-6xl bg-gradient-to-r from-[#00FF88] via-[#00FFD4] to-[#00FF88] bg-[length:200%_auto] bg-clip-text text-transparent animate-[shimmer_3s_linear_infinite]"
