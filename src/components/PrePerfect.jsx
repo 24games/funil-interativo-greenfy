@@ -99,17 +99,19 @@ export default function PrePerfect() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="text-xl md:text-2xl font-bold text-white leading-tight px-4"
+            className="text-lg md:text-2xl font-bold text-white leading-tight px-4"
           >
-            Desbloquea el acceso al{' '}
-            <span 
-              className="inline-block text-xl md:text-2xl bg-gradient-to-r from-[#00FF88] via-[#00FFD4] to-[#00FF88] bg-[length:200%_auto] bg-clip-text text-transparent animate-[shimmer_3s_linear_infinite] whitespace-nowrap"
-              style={{
-                backgroundPosition: '0% center',
-                animation: 'shimmer 3s linear infinite',
-              }}
-            >
-              método
+            <span className="whitespace-nowrap">
+              Desbloquea el acceso al{' '}
+              <span 
+                className="inline-block text-lg md:text-2xl bg-gradient-to-r from-[#00FF88] via-[#00FFD4] to-[#00FF88] bg-[length:200%_auto] bg-clip-text text-transparent animate-[shimmer_3s_linear_infinite]"
+                style={{
+                  backgroundPosition: '0% center',
+                  animation: 'shimmer 3s linear infinite',
+                }}
+              >
+                método
+              </span>
             </span>
             {' '}
             <span className="text-3xl md:text-5xl font-bold whitespace-nowrap">para generar entre</span>
