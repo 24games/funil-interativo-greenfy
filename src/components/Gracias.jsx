@@ -181,9 +181,9 @@ export default function Gracias() {
   }, [])
 
   const handleAccessProduct = () => {
-    // Número do WhatsApp (Chile): +56 9 8451 9445
-    // Formato para wa.me: remove espaços e o +, mantém o 9
-    const whatsappNumber = '56984519445'
+    // Número do WhatsApp: 5511954227016
+    // Formato para wa.me: número completo sem espaços e sem +
+    const whatsappNumber = '5511954227016'
     const message = 'Quiero conceder acceso a la aplicación!'
     const encodedMessage = encodeURIComponent(message)
     
