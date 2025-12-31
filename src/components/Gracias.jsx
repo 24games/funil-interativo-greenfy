@@ -181,9 +181,9 @@ export default function Gracias() {
   }, [])
 
   const handleAccessProduct = () => {
-    // Número do WhatsApp: 5511954227016
+    // Número do WhatsApp: 5547999866781
     // Formato para wa.me: número completo sem espaços e sem +
-    const whatsappNumber = '5511954227016'
+    const whatsappNumber = '5547999866781'
     const message = 'Quiero conceder acceso a la aplicación!'
     const encodedMessage = encodeURIComponent(message)
     
