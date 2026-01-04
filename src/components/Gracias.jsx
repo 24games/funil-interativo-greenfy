@@ -67,9 +67,9 @@ export default function Gracias() {
             // Atualiza UI com status
             setPaymentStatus(data.status);
             setPaymentAmount(data.amount);
-          } else {
+        } else {
             console.warn('⚠️ Erro ao consultar status do pagamento');
-          }
+      }
         } catch (error) {
           console.error('❌ Erro ao consultar status do pagamento:', error);
         }
@@ -81,9 +81,9 @@ export default function Gracias() {
   }, [])
 
   const handleAccessProduct = () => {
-    // Número do WhatsApp: 11958065533 (formato completo: 5511958065533)
+    // Número do WhatsApp: 11952957505 (formato completo: 5511952957505)
     // Formato para wa.me: número completo sem espaços e sem +
-    const whatsappNumber = '5511958065533'
+    const whatsappNumber = '5511952957505'
     const message = 'Quiero conceder acceso a la aplicación!'
     const encodedMessage = encodeURIComponent(message)
     
