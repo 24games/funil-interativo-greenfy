@@ -1,0 +1,63 @@
+{
+  "functions": {
+    "api/webhook-purchase.js": {
+      "maxDuration": 10
+    },
+    "api/webhook-perfectpay.js": {
+      "maxDuration": 10
+    },
+    "api/webhook-flow.js": {
+      "maxDuration": 10
+    },
+    "api/get-flow-status.js": {
+      "maxDuration": 10
+    },
+    "api/tracking-pageview.js": {
+      "maxDuration": 10
+    },
+    "api/tracking-initiate-checkout.js": {
+      "maxDuration": 10
+    },
+    "api/test-purchase.js": {
+      "maxDuration": 10
+    },
+    "api/test-purchase-simple.js": {
+      "maxDuration": 10
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/webhook-purchase",
+      "destination": "/api/webhook-purchase.js"
+    },
+    {
+      "source": "/api/webhook-perfectpay",
+      "destination": "/api/webhook-perfectpay.js"
+    },
+    {
+      "source": "/api/tracking-pageview",
+      "destination": "/api/tracking-pageview.js"
+    },
+    {
+      "source": "/api/tracking-initiate-checkout",
+      "destination": "/api/tracking-initiate-checkout.js"
+    },
+    {
+      "source": "/api/test-purchase",
+      "destination": "/api/test-purchase.js"
+    },
+    {
+      "source": "/api/test-purchase-simple",
+      "destination": "/api/test-purchase-simple.js"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+
+
+
+
+

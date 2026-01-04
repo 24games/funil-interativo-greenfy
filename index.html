@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es-CL">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Vturb Performance Script (único, coloque apenas 1 vez) -->
+    <script>!function(i,n){i._plt=i._plt||(n&&n.timeOrigin?n.timeOrigin+n.now():Date.now())}(window,performance);</script>
+    
+    <!-- Vturb Preloads (otimização de carregamento) -->
+    <!-- Script comum do SmartPlayer -->
+    <link rel="preload" href="https://scripts.converteai.net/lib/js/smartplayer-wc/v4/smartplayer.js" as="script">
+    
+    <!-- Preloads dos 3 players (opcional, mas melhora performance) -->
+    <link rel="preload" href="https://scripts.converteai.net/af053167-2542-4323-9c93-d010e7938eb5/players/6939f7c83ec7593882510713/v4/player.js" as="script">
+    <link rel="preload" href="https://scripts.converteai.net/af053167-2542-4323-9c93-d010e7938eb5/players/6939f7aadee6875e65a4963d/v4/player.js" as="script">
+    <link rel="preload" href="https://scripts.converteai.net/af053167-2542-4323-9c93-d010e7938eb5/players/6939f7c0c54455d1fed8aee0/v4/player.js" as="script">
+    
+    <!-- DNS Prefetch para domínios do Vturb -->
+    <link rel="dns-prefetch" href="https://cdn.converteai.net">
+    <link rel="dns-prefetch" href="https://scripts.converteai.net">
+    <link rel="dns-prefetch" href="https://images.converteai.net">
+    <link rel="dns-prefetch" href="https://api.vturb.com.br">
+    
+    <!-- UTMify Script -->
+    <script
+      src="https://cdn.utmify.com.br/scripts/utms/latest.js"
+      data-utmify-prevent-xcod-sck
+      data-utmify-prevent-subids
+      async
+      defer
+    ></script>
+    
+    <!-- UTMify Pixel -->
+    <script>
+      window.pixelId = "693b798818025682695df263";
+      var a = document.createElement("script");
+      a.setAttribute("async", "");
+      a.setAttribute("defer", "");
+      a.setAttribute("src", "https://cdn.utmify.com.br/scripts/pixel/pixel.js");
+      document.head.appendChild(a);
+    </script>
+    
+    <!-- Meta Pixel Code (Facebook) -->
+    <script>
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', '1170692121796734');
+      fbq('track', 'PageView');
+    </script>
+    <!-- End Meta Pixel Code -->
+    
+    <title>24Games - Genera Ingresos Evaluando Patrones</title>
+  </head>
+  <body>
+    <!-- Meta Pixel noscript (movido para body conforme especificação HTML5) -->
+    <noscript>
+      <img height="1" width="1" style="display:none"
+      src="https://www.facebook.com/tr?id=1170692121796734&ev=PageView&noscript=1"/>
+    </noscript>
+    
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+
+
+
+
+
+
+
