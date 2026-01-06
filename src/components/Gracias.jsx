@@ -2,6 +2,45 @@ import { motion } from 'framer-motion'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
+/**
+ * Aguarda os scripts globais de tracking (fbq e utmify) carregarem
+ * @param {number} timeoutMs - Timeout em milissegundos (padrão: 10000 = 10 segundos)
+ * @returns {Promise<boolean>} - Resolve quando ambos scripts estão disponíveis, rejeita no timeout
+ */
+function waitForGlobal(timeoutMs = 10000) {
+  return new Promise((resolve, reject) => {
+    const startTime = Date.now();
+    const checkInterval = 500; // Checa a cada 500ms
+    
+    console.log('⏳ Aguardando scripts de tracking...');
+    
+    const intervalId = setInterval(() => {
+      const fbqReady = window.fbq && typeof window.fbq === 'function';
+      const utmifyReady = window.utmify && typeof window.utmify === 'function';
+      
+      if (fbqReady && utmifyReady) {
+        clearInterval(intervalId);
+        console.log('✅ Scripts encontrados! (fbq e utmify disponíveis)');
+        resolve(true);
+        return;
+      }
+      
+      // Verifica timeout
+      const elapsed = Date.now() - startTime;
+      if (elapsed >= timeoutMs) {
+        clearInterval(intervalId);
+        const missing = [];
+        if (!fbqReady) missing.push('fbq');
+        if (!utmifyReady) missing.push('utmify');
+        console.warn(`⚠️ Timeout aguardando scripts. Faltando: ${missing.join(', ')}`);
+        // Resolve mesmo assim (não rejeita) para não quebrar o fluxo
+        // Mas loga quais scripts não foram encontrados
+        resolve(false);
+      }
+    }, checkInterval);
+  });
+}
+
 export default function Gracias() {
   const [token, setToken] = useState(null)
   const [paymentStatus, setPaymentStatus] = useState(null)
@@ -74,40 +113,51 @@ export default function Gracias() {
             if (!sessionStorage.getItem(sessionKey)) {
               const purchaseValue = data.amount || 10000; // Fallback para 10000 se não houver amount
               
-              // 1. Facebook Pixel Purchase (redundância com webhook)
-              if (window.fbq && typeof window.fbq === 'function') {
-                try {
-                  window.fbq('track', 'Purchase', {
-                    value: purchaseValue,
-                    currency: data.currency || 'CLP',
-                  }, {
-                    eventID: urlToken, // ✅ Usa token como event_id para deduplicar
-                  });
-                  console.log('✅ Pixel Purchase disparado (Flow) - token:', urlToken, 'value:', purchaseValue);
-                } catch (error) {
-                  console.warn('⚠️ Erro ao disparar Pixel Purchase (Flow):', error);
+              // ⏳ AGUARDA SCRIPTS DE TRACKING CARREGAREM (resolve race condition)
+              try {
+                await waitForGlobal(10000); // Timeout de 10 segundos
+                
+                // 1. Facebook Pixel Purchase (redundância com webhook)
+                if (window.fbq && typeof window.fbq === 'function') {
+                  try {
+                    window.fbq('track', 'Purchase', {
+                      value: purchaseValue,
+                      currency: data.currency || 'CLP',
+                    }, {
+                      eventID: urlToken, // ✅ Usa token como event_id para deduplicar
+                    });
+                    console.log('✅ Pixel Purchase disparado (Flow) - token:', urlToken, 'value:', purchaseValue);
+                  } catch (error) {
+                    console.warn('⚠️ Erro ao disparar Pixel Purchase (Flow):', error);
+                  }
+                } else {
+                  console.warn('⚠️ Meta Pixel (fbq) não disponível após aguardar');
                 }
-              } else {
-                console.warn('⚠️ Meta Pixel (fbq) não disponível');
-              }
-              
-              // 2. UTMify (Flow NÃO tem integração nativa)
-              if (window.utmify && typeof window.utmify === 'function') {
-                try {
-                  window.utmify('track', 'purchase', {
-                    value: purchaseValue,
-                    currency: 'CLP',
-                  });
-                  console.log('✅ UTMify Purchase disparado (Flow) - value:', purchaseValue);
-                } catch (error) {
-                  console.warn('⚠️ Erro ao disparar UTMify (Flow):', error);
+                
+                // 2. UTMify (Flow NÃO tem integração nativa)
+                if (window.utmify && typeof window.utmify === 'function') {
+                  try {
+                    window.utmify('track', 'purchase', {
+                      value: purchaseValue,
+                      currency: 'CLP',
+                    });
+                    console.log('✅ UTMify Purchase disparado (Flow) - value:', purchaseValue);
+                  } catch (error) {
+                    console.warn('⚠️ Erro ao disparar UTMify (Flow):', error);
+                  }
+                } else {
+                  console.warn('⚠️ UTMify não disponível após aguardar');
                 }
-              } else {
-                console.warn('⚠️ UTMify não disponível');
+                
+                console.log('✅ Eventos disparados com sucesso');
+                
+                // Marca como enviado no sessionStorage (evita duplicidade em F5)
+                sessionStorage.setItem(sessionKey, 'true');
+              } catch (error) {
+                console.error('❌ Erro ao aguardar scripts de tracking:', error);
+                // Mesmo com erro, marca como enviado para não ficar tentando infinitamente
+                sessionStorage.setItem(sessionKey, 'true');
               }
-              
-              // Marca como enviado no sessionStorage (evita duplicidade em F5)
-              sessionStorage.setItem(sessionKey, 'true');
             } else {
               console.log('⚠️ Tracking (Flow) já foi disparado nesta sessão - pulando');
             }
