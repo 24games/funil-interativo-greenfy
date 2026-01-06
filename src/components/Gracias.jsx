@@ -27,7 +27,7 @@ export default function Gracias() {
               value: purchaseValue,
               currency: 'CLP', // FORÇA CLP - Corrige moeda para Pesos Chilenos
             }, {
-              eventID: ppayId, // Usa ppayId como event_id para deduplicar com Webhook
+              eventID: ppayId, // ✅ Usa ppayId como event_id para deduplicar com Webhook
             });
             console.log('✅ Pixel Purchase disparado (Perfect Pay) - ppayId:', ppayId, 'value:', purchaseValue);
             // Marca como enviado no sessionStorage (evita duplicidade em F5)
@@ -38,6 +38,8 @@ export default function Gracias() {
         } else {
           console.warn('⚠️ Meta Pixel (fbq) não disponível');
         }
+        // ✅ Perfect Pay: NÃO dispara UTMify (já tem integração via Postback)
+        console.log('ℹ️ UTMify não disparado (Perfect Pay tem integração via Postback)');
       } else {
         console.log('⚠️ Pixel Purchase (Perfect Pay) já foi disparado nesta sessão - pulando');
       }
@@ -45,21 +47,21 @@ export default function Gracias() {
     }
     
     // LÓGICA FLOW: Pega o token da URL
-    // IMPORTANTE: Para Flow, NÃO dispara Purchase (nem Pixel nem CAPI)
-    // O webhook-flow é a única fonte de verdade para Purchase
     const urlToken = params.get('token')
     
     if (urlToken) {
       setToken(urlToken)
       
-      // Apenas consulta status do pagamento e exibe na UI
-      // NÃO dispara Purchase (nem Pixel nem CAPI) - webhook-flow é a única fonte de verdade
-      const checkPaymentStatus = async () => {
+      // Proteção contra duplicidade via sessionStorage
+      const sessionKey = `purchase_fired_flow_${urlToken}`;
+      
+      // Consulta status do pagamento e dispara tracking
+      const checkPaymentStatusAndTrack = async () => {
         try {
           const response = await fetch(`/api/get-flow-status?token=${encodeURIComponent(urlToken)}`);
           if (response.ok) {
             const data = await response.json();
-            console.log('✅ Status do pagamento consultado (Purchase não disparado - webhook é fonte de verdade):', {
+            console.log('✅ Status do pagamento consultado:', {
               status: data.status,
               commerceOrder: data.commerceOrder,
               amount: data.amount,
@@ -67,15 +69,57 @@ export default function Gracias() {
             // Atualiza UI com status
             setPaymentStatus(data.status);
             setPaymentAmount(data.amount);
-        } else {
+            
+            // ✅ FLOW: Dispara tracking apenas uma vez por sessão
+            if (!sessionStorage.getItem(sessionKey)) {
+              const purchaseValue = data.amount || 10000; // Fallback para 10000 se não houver amount
+              
+              // 1. Facebook Pixel Purchase (redundância com webhook)
+              if (window.fbq && typeof window.fbq === 'function') {
+                try {
+                  window.fbq('track', 'Purchase', {
+                    value: purchaseValue,
+                    currency: data.currency || 'CLP',
+                  }, {
+                    eventID: urlToken, // ✅ Usa token como event_id para deduplicar
+                  });
+                  console.log('✅ Pixel Purchase disparado (Flow) - token:', urlToken, 'value:', purchaseValue);
+                } catch (error) {
+                  console.warn('⚠️ Erro ao disparar Pixel Purchase (Flow):', error);
+                }
+              } else {
+                console.warn('⚠️ Meta Pixel (fbq) não disponível');
+              }
+              
+              // 2. UTMify (Flow NÃO tem integração nativa)
+              if (window.utmify && typeof window.utmify === 'function') {
+                try {
+                  window.utmify('track', 'purchase', {
+                    value: purchaseValue,
+                    currency: 'CLP',
+                  });
+                  console.log('✅ UTMify Purchase disparado (Flow) - value:', purchaseValue);
+                } catch (error) {
+                  console.warn('⚠️ Erro ao disparar UTMify (Flow):', error);
+                }
+              } else {
+                console.warn('⚠️ UTMify não disponível');
+              }
+              
+              // Marca como enviado no sessionStorage (evita duplicidade em F5)
+              sessionStorage.setItem(sessionKey, 'true');
+            } else {
+              console.log('⚠️ Tracking (Flow) já foi disparado nesta sessão - pulando');
+            }
+          } else {
             console.warn('⚠️ Erro ao consultar status do pagamento');
-      }
+          }
         } catch (error) {
           console.error('❌ Erro ao consultar status do pagamento:', error);
         }
       };
       
-      checkPaymentStatus();
+      checkPaymentStatusAndTrack();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
