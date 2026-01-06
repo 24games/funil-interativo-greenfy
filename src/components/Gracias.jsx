@@ -94,8 +94,72 @@ export default function Gracias() {
       // Proteção contra duplicidade via sessionStorage
       const sessionKey = `purchase_fired_flow_${urlToken}`;
       
-      // Consulta status do pagamento e dispara tracking
-      const checkPaymentStatusAndTrack = async () => {
+      // ✅ TRACKING: Dispara IMEDIATAMENTE, independente da API
+      // Valor padrão fixo para garantir marcação da conversão
+      const fireTrackingImmediately = async () => {
+        // Verifica se já foi disparado nesta sessão
+        if (sessionStorage.getItem(sessionKey)) {
+          console.log('⚠️ Tracking (Flow) já foi disparado nesta sessão - pulando');
+          return;
+        }
+        
+        // Valor padrão fixo (fallback)
+        const purchaseValue = 10000; // Valor padrão do produto
+        const currency = 'CLP';
+        
+        // ⏳ AGUARDA SCRIPTS DE TRACKING CARREGAREM (resolve race condition)
+        try {
+          await waitForGlobal(10000); // Timeout de 10 segundos
+          
+          // 1. Facebook Pixel Purchase (redundância com webhook)
+          if (window.fbq && typeof window.fbq === 'function') {
+            try {
+              window.fbq('track', 'Purchase', {
+                value: purchaseValue,
+                currency: currency,
+              }, {
+                eventID: urlToken, // ✅ Usa token como event_id para deduplicar
+              });
+              console.log('✅ Pixel Purchase disparado (Flow) - token:', urlToken, 'value:', purchaseValue);
+            } catch (error) {
+              console.warn('⚠️ Erro ao disparar Pixel Purchase (Flow):', error);
+            }
+          } else {
+            console.warn('⚠️ Meta Pixel (fbq) não disponível após aguardar');
+          }
+          
+          // 2. UTMify (Flow NÃO tem integração nativa)
+          if (window.utmify && typeof window.utmify === 'function') {
+            try {
+              window.utmify('track', 'purchase', {
+                value: purchaseValue,
+                currency: currency,
+              });
+              console.log('✅ UTMify Purchase disparado (Flow) - value:', purchaseValue);
+            } catch (error) {
+              console.warn('⚠️ Erro ao disparar UTMify (Flow):', error);
+            }
+          } else {
+            console.warn('⚠️ UTMify não disponível após aguardar');
+          }
+          
+          console.log('✅ Eventos disparados com sucesso');
+          
+          // Marca como enviado no sessionStorage (evita duplicidade em F5)
+          sessionStorage.setItem(sessionKey, 'true');
+        } catch (error) {
+          console.error('❌ Erro ao aguardar scripts de tracking:', error);
+          // Mesmo com erro, marca como enviado para não ficar tentando infinitamente
+          sessionStorage.setItem(sessionKey, 'true');
+        }
+      };
+      
+      // ✅ Dispara tracking IMEDIATAMENTE (execução paralela)
+      fireTrackingImmediately();
+      
+      // ✅ API: Consulta status do pagamento em PARALELO (apenas para UI)
+      // Não bloqueia o tracking
+      const checkPaymentStatus = async () => {
         try {
           const response = await fetch(`/api/get-flow-status?token=${encodeURIComponent(urlToken)}`);
           if (response.ok) {
@@ -108,59 +172,6 @@ export default function Gracias() {
             // Atualiza UI com status
             setPaymentStatus(data.status);
             setPaymentAmount(data.amount);
-            
-            // ✅ FLOW: Dispara tracking apenas uma vez por sessão
-            if (!sessionStorage.getItem(sessionKey)) {
-              const purchaseValue = data.amount || 10000; // Fallback para 10000 se não houver amount
-              
-              // ⏳ AGUARDA SCRIPTS DE TRACKING CARREGAREM (resolve race condition)
-              try {
-                await waitForGlobal(10000); // Timeout de 10 segundos
-                
-                // 1. Facebook Pixel Purchase (redundância com webhook)
-                if (window.fbq && typeof window.fbq === 'function') {
-                  try {
-                    window.fbq('track', 'Purchase', {
-                      value: purchaseValue,
-                      currency: data.currency || 'CLP',
-                    }, {
-                      eventID: urlToken, // ✅ Usa token como event_id para deduplicar
-                    });
-                    console.log('✅ Pixel Purchase disparado (Flow) - token:', urlToken, 'value:', purchaseValue);
-                  } catch (error) {
-                    console.warn('⚠️ Erro ao disparar Pixel Purchase (Flow):', error);
-                  }
-                } else {
-                  console.warn('⚠️ Meta Pixel (fbq) não disponível após aguardar');
-                }
-                
-                // 2. UTMify (Flow NÃO tem integração nativa)
-                if (window.utmify && typeof window.utmify === 'function') {
-                  try {
-                    window.utmify('track', 'purchase', {
-                      value: purchaseValue,
-                      currency: 'CLP',
-                    });
-                    console.log('✅ UTMify Purchase disparado (Flow) - value:', purchaseValue);
-                  } catch (error) {
-                    console.warn('⚠️ Erro ao disparar UTMify (Flow):', error);
-                  }
-                } else {
-                  console.warn('⚠️ UTMify não disponível após aguardar');
-                }
-                
-                console.log('✅ Eventos disparados com sucesso');
-                
-                // Marca como enviado no sessionStorage (evita duplicidade em F5)
-                sessionStorage.setItem(sessionKey, 'true');
-              } catch (error) {
-                console.error('❌ Erro ao aguardar scripts de tracking:', error);
-                // Mesmo com erro, marca como enviado para não ficar tentando infinitamente
-                sessionStorage.setItem(sessionKey, 'true');
-              }
-            } else {
-              console.log('⚠️ Tracking (Flow) já foi disparado nesta sessão - pulando');
-            }
           } else {
             console.warn('⚠️ Erro ao consultar status do pagamento');
           }
@@ -169,7 +180,8 @@ export default function Gracias() {
         }
       };
       
-      checkPaymentStatusAndTrack();
+      // Executa API em paralelo (não bloqueia tracking)
+      checkPaymentStatus();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
