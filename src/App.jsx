@@ -13,6 +13,7 @@ import BackPerfect from './components/BackPerfect'
 import HomePerfect from './components/HomePerfect'
 import PrePerfect from './components/PrePerfect'
 import Gracias from './components/Gracias'
+import Try from './components/Try'
 
 function App() {
   const [currentPath, setCurrentPath] = useState(() => {
@@ -68,6 +69,11 @@ function App() {
   // Se a rota for /gracias, renderiza a página de obrigado
   if (currentPath === '/gracias' || currentPath === '/gracias/') {
     return <Gracias />
+  }
+
+  // Se a rota for /try, renderiza a página de tentar novamente
+  if (currentPath === '/try' || currentPath === '/try/') {
+    return <Try />
   }
   // Inicializa o step a partir da URL (se presente)
   const getInitialStep = () => {

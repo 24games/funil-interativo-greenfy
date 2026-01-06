@@ -1,7 +1,7 @@
 /**
  * Middleware de Retorno do Flow.cl
  * 
- * Recebe POST do Flow.cl após pagamento e redireciona para a página /gracias
+ * Recebe POST do Flow.cl após pagamento e redireciona conforme status
  * 
  * Endpoint: /api/flow-return
  * Method: POST
@@ -9,8 +9,104 @@
  * Fluxo:
  * 1. Flow.cl envia POST com token no body
  * 2. Este endpoint recebe o POST
- * 3. Redireciona (303) para /gracias?token={token}
+ * 3. Verifica status do pagamento no Flow.cl
+ * 4. Se status === 2 (pago): redireciona para /gracias?token={token}
+ * 5. Se status !== 2 (falhou/cancelado): redireciona para /try
  */
+
+import crypto from 'crypto';
+
+// ============================================
+// CONFIGURAÇÃO
+// ============================================
+const FLOW_API_KEY = process.env.FLOW_API_KEY;
+const FLOW_SECRET_KEY = process.env.FLOW_SECRET_KEY;
+const FLOW_API_URL = 'https://www.flow.cl/api';
+const FLOW_STATUS_PAID = 2;
+
+/**
+ * Gera assinatura HMAC SHA256 para requisições Flow.cl
+ */
+function generateFlowSignature(params) {
+  if (!FLOW_SECRET_KEY) {
+    throw new Error('FLOW_SECRET_KEY não configurada');
+  }
+
+  const sortedKeys = Object.keys(params)
+    .filter(key => key !== 's')
+    .sort();
+
+  const stringToSign = sortedKeys
+    .map(key => {
+      const value = String(params[key] || '');
+      return key + value;
+    })
+    .join('');
+
+  const signature = crypto
+    .createHmac('sha256', FLOW_SECRET_KEY)
+    .update(stringToSign)
+    .digest('hex');
+
+  return signature;
+}
+
+/**
+ * Busca status do pagamento no Flow.cl usando query params
+ */
+async function getFlowPaymentStatus(token) {
+  if (!FLOW_API_KEY || !FLOW_SECRET_KEY) {
+    throw new Error('FLOW_API_KEY e FLOW_SECRET_KEY são obrigatórias');
+  }
+
+  const params = {
+    apiKey: FLOW_API_KEY,
+    token: token,
+  };
+
+  const signature = generateFlowSignature(params);
+  params.s = signature;
+
+  const queryString = new URLSearchParams(params).toString();
+  const url = `${FLOW_API_URL}/payment/getStatus?${queryString}`;
+
+  console.log('🔍 Consultando status do pagamento Flow (flow-return):', {
+    token: token.substring(0, 20) + '...',
+  });
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Erro ao consultar status Flow:', {
+        status: response.status,
+        error: errorText,
+      });
+      throw new Error(`Flow API Error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    console.log('✅ Status consultado com sucesso (flow-return):', {
+      status: data.status,
+      commerceOrder: data.commerceOrder,
+    });
+
+    return data;
+  } catch (error) {
+    console.error('❌ Erro ao buscar status do pagamento no Flow.cl:', {
+      token: token ? token.substring(0, 20) + '...' : 'não fornecido',
+      errorMessage: error.message,
+    });
+    throw error;
+  }
+}
 
 /**
  * Handler da Serverless Function (Vercel)
@@ -63,9 +159,9 @@ export default async function handler(req, res) {
         bodyType: typeof body,
       });
       
-      // Mesmo sem token, redireciona para /gracias (sem token)
-      const redirectUrl = '/gracias';
-      console.log('🔄 Redirecionando para:', redirectUrl);
+      // Sem token, não é possível verificar status - redireciona para /try (mais seguro)
+      const redirectUrl = '/try';
+      console.log('🔄 Token não encontrado - redirecionando para /try');
       
       return res.redirect(303, redirectUrl);
     }
@@ -75,13 +171,31 @@ export default async function handler(req, res) {
       tokenLength: token.length,
     });
 
-    // Monta URL de redirecionamento (relativa ao mesmo domínio)
-    const redirectUrl = `/gracias?token=${encodeURIComponent(token)}`;
-    
-    console.log('🔄 Redirecionando para:', redirectUrl);
+    // Verifica status do pagamento antes de redirecionar
+    let flowStatus;
+    try {
+      flowStatus = await getFlowPaymentStatus(token);
+    } catch (error) {
+      console.error('❌ Erro ao verificar status do pagamento:', {
+        error: error.message,
+        token: token.substring(0, 20) + '...',
+      });
+      // Em caso de erro ao verificar, redireciona para /try (mais seguro)
+      console.log('🔄 Erro ao verificar status - redirecionando para /try');
+      return res.redirect(303, '/try');
+    }
 
-    // Redireciona com Status 303 (See Other) - método GET
-    return res.redirect(303, redirectUrl);
+    // Verifica se está pago (status === 2)
+    if (flowStatus.status === FLOW_STATUS_PAID) {
+      // Pagamento confirmado - redireciona para /gracias
+      const redirectUrl = `/gracias?token=${encodeURIComponent(token)}`;
+      console.log('✅ Pagamento confirmado - redirecionando para /gracias');
+      return res.redirect(303, redirectUrl);
+    } else {
+      // Pagamento não confirmado (cancelado, recusado, pendente, etc.) - redireciona para /try
+      console.log('⚠️ Pagamento não confirmado (status:', flowStatus.status, ') - redirecionando para /try');
+      return res.redirect(303, '/try');
+    }
 
   } catch (error) {
     // Log de erro
@@ -92,9 +206,9 @@ export default async function handler(req, res) {
       body: req.body,
     });
 
-    // Mesmo em caso de erro, redireciona para /gracias (sem token)
-    // Melhor mostrar a página de sucesso mesmo com erro no processamento
-    return res.redirect(303, '/gracias');
+    // Em caso de erro, redireciona para /try (mais seguro - evita dar acesso de graça)
+    console.log('🔄 Erro no processamento - redirecionando para /try');
+    return res.redirect(303, '/try');
   }
 }
 
