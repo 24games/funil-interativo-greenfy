@@ -8,8 +8,8 @@ export default function Step7Perfect() {
   // ============================================================================
   // CONFIGURAÇÃO DO PROGRESS BAR BUTTON (PERFORMANCE MÁXIMA COM useRef)
   // ============================================================================
-  const TARGET_TIME = 126 // Tempo alvo em segundos (2:06)
-  const TARGET_VIDEO_ID = '6949e54790b70171e37b272b' // ID do vídeo
+  const TARGET_TIME = 174 // Tempo alvo em segundos (2:54)
+  const TARGET_VIDEO_ID = '695e6d0a8990e4119b4b0ee8' // ID do vídeo
   
   // REFS para manipulação direta do DOM (evita re-renders)
   const progressBarRef = useRef(null) // Referência para a barra verde
@@ -128,7 +128,7 @@ export default function Step7Perfect() {
         // LÓGICA EXATA DO SCRIPT: Se currentTime < SECONDS_TO_DISPLAY, retorna
         if (currentTime < SECONDS_TO_DISPLAY) return
         
-        // Se chegou aqui, atingiu 126s! Mostra elementos e libera botão
+        // Se chegou aqui, atingiu 174s! Mostra elementos e libera botão
         showHiddenElements()
       })
 
@@ -181,8 +181,8 @@ export default function Step7Perfect() {
         transition={{ delay: 0.9 }}
       >
         <VturbVideo 
-          videoId="vid_6949e54790b70171e37b272b"
-          playerId="6949e54790b70171e37b272b"
+          videoId="vid_695e6d0a8990e4119b4b0ee8"
+          playerId="695e6d0a8990e4119b4b0ee8"
           delaySeconds={TARGET_TIME}
         />
       </motion.div>
@@ -193,7 +193,7 @@ export default function Step7Perfect() {
            Botão que funciona como barra de progresso:
            - Visível desde o início, mas não clicável (disabled)
            - Barra verde preenche conforme o vídeo avança
-           - Aos 126s: barra completa (100%), botão clicável, texto muda
+           - Aos 174s: barra completa (100%), botão clicável, texto muda
            ================================================================ */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
