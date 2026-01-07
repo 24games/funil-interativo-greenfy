@@ -8,8 +8,8 @@ export default function Step7Perfect() {
   // ============================================================================
   // CONFIGURAÇÃO DO PROGRESS BAR BUTTON (PERFORMANCE MÁXIMA COM useRef)
   // ============================================================================
-  const TARGET_TIME = 174 // Tempo alvo em segundos (2:54)
-  const TARGET_VIDEO_ID = '695e6d0a8990e4119b4b0ee8' // ID do vídeo
+  const TARGET_TIME = 178 // Tempo alvo em segundos (2:58)
+  const TARGET_VIDEO_ID = '695ebb648990e4119b4b81ad' // ID do vídeo
   
   // REFS para manipulação direta do DOM (evita re-renders)
   const progressBarRef = useRef(null) // Referência para a barra verde
@@ -34,7 +34,7 @@ export default function Step7Perfect() {
   // ADAPTAÇÃO EXATA DO SCRIPT ORIGINAL PARA STEP 7
   // ============================================================================
   useEffect(() => {
-    const SECONDS_TO_DISPLAY = TARGET_TIME // 126 segundos
+    const SECONDS_TO_DISPLAY = TARGET_TIME // 178 segundos
     let attempts = 0
     let isConnected = false
 
@@ -128,7 +128,7 @@ export default function Step7Perfect() {
         // LÓGICA EXATA DO SCRIPT: Se currentTime < SECONDS_TO_DISPLAY, retorna
         if (currentTime < SECONDS_TO_DISPLAY) return
         
-        // Se chegou aqui, atingiu 174s! Mostra elementos e libera botão
+        // Se chegou aqui, atingiu 178s! Mostra elementos e libera botão
         showHiddenElements()
       })
 
@@ -181,8 +181,8 @@ export default function Step7Perfect() {
         transition={{ delay: 0.9 }}
       >
         <VturbVideo 
-          videoId="vid_695e6d0a8990e4119b4b0ee8"
-          playerId="695e6d0a8990e4119b4b0ee8"
+          videoId="vid_695ebb648990e4119b4b81ad"
+          playerId="695ebb648990e4119b4b81ad"
           delaySeconds={TARGET_TIME}
         />
       </motion.div>
@@ -193,7 +193,7 @@ export default function Step7Perfect() {
            Botão que funciona como barra de progresso:
            - Visível desde o início, mas não clicável (disabled)
            - Barra verde preenche conforme o vídeo avança
-           - Aos 174s: barra completa (100%), botão clicável, texto muda
+           - Aos 178s: barra completa (100%), botão clicável, texto muda
            ================================================================ */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
