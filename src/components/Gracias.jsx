@@ -187,9 +187,9 @@ export default function Gracias() {
   }, [])
 
   const handleAccessProduct = () => {
-    // Número do WhatsApp: +55 47 99764-6692 (formato completo: 5547997646692)
+    // Número do WhatsApp: 61981541210
     // Formato para wa.me: número completo sem espaços e sem +
-    const whatsappNumber = '5547997646692'
+    const whatsappNumber = '61981541210'
     const message = 'Quiero conceder acceso a la aplicación!'
     const encodedMessage = encodeURIComponent(message)
     
