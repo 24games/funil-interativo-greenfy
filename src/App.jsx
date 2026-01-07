@@ -55,16 +55,10 @@ function App() {
     return <PrePerfect />
   }
 
-  // ============================================
-  // ROTA /perfect - DESATIVADA TEMPORARIAMENTE
-  // ============================================
-  // Para reativar: descomente o bloco abaixo e remova as regras de rewrite
-  // do vercel.json que redirecionam /perfect para /
-  // ============================================
-  // if (currentPath === '/perfect' || currentPath === '/perfect/') {
-  //   return <HomePerfect />
-  // }
-  // ============================================
+  // Se a rota for /perfect, renderiza o funil Perfect Pay
+  if (currentPath === '/perfect' || currentPath === '/perfect/') {
+    return <HomePerfect />
+  }
 
   // Se a rota for /gracias, renderiza a página de obrigado
   if (currentPath === '/gracias' || currentPath === '/gracias/') {

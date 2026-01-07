@@ -51,14 +51,6 @@
       "destination": "/api/test-purchase-simple.js"
     },
     {
-      "source": "/perfect",
-      "destination": "/"
-    },
-    {
-      "source": "/perfect/:path*",
-      "destination": "/"
-    },
-    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
