@@ -243,7 +243,7 @@ export default function Gracias() {
             transition={{ delay: 0.3 }}
             className="text-3xl md:text-4xl font-bold text-white"
           >
-            ¡Pago Exitoso!
+            HAZ CLIC AHORA AQUÍ ABAJO PARA LIBERAR TU ACCESO
           </motion.h1>
 
           {/* Subtítulo */}
@@ -253,7 +253,7 @@ export default function Gracias() {
             transition={{ delay: 0.4 }}
             className="text-gray-300 text-lg md:text-xl leading-relaxed"
           >
-            Tu acceso ha sido liberado.
+            ¡Felicitaciones! Solo falta que hagas clic en el botón de abajo para tener acceso INMEDIATO a tu I.A
           </motion.p>
 
           {/* Botão para acessar o produto */}
