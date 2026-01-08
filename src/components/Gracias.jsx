@@ -187,9 +187,9 @@ export default function Gracias() {
   }, [])
 
   const handleAccessProduct = () => {
-    // Número do WhatsApp: 61981541210
+    // Número do WhatsApp: 5561981541210 (código do Brasil 55 + DDD 61 + número)
     // Formato para wa.me: número completo sem espaços e sem +
-    const whatsappNumber = '61981541210'
+    const whatsappNumber = '5561981541210'
     const message = 'Quiero conceder acceso a la aplicación!'
     const encodedMessage = encodeURIComponent(message)
     
