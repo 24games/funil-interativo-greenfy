@@ -13,6 +13,7 @@ import BackPerfect from './components/BackPerfect'
 import HomePerfect from './components/HomePerfect'
 import PrePerfect from './components/PrePerfect'
 import Gracias from './components/Gracias'
+import GraciasPerfect from './components/GraciasPerfect'
 import Try from './components/Try'
 
 function App() {
@@ -63,6 +64,11 @@ function App() {
   // Se a rota for /gracias, renderiza a página de obrigado
   if (currentPath === '/gracias' || currentPath === '/gracias/') {
     return <Gracias />
+  }
+
+  // Se a rota for /gracias-perfect, renderiza a página de obrigado Perfect
+  if (currentPath === '/gracias-perfect' || currentPath === '/gracias-perfect/') {
+    return <GraciasPerfect />
   }
 
   // Se a rota for /try, renderiza a página de tentar novamente
