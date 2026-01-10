@@ -1,15 +1,14 @@
 import { motion } from 'framer-motion'
 import { useRef, useState, useEffect } from 'react'
 import { Sparkles } from 'lucide-react'
-import VturbVideo from './VturbVideo'
 import { handlePerfectRedirect } from '../utils/perfectCheckout.js'
 
 export default function Step7Perfect() {
   // ============================================================================
   // CONFIGURAÇÃO DO PROGRESS BAR BUTTON (PERFORMANCE MÁXIMA COM useRef)
   // ============================================================================
-  const TARGET_TIME = 178 // Tempo alvo em segundos (2:58)
-  const TARGET_VIDEO_ID = '695ebb648990e4119b4b81ad' // ID do vídeo
+  const TARGET_TIME = 128 // Tempo alvo em segundos (2:08)
+  const TARGET_VIDEO_ID = '6949e54790b70171e37b272b' // ID do vídeo
   
   // REFS para manipulação direta do DOM (evita re-renders)
   const progressBarRef = useRef(null) // Referência para a barra verde
@@ -34,7 +33,27 @@ export default function Step7Perfect() {
   // ADAPTAÇÃO EXATA DO SCRIPT ORIGINAL PARA STEP 7
   // ============================================================================
   useEffect(() => {
-    const SECONDS_TO_DISPLAY = TARGET_TIME // 178 segundos
+    const SECONDS_TO_DISPLAY = TARGET_TIME // 128 segundos
+    
+    // Carrega o script do vídeo Vturb
+    const videoId = 'vid_6949e54790b70171e37b272b'
+    const playerId = '6949e54790b70171e37b272b'
+    
+    // Verifica se o script já foi carregado
+    const existingScript = document.querySelector(`script[id="scr_${playerId}"]`)
+    
+    if (!existingScript) {
+      const script = document.createElement('script')
+      script.type = 'text/javascript'
+      script.id = `scr_${playerId}`
+      script.textContent = `
+        var s=document.createElement("script");
+        s.src="https://scripts.converteai.net/af053167-2542-4323-9c93-d010e7938eb5/players/${playerId}/player.js";
+        s.async=true;
+        document.head.appendChild(s);
+      `
+      document.head.appendChild(script)
+    }
     let attempts = 0
     let isConnected = false
 
@@ -128,7 +147,7 @@ export default function Step7Perfect() {
         // LÓGICA EXATA DO SCRIPT: Se currentTime < SECONDS_TO_DISPLAY, retorna
         if (currentTime < SECONDS_TO_DISPLAY) return
         
-        // Se chegou aqui, atingiu 178s! Mostra elementos e libera botão
+        // Se chegou aqui, atingiu 128s! Mostra elementos e libera botão
         showHiddenElements()
       })
 
@@ -180,11 +199,50 @@ export default function Step7Perfect() {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.9 }}
       >
-        <VturbVideo 
-          videoId="vid_695ebb648990e4119b4b81ad"
-          playerId="695ebb648990e4119b4b81ad"
-          delaySeconds={TARGET_TIME}
-        />
+        <div 
+          className="w-full mx-auto"
+          style={{ 
+            maxWidth: '280px',
+            width: '100%'
+          }}
+        >
+          <div 
+            id="vid_6949e54790b70171e37b272b" 
+            style={{ 
+              position: 'relative',
+              width: '100%',
+              padding: '177.77777777777777% 0 0',
+              borderRadius: 'calc(1.5rem - 0.5px)',
+              overflow: 'hidden'
+            }}
+          >
+            <img 
+              id="thumb_6949e54790b70171e37b272b" 
+              src="https://images.converteai.net/af053167-2542-4323-9c93-d010e7938eb5/players/6949e54790b70171e37b272b/thumbnail.jpg" 
+              style={{ 
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block'
+              }} 
+              alt="thumbnail" 
+            />
+            <div 
+              id="backdrop_6949e54790b70171e37b272b" 
+              style={{ 
+                WebkitBackdropFilter: 'blur(5px)',
+                backdropFilter: 'blur(5px)',
+                position: 'absolute',
+                top: 0,
+                height: '100%',
+                width: '100%'
+              }}
+            />
+          </div>
+        </div>
       </motion.div>
 
       {/* ================================================================
@@ -269,7 +327,7 @@ export default function Step7Perfect() {
               height: '100%',
               width: '0%', // COMEÇA EM 0% - Manipulado via ref.current.style.width
               background: 'linear-gradient(90deg, #00FF88, #00FFD4)', // Verde da marca
-              // Transição 0.1s linear - Rápida para acompanhar, para instantâneo ao pausar
+              // Transição rápida para acompanhar atualizações dinâmicas do vídeo (sincronizado com 128s)
               transition: 'width 0.1s linear',
               zIndex: 1
             }}
